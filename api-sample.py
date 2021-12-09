@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.69"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.70"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -71,7 +71,7 @@ import pathlib
 # import pickle      # for serialization and deserialization of objects,
 # is denylisted
 import platform    # built-in for mac_ver()
-import pytz        # for time zone handling
+#import pytz        # for time zone handling
 import pwd
 import random
 from random import SystemRandom
@@ -135,8 +135,8 @@ https://gist.github.com/dokterbob/6410844
 start_run_time = time.monotonic()  # for wall-clock time (includes any sleep).
 start_epoch_time = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
-import pytz
-start_UTC_time = pytz.utc   # get the standard UTC time
+# import pytz
+# start_UTC_time = pytz.utc   # get the standard UTC time
 
 # This handles situation when user is in su mode. See http://docs.python.org/library/pwd.html
 #import psutil
@@ -720,25 +720,27 @@ def macos_version_name(release_in):
     # gets loaded during each run.
     # Apple has a way of forcing users to upgrade, so this is used as an
     # example of coding.
-    MACOS_VERIONS = {
-        '22.0': ['?', 2022, '10.18'],
-        '21.1': ['Monterey', 2021, '10.17'],
-        '11.1': ['Big Sur', 2020, '10.16'],
-        '10.15': ['Catalina', 2019, '10.15'],
-        '10.14': ['Mojave', 2018, '10.14'],
-        '10.13': ['High Sierra', 2017, '10.13'],
-        '10.12': ['Sierra', 2016, '10.12'],
-        '10.11': ['El Capitan', 2015, '10.11'],
-        '10.10': ['Yosemite', 2014, '10.10'],
-        '10.0': ['Mavericks', 2013, '10.9'],
-        '10.8': ['Mountain Lion', 2012, '10.8'],
-        '10.7': ['Lion', 2011, '10.7'],
-        '10.6': ['Snow Leopard', 2008, '10.6'],
+    # FIXME: https://github.com/nexB/scancode-plugins/blob/main/etc/scripts/homebrew.py
+    MACOS_VERSIONS = {
+        '22.0': ['?', 2022, '22'],
+        '21.1': ['Monterey', 2021, '21'],
+        '11.1': ['Big Sur', 2020, '20'],
+        '19.6': ['Catalina', 2019, '19'],
+        '10.14': ['Mojave', 2018, '18'],
+        '10.13': ['High Sierra', 2017, '17'],
+        '10.12': ['Sierra', 2016, '16'],
+        '10.11': ['El Capitan', 2015, '15'],
+        '10.10': ['Yosemite', 2014, '14'],
+        '10.0': ['Mavericks', 2013, '13'],
+        '10.8': ['Mountain Lion', 2012, '12'],
+        '10.7': ['Lion', 2011, '11'],
+        '10.6': ['Snow Leopard', 2008, '10'],
         '10.5': ['Leopard', 2007, '10.5'],
         '10.4': ['Tiger', 2005, '10.4'],
         '10.3': ['Panther', 2004, '10.3'],
         '10.2': ['Jaguar', 2003, '10.2'],
         '10.1': ['Puma', 2002, '10.1'],
+        '10.0': ['Cheetah', 2001, '10.0'],
     }
     # WRONG: On macOS Monterey, platform.mac_ver()[0]) returns "10.16", which is Big Sur and thus wrong.
     # See https://eclecticlight.co/2020/08/13/macos-version-numbering-isnt-so-simple/
@@ -749,7 +751,7 @@ def macos_version_name(release_in):
     # p = subprocess.Popen("sw_vers", stdout=subprocess.PIPE)
     #result = p.communicate()[0]
     release = '.'.join(release_in.split(".")[:2])  # ['10', '15', '7']
-    macos_info = MACOS_VERIONS[release]  # lookup for ['Monterey', 2021]
+    macos_info = MACOS_VERSIONS[release]  # lookup for ['Monterey', 2021]
     if show_trace:
         print(
             f'***{bcolors.TRACE} macos_info={macos_info} platform.uname()={platform.release()}{bcolors.RESET} ')
