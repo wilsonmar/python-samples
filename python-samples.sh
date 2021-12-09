@@ -4,7 +4,7 @@
 # (to avoid ModuleNotFoundError: No module named ... )
 
 THIS_PROGRAM="$0"
-SCRIPT_VERSION="v0.0.06"
+SCRIPT_VERSION="v0.0.07"
 
 # After you obtain a Terminal (console) in your enviornment,
 # cd to folder, copy this line and paste in the terminal (without the # character):
@@ -76,7 +76,8 @@ run_bandit=false
 
 # if desired folder is not there, create it:
 # cd to desired folder:
-    cd project
+# cd project
+
 
 
 # SECTION 2. Install utilities  ################################
@@ -106,34 +107,39 @@ run_bandit=false
 
 if [ "${RUN_VIRTUALENV}" = true ]; then  # -V  (not the default pipenv)
 
-   h2 "Install -python"
-   if [ "${PACKAGE_MANAGER}" == "brew" ]; then # -U
-      if ! command -v python3 ; then
-         h2 "Installing python3 ..."
-         brew install python3
-      else
-         if [ "${UPDATE_PKGS}" = true ]; then
-            h2 "Upgrading python3 ..."
-            brew upgrade python3
-         fi
-      fi
-   elif [ "${PACKAGE_MANAGER}" == "apt-get" ]; then
-      silent-apt-get-install "python3"
+   # https://levipy.com/virtualenv-and-virtualenvwrapper-tutorial
+   # to create isolated Python environments. https://docs.python.org/3/library/venv.html
+   #pipenv install virtualenvwrapper
+
+   my_venv_folder="venv"
+   if [ -d ${my_venv_folder} ]; then   # venv folder already in the folder:
+      note "Folder {my_venv_folder} being re-used ..."
+   else
+      # The venv module is included in the Python standard library installed.
+      h2 "Make venv ${my_venv_folder} ..."  # venv is for Python3, virtualenv is for Python2
+      python3 -m venv ${my_venv_folder}
    fi
-   note "$( python3 --version )"  # Python 3.7.6
-   note "$( pip3 --version )"      # pip 19.3.1 from /Library/Python/2.7/site-packages/pip (python 2.7)
 
+   base_prefix=getattr(sys, "base_prefix", None)
+      # base_prefix='/usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9'
+      # sys.prefix='/Users/wilson_mar/gmail_acct/python-samples/venv'
+   echo "{sys.prefix}"
+   # if ${my_venv_folder} is found at the end of sys.prefix:
+   # or
+   if [ ! -d ${my_venv_folder} ]; then
+      h2 "Activate 
+      source "{my_venv_folder}"/bin/activate
+   else
+      echo "{my_venv_folder} not found. Aborting."
+      exit
+   fi
 
-      # h2 "Install virtualenv"  # https://levipy.com/virtualenv-and-virtualenvwrapper-tutorial
-      # to create isolated Python environments.
-      #pipenv install virtualenvwrapper
+   # To check if one a virtual environment is active, check whether the 
+   # VIRTUAL_ENV environment variable is set to the path of the virtual environment. 
+   echo ${VIRTUAL_ENV}
 
-      if [ -d "venv" ]; then   # venv folder already there:
-         note "venv folder being re-used ..."
-      else
-         h2 "virtualenv venv ..."
-         virtualenv venv
-      fi
+   exit 
+
 
    """
       # TODO: Make sure venv is in .gitignore:
@@ -145,6 +151,9 @@ if [ "${RUN_VIRTUALENV}" = true ]; then  # -V  (not the default pipenv)
       fi
    fi
    """
+
+
+   
 
       h2 "source venv/bin/activate"
       # shellcheck disable=SC1091 # Not following: venv/bin/activate was not specified as input (see shellcheck -x).
@@ -212,7 +221,7 @@ if [ "${RUN_PIPENV}" = true ]; then  # -V  (not the default pipenv)
 fi  # RUN_VIRTUALENV
 
 
-# SECTION 5. Install pip packages in conda enviornment  ###################
+# SECTION 5. Install pip packages in conda environment  ###################
 
 #    Python packages (dependencies) needed by "import" statements in the code
 
@@ -232,7 +241,7 @@ fi  # RUN_VIRTUALENV
        pip install google-cloud-secret-manager  # 2.8.0-py2.py3-none-any.whl (94 kB)
        # pip install -U pyjwt   # https://github.com/jpadilla/pyjwt & https://pyjwt.readthedocs.io/en/stable/
        pip install -U redis   # redis-4.0.2-py3-none-any.whl (119 kB)
-
+       sudo pip3 install -U pytz   # installed pytz-2021.3
 
 # SECTION 6. Install and run scans
 
