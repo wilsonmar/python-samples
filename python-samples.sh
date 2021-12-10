@@ -4,7 +4,7 @@
 # (to avoid ModuleNotFoundError: No module named ... )
 
 THIS_PROGRAM="$0"
-SCRIPT_VERSION="v0.0.07"
+SCRIPT_VERSION="v0.0.08"
 
 # After you obtain a Terminal (console) in your enviornment,
 # cd to folder, copy this line and paste in the terminal (without the # character):
