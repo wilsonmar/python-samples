@@ -72,7 +72,7 @@ run_gitleaks=false
 run_flake8=false
 run_autopep8=false
 run_pylint=false
-run_bandit=false
+run_bandit=true
 
 # if desired folder is not there, create it:
 # cd to desired folder:
@@ -117,28 +117,32 @@ if [ "${RUN_VIRTUALENV}" = true ]; then  # -V  (not the default pipenv)
    else
       # The venv module is included in the Python standard library installed.
       h2 "Make venv ${my_venv_folder} ..."  # venv is for Python3, virtualenv is for Python2
-      python3 -m venv ${my_venv_folder}
+      python3 -m venv "${my_venv_folder}"
+      if [ ! -d "${my_venv_folder}" ]; then   # venv folder already in the folder:
+         echo "${my_venv_folder} folder not found"
+         exit 1
+      fi
    fi
 
-   base_prefix=getattr(sys, "base_prefix", None)
-      # base_prefix='/usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9'
-      # sys.prefix='/Users/wilson_mar/gmail_acct/python-samples/venv'
-   echo "{sys.prefix}"
-   # if ${my_venv_folder} is found at the end of sys.prefix:
-   # or
    if [ ! -d ${my_venv_folder} ]; then
-      h2 "Activate 
-      source "{my_venv_folder}"/bin/activate
+      h2 "Activate {my_venv_folder}"
+      source "${my_venv_folder}/bin/activate"
+      # "(venv)" should now appear above the cursor.
    else
-      echo "{my_venv_folder} not found. Aborting."
+      echo "${my_venv_folder} not found. Aborting."
       exit
    fi
 
    # To check if one a virtual environment is active, check whether the 
    # VIRTUAL_ENV environment variable is set to the path of the virtual environment. 
-   echo ${VIRTUAL_ENV}
+   echo ${VIRTUAL_ENV}  # /Users/wilson_mar/gmail_acct/python-samples/venv
 
-   exit 
+   # FIXME: -bash: syntax error near unexpected token `('
+   # base_prefix=getattr(sys, "base_prefix", None)
+      # base_prefix='/usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9'
+      # sys.prefix='/Users/wilson_mar/gmail_acct/python-samples/venv'
+   # echo "${sys.prefix}"
+   # if ${my_venv_folder} is found at the end of sys.prefix:
 
 
    """

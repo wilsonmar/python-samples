@@ -214,7 +214,7 @@ email_weather = False
 ##  14. Retrieve secrets from local OS Keyring  = use_keyring
 use_keyring = False
 # 14. Retrieve secrets from Azure Key Vault  = use_azure
-use_azure = False
+use_azure = True
 # 15. Retrieve secrets from AWS KMS         = use_aws
 use_aws = False
 # 16. Retrieve secrets from GCP             = use_gcp
@@ -819,8 +819,8 @@ if show_pgminfo:
     if "|" in sys.version:
         # 3.8.12 | packaged by conda-forge | (default, Sep 29 2021, 19:44:33)
         # [Clang 11.1.0 ]
-        if show_info:
-            print(f'*** Python {localize_blob("version")}="{sys.version}')
+        text_msg="Python " + sys.version + " AWS boto3 version: " + boto3.__version__
+        print_info( text_msg )  # example: 1.20.12
             # Python version %s 3.7.6 (default, Dec 30 2019, 19:38:28)
             # [Clang 11.0.0 (clang-1100.0.33.16)]
     else:
@@ -840,8 +840,15 @@ if show_pgminfo:
         # 2.7.16 (default, Mar 25 2021, 03:11:28)
         # [GCC 4.2.1 Compatible Apple LLVM 11.0.3 (clang-1103.0.29.20) (-macos10.15-objc-
 
-    text_msg="Python AWS boto3 version: " + boto3.__version__
-    print_trace( text_msg )  # example: 1.20.12
+    venv_base_prefix = sys.base_prefix 
+    venv_prefix = sys.prefix
+    print("*** venv_base_prefix={venv_base_prefix} ")
+    print("*** venv_prefix={venv_prefix} ")
+    if venv_base_prefix == venv_prefix :
+        print("venv same")
+    else:
+        print("venv different")
+
     
 
 # SECTION 9. Generate various calculations for hashing, encryption, etc
@@ -1321,30 +1328,37 @@ class Fibonacci(object):
 
         # LATER: Retrieve fibonacci_memoized_cache from Redis?
 
-        if n in fibonacci_memoized_cache:  # Base case
-            return fibonacci_memoized_cache[n]
+        print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
 
-        # if fibonacci_memoized_cache is available :
-        fibonacci_memoized_cache[n] = fibonacci_memoized(
+        if n in Fibonacci.fibonacci_memoized_cache:  # Base case
+            return Fibonacci.fibonacci_memoized_cache[n]
+
+        # if Fibonacci.fibonacci_memoized_cache is available :
+        Fibonacci.fibonacci_memoized_cache[n] = fibonacci_memoized(
             n - 1) + fibonacci_memoized(n - 2)
         new_num = Fibonacci.fibonacci_memoized(
             n - 1) + Fibonacci.fibonacci_memoized(n - 2)
         # TODO: Add entry to Fibonacci.fibonacci_memoized_cache
         
-        """
         # TODO: Save fibonacci_memoized_cache in Azure Redis Cache service.
-        # else:
-        # if use_azure:  # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
-        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
-        # try
-        import redis
-        # redis_fibonacci = redis.StrictRedis(host=AZURE_REDIS_HOSTNAME_FOR_FIBONACCI),
-        # port=AZURE_REDIS_PORT_FOR_FIBONACCI, db=0,
-        # password=AZURE_REDIS_HOSTNAME_FOR_FIBONACCI, ssl=True)
+        if use_azure:  
+            # # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
+            # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
+            import redis
+            azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+            azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
+            azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
+            reddis_connect_dict={
+                'host': azure_redis_hostname,
+                'port': azure_redis_port,
+                'password': azure_redis_password,
+                'ssl': False}
+            redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
 
-        result = redis_fibonacci.ping()
-        print("*** Ping returned : " + str(result))  #
+            result = redis_fibonacci.ping()
+            print("*** Ping returned : " + str(result))  #
 
+        """
         # Update Redis cache with next Fibonacci number:
         # result = redis_fibonacci.set("n: number")
         # print("*** SET Message returned : " + str(result))
@@ -1357,7 +1371,7 @@ class Fibonacci(object):
         # for c in result:
         #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
         """
-        return fibonacci_memoized_cache[n]
+        return Fibonacci.fibonacci_memoized_cache[n]
 
 
 class TestFibonacci(unittest.TestCase):
@@ -1370,7 +1384,7 @@ class TestFibonacci(unittest.TestCase):
             print_separator()
 
             # https://realpython.com/fibonacci-sequence-python/
-            n = 14  # n=610
+            n = 15  # n=610
 
             # from timeit import default_timer as timer
             # from datetime import timedelta
