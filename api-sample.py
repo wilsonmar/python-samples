@@ -155,7 +155,7 @@ print(datetime_utc.strftime(my_date_format))
 
 #from datetime import timezone
 #import datetime
-dt = datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
+dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
 #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
 # use tzinfo class to convert datetime to UTC:
 utc_time = dt.replace(tzinfo=timezone.utc)
