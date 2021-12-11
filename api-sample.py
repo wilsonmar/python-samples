@@ -1383,8 +1383,11 @@ class Fibonacci(object):
                 if result:  # found in Redis:
                     print("*** Found in Redis : ")
                     # FIXME Retrieve entire contents of Redis in fibonacci_memoized_cache (for future efficiency)
-                    sys.exit()  # DEBUGGING                    
-                    # no need to add to Redis.
+                    keys = list(redis_fibonacci_connect.scan_iter())
+                    values = redis_fibonacci_connect.mget(keys)
+                    cache = {k.decode("utf-8"):v.decode("utf-8") for k,v in zip(keys, values)}
+                    print(cache)
+                    # return cache
                 else:  # If not in Redis, create it and add to Redis:
                     result = Fibonacci.fibonacci_recursive(n)
                     if result: # Add to Redis:
