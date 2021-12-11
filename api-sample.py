@@ -71,7 +71,7 @@ import pathlib
 # import pickle      # for serialization and deserialization of objects,
 # is denylisted
 import platform    # built-in for mac_ver()
-#import pytz        # for time zone handling
+import pytz        # for time zone handling
 import pwd
 import random
 from random import SystemRandom
@@ -135,8 +135,9 @@ https://gist.github.com/dokterbob/6410844
 start_run_time = time.monotonic()  # for wall-clock time (includes any sleep).
 start_epoch_time = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
-# import pytz
-# start_UTC_time = pytz.utc   # get the standard UTC time
+#import pytz
+start_UTC_time = pytz.utc   # get the standard UTC time
+print(start_UTC_time)  # NameError: name 'pytz' is not defined
 
 # This handles situation when user is in su mode. See http://docs.python.org/library/pwd.html
 #import psutil
@@ -1318,22 +1319,28 @@ class Fibonacci(object):
             'password': azure_redis_password,
             'ssl': False}
         try:
-            redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
             # Retrieve fibonacci_memoized_cache from Redis:
-            print_trace(redis_fibonacci)
-            return redis_fibonacci
+            redis_fibonacci_connect = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
+            # FIXME: use connection object to get 
+            result = redis_fibonacci.get("MESSAGE")
+            print_trace("*** GET Message returned : " + result.decode("utf-8"))
+            return result
         except :
             print_fail("fibonacci_redis_read failed.")
             use_azure_redis = False
             return None
                 
 
-    def fibonacci_redis_write(n):
-            #result = redis_fibonacci.ping()
-            #print("*** Ping returned : " + str(result))  
+    def fibonacci_redis_write(n, result):
+        """ Update Redis cache with next Fibonacci number: """
             # FIXME:
-        pass
+        result = redis_fibonacci.set("n: number")
+        print("*** SET Message returned : " + str(result))
 
+        # result = redis_fibonacci.client_list()
+        # print("CLIENT LIST returned : ")
+        # for c in result:
+        #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
 
 
     # Starting point in local:
@@ -1370,20 +1377,6 @@ class Fibonacci(object):
             n - 1) + Fibonacci.fibonacci_memoized(n - 2)
         # TODO: Add entry to Fibonacci.fibonacci_memoized_cache
         
-        # TODO: Save fibonacci_memoized_cache in Azure Redis Cache service.
-        """
-        # Update Redis cache with next Fibonacci number:
-        # result = redis_fibonacci.set("n: number")
-        # print("*** SET Message returned : " + str(result))
-
-        # result = redis_fibonacci.get("Message")
-        # print("*** GET Message returned : " + result.decode("utf-8"))
-
-        # result = redis_fibonacci.client_list()
-        # print("CLIENT LIST returned : ")
-        # for c in result:
-        #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
-        """
         return Fibonacci.fibonacci_memoized_cache[n]
 
 
@@ -1419,12 +1412,12 @@ class TestFibonacci(unittest.TestCase):
 
             func_start_timer = timer()
             result=Fibonacci.fibonacci_memoized(n)
-            if result:
+            if False:  # result:
                 # Add new item to array in Redis cache:
-                Fibonacci.fibonacci_redis_write_item()
+                Fibonacci.fibonacci_redis_write(n, result)
             func_end_timer = timer()
-            iterative_time_duration = func_end_timer - func_start_timer
-            diff_order=(iterative_time_duration/memo_time_duration)
+            memoized_time_duration = func_end_timer - func_start_timer
+            diff_order=( memoized_time_duration / recursive_time_duration )
             if show_info == True:
                 print(f'*** fibonacci_memoized: {n} => {result} in {timedelta(seconds=memoized_time_duration)} seconds ({"%.2f" % diff_order}X faster).')
 
