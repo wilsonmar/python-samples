@@ -172,7 +172,7 @@ remove_env_line = False
 localize_text = False
 
 # 7. Display run conditions: datetime, OS, Python version, etc. = show_pgminfo
-show_pgminfo = True
+show_pgminfo = False
 
 # 8. Define utilities for managing local data storage folders and files
 
@@ -1283,6 +1283,7 @@ class Fibonacci(object):
         return Fibonacci.fibonacci_recursive(
             n - 1) + Fibonacci.fibonacci_recursive(n - 2)
 
+
     def fibonacci_iterative(n):
         """Calculate value of n-th Fibonacci sequence using iterative approach for O(1) time complexity.
            This is considered a "bottom-up" dynamic programming.
@@ -1303,9 +1304,39 @@ class Fibonacci(object):
         #    cache[i] = cache[i-1] + cache[i-2]
         return cache[n]
 
-    # In production systems, this would be retrieved from a common Redis/Kafka cache service for use by
-    # several instances of this program running at the same time.
-    # But if Redis is not available, start with this hard-coded default:
+
+    def fibonacci_redis_read():
+        # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
+        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
+        import redis
+        azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+        azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
+        azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
+        reddis_connect_dict={
+            'host': azure_redis_hostname,
+            'port': azure_redis_port,
+            'password': azure_redis_password,
+            'ssl': False}
+        try:
+            redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
+            # Retrieve fibonacci_memoized_cache from Redis:
+            print_trace(redis_fibonacci)
+            return redis_fibonacci
+        except :
+            print_fail("fibonacci_redis_read failed.")
+            use_azure_redis = False
+            return None
+                
+
+    def fibonacci_redis_write(n):
+            #result = redis_fibonacci.ping()
+            #print("*** Ping returned : " + str(result))  
+            # FIXME:
+        pass
+
+
+
+    # Starting point in local:
     fibonacci_memoized_cache = {
         0: 0,
         1: 1,
@@ -1327,32 +1358,7 @@ class Fibonacci(object):
     def fibonacci_memoized(n):
         """Calculate value of n-th Fibonacci sequence using recursive approach for O(1) time complexity.
            This is considered a "bottom-up" dynamic programming.
-           The memoized cache is obtained from a Redis/Kafka cache stored for retrieval.
         """
-
-        if True:  # use_azure_redis:
-            # # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
-            # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
-            import redis
-            azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
-            azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
-            azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
-            reddis_connect_dict={
-                'host': azure_redis_hostname,
-                'port': azure_redis_port,
-                'password': azure_redis_password,
-                'ssl': False}
-            try:
-                redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
-                # Retrieve fibonacci_memoized_cache from Redis:
-                print_verbose(redis_fibonacci)
-                
-                result = redis_fibonacci.ping()
-                print("*** Ping returned : " + str(result))  #
-            except :
-                use_azure_redis = False
-
-        print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
 
         if n in Fibonacci.fibonacci_memoized_cache:  # Base case
             return Fibonacci.fibonacci_memoized_cache[n]
@@ -1393,8 +1399,6 @@ class TestFibonacci(unittest.TestCase):
             # https://realpython.com/fibonacci-sequence-python/
             n = 15  # n=610
 
-            # from timeit import default_timer as timer
-            # from datetime import timedelta
             func_start_timer = timer()
             result = Fibonacci.fibonacci_recursive(n)
             func_end_timer = timer()
@@ -1403,22 +1407,28 @@ class TestFibonacci(unittest.TestCase):
                 print(
                     f'*** fibonacci_recursive: {n} => {result} in {timedelta(seconds=recursive_time_duration)} seconds ')
 
-            """
+            # For my next trick, replace local array with array from Redis:
+            if use_azure_redis:
+                redis_fibonacci = Fibonacci.fibonacci_redis_read()
+                if redis_fibonacci:
+                    fibonacci_memoized_cache = redis_fibonacci
+                print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
+
+            # Having the array in Redis/Kafka cache service enables several instances of
+            # this program to run at the same time.
+
             func_start_timer = timer()
-            result=Fibonacci.fibonacci_iterative(n)
+            result=Fibonacci.fibonacci_memoized(n)
+            if result:
+                # Add new item to array in Redis cache:
+                Fibonacci.fibonacci_redis_write_item()
             func_end_timer = timer()
             iterative_time_duration = func_end_timer - func_start_timer
             diff_order=(iterative_time_duration/memo_time_duration)
             if show_info == True:
-                print(f'*** fibonacci_iterative: {n} => {result} in {timedelta(seconds=memo_time_duration)} seconds ({"%.2f" % diff_order}X faster).')
-            """
-            func_start_timer = timer()
-            result=Fibonacci.fibonacci_memoized(n)
-            func_end_timer = timer()
-            memoized_time_duration = func_end_timer - func_start_timer
-            if show_info == True:
-                print(f'*** fibonacci_memoized: {n} => {result} in {timedelta(seconds=memoized_time_duration)} ')
+                print(f'*** fibonacci_memoized: {n} => {result} in {timedelta(seconds=memoized_time_duration)} seconds ({"%.2f" % diff_order}X faster).')
 
+    
 
 # SECTION  9.9 Make change using Dynamic Programming     = make_change
 
