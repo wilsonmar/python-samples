@@ -1311,7 +1311,7 @@ class Fibonacci(object):
             n - 1) + Fibonacci.fibonacci_recursive(n - 2)
 
 
-    # Starting point in local:
+    # Starting point in local cache:
     fibonacci_memoized_cache = {
         0: 0,
         1: 1,
@@ -1328,7 +1328,7 @@ class Fibonacci(object):
         12: 233,
         13: 377,
         14: 610}
-# 15: 987, 16: 1597}
+# 15: 987, 16: 1597, 17: 2584}
 
 
     def fibonacci_iterative(n):
@@ -1352,16 +1352,8 @@ class Fibonacci(object):
         return cache[n]
 
 
-    def fibonacci_redis_rw(n):
-        # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
-        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
-        # Check for availability of single n in the local fibonacci_memoized_cache:
-        print("*** Working on : " + str(n) )
-        if n in Fibonacci.fibonacci_memoized_cache.keys():
-            result_number = Fibonacci.fibonacci_memoized_cache[n] 
-            print("*** Local returned : " + str(result_number) )
-        else:  # If not, lookup from Redis:
-            print("Lookup from Redis")
+
+    def fibonacci_redis_connect():
             import redis
             azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
             azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
@@ -1378,15 +1370,34 @@ class Fibonacci(object):
                 # WARNING: Be off VPN for this to work:
                 result = redis_fibonacci_connect.ping()
                 print("*** redis_fibonacci_connect established! (Ping returned) : " + str(result))
+                return redis_fibonacci_connect
+            except Exception as e :
+                print_fail(e)
+                print_fail("fibonacci_redis_rw failed.")  # DEBGGING
+                use_azure_redis = False
+                return False
 
+
+    def fibonacci_redis_rw(n):
+        # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
+        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
+        # Check for availability of single n in the local fibonacci_memoized_cache:
+        print("*** Working on : " + str(n) )
+        if n in Fibonacci.fibonacci_memoized_cache.keys():
+            result_number = Fibonacci.fibonacci_memoized_cache[n] 
+            print("*** Local returned : " + str(result_number) )
+        else:  # If not, lookup from Redis:
+            print("Lookup from Redis")
+            redis_fibonacci_connect = Fibonacci.fibonacci_redis_connect()
+            if redis_fibonacci_connect:
                 result = redis_fibonacci_connect.exists(n)  # single key/value.
                 if result:  # found in Redis:
                     print("*** Found in Redis : ")
-                    # FIXME Retrieve entire contents of Redis in fibonacci_memoized_cache (for future efficiency)
+                    # Retrieve entire contents of Redis in fibonacci_memoized_cache (for future efficiency)
                     keys = list(redis_fibonacci_connect.scan_iter())
                     values = redis_fibonacci_connect.mget(keys)
                     cache = {k.decode("utf-8"):v.decode("utf-8") for k,v in zip(keys, values)}
-                    print(cache)
+                    print(f'*** Redis cache={cache} ')
                     # return cache
                 else:  # If not in Redis, create it and add to Redis:
                     result = Fibonacci.fibonacci_recursive(n)
@@ -1396,32 +1407,16 @@ class Fibonacci(object):
                     else:
                         return None
                 return result
-            except Exception as e :
-                print_fail(e)
-                print_fail("fibonacci_redis_rw failed.")  # DEBGGING
-                use_azure_redis = False
-                return None
 
-    """
-            
-            return returned_result  # individual value
-    """                
 
-    def fibonacci_redis_write(n, result):
-        """ Update Redis cache with next Fibonacci number: """
-            # FIXME:
-        result = redis_fibonacci.set("n: number")
-        print("*** SET Message returned : " + str(result))
-
-        result = redis_fibonacci_connect.set('k1','v1')
-        print("Ping set returned : " + str(result))
+    def fibonacci_redis_delete():
+        """ Delete Redis cache, one key at a time : """
+        redis_fibonacci_connect = Fibonacci.fibonacci_redis_connect()
+        if redis_fibonacci_connect:
+            for key in redis_fibonacci_connect.scan_iter():
+                Fibonacci.redis_fibonacci_connect.delete(key)
+            print("*** deleted : ")
         
-        
-        # result = redis_fibonacci.client_list()
-        # print("CLIENT LIST returned : ")
-        # for c in result:
-        #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
-
 
     def fibonacci_memoized(n):
         """Calculate value of n-th Fibonacci sequence using recursive approach for O(1) time complexity.
@@ -1454,9 +1449,12 @@ class TestFibonacci(unittest.TestCase):
             """
             print_separator()
 
+            #result = Fibonacci.fibonacci_redis_delete()
+            #print(f'*** {result} from delete() ')
+
             # https://realpython.com/fibonacci-sequence-python/
             # hard-coded value (to go with hard-coded array above)
-            n = 15  # For 14, n=610
+            n = 17  # For 14, n=610
 
             func_start_timer = timer()
             result = Fibonacci.fibonacci_recursive(n)
