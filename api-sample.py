@@ -43,6 +43,7 @@ from azure.keyvault.secrets import SecretClient
 # from azure.storage.blob import BlobServiceClient   #
 # https://pypi.python.org/pypi/azure-storage-blob
 
+# requirements.txt
 import argparse   # for ArgumentParser in 3.6+
 import base64  # encoding
 import boto3   # for aws
@@ -51,6 +52,7 @@ from cryptography.fernet import Fernet
 import _datetime  # because "datetime" doesn't work.
 from _datetime import timedelta
 from datetime import datetime
+from datetime import timezone
 from decimal import Decimal
 # Needs  # see https://pypi.org/project/python-dotenv/
 from dotenv import load_dotenv
@@ -151,8 +153,8 @@ IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
 datetime_utc = datetime.now(IST)
 print(datetime_utc.strftime(my_date_format))
 
-from datetime import timezone
-import datetime
+#from datetime import timezone
+#import datetime
 dt = datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
 #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
 # use tzinfo class to convert datetime to UTC:
@@ -177,8 +179,10 @@ print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
 
 import os   # only on unix-like systems
 import pwd  # Get username both with and without logging in:
-#global_username=pwd.getpwuid( os.getuid() )[ 0 ]
-global_username=pwd.getpwuid(os.getuid()).pw_name
+
+
+
+global_username=pwd.getpwuid(os.getuid()).pw_name  # preferred over os.getuid())[0]
 
 # NOTE: Feature flag settings below are arranged in the order of code:
 
