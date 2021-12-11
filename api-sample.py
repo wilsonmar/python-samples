@@ -213,12 +213,17 @@ email_weather = False
 
 ##  14. Retrieve secrets from local OS Keyring  = use_keyring
 use_keyring = False
+
 # 14. Retrieve secrets from Azure Key Vault  = use_azure
 use_azure = True
+use_azure_redis = True
+
 # 15. Retrieve secrets from AWS KMS         = use_aws
 use_aws = False
+
 # 16. Retrieve secrets from GCP             = use_gcp
 use_gcp = False
+
 # 17. Retrieve secrets from Hashicorp Vault = use_vault
 use_vault = False
 
@@ -842,12 +847,11 @@ if show_pgminfo:
 
     venv_base_prefix = sys.base_prefix 
     venv_prefix = sys.prefix
-    print("*** venv_base_prefix={venv_base_prefix} ")
-    print("*** venv_prefix={venv_prefix} ")
     if venv_base_prefix == venv_prefix :
-        print("venv same")
+        print_trace("venv at " + venv_base_prefix)
     else:
         print("venv different")
+        #print_trace(f"***      venv_prefix={venv_prefix} ")
 
     
 
@@ -1326,22 +1330,7 @@ class Fibonacci(object):
            The memoized cache is obtained from a Redis/Kafka cache stored for retrieval.
         """
 
-        # LATER: Retrieve fibonacci_memoized_cache from Redis?
-
-        print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
-
-        if n in Fibonacci.fibonacci_memoized_cache:  # Base case
-            return Fibonacci.fibonacci_memoized_cache[n]
-
-        # if Fibonacci.fibonacci_memoized_cache is available :
-        Fibonacci.fibonacci_memoized_cache[n] = fibonacci_memoized(
-            n - 1) + fibonacci_memoized(n - 2)
-        new_num = Fibonacci.fibonacci_memoized(
-            n - 1) + Fibonacci.fibonacci_memoized(n - 2)
-        # TODO: Add entry to Fibonacci.fibonacci_memoized_cache
-        
-        # TODO: Save fibonacci_memoized_cache in Azure Redis Cache service.
-        if use_azure:  
+        if True:  # use_azure_redis:
             # # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
             # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
             import redis
@@ -1353,11 +1342,29 @@ class Fibonacci(object):
                 'port': azure_redis_port,
                 'password': azure_redis_password,
                 'ssl': False}
-            redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
+            try:
+                redis_fibonacci = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
+                # Retrieve fibonacci_memoized_cache from Redis:
+                print_verbose(redis_fibonacci)
+                
+                result = redis_fibonacci.ping()
+                print("*** Ping returned : " + str(result))  #
+            except :
+                use_azure_redis = False
 
-            result = redis_fibonacci.ping()
-            print("*** Ping returned : " + str(result))  #
+        print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
 
+        if n in Fibonacci.fibonacci_memoized_cache:  # Base case
+            return Fibonacci.fibonacci_memoized_cache[n]
+
+        # if Fibonacci.fibonacci_memoized_cache is available :
+        Fibonacci.fibonacci_memoized_cache[n] = Fibonacci.fibonacci_memoized(
+            n - 1) + Fibonacci.fibonacci_memoized(n - 2)
+        new_num = Fibonacci.fibonacci_memoized(
+            n - 1) + Fibonacci.fibonacci_memoized(n - 2)
+        # TODO: Add entry to Fibonacci.fibonacci_memoized_cache
+        
+        # TODO: Save fibonacci_memoized_cache in Azure Redis Cache service.
         """
         # Update Redis cache with next Fibonacci number:
         # result = redis_fibonacci.set("n: number")
@@ -2047,6 +2054,7 @@ if use_azure:
 
     azure_subscription_id = os.environ.get(
         'AZURE_SUBSCRIPTION_ID')  # from .env file
+
     azure_region = os.environ.get('AZURE_REGION')  # from .env file
 
     # ON A CLI TERMINAL:
@@ -2063,6 +2071,7 @@ if use_azure:
     # from azure.keyvault.secrets import SecretClient
     # from azure.identity import DefaultAzureCredential
 
+    """
     azure_keyVaultName = os.environ.get('KEY_VAULT_NAME')  # from .env file
     #   azure_keyVaultName = os.environ["KEY_VAULT_NAME"]  # from .env file
     KVUri = f"https://{azure_keyVaultName}.vault.azure.net"
@@ -2087,6 +2096,7 @@ if use_azure:
 
     retrieve_azure_secret("IPFIND_API_KEY")
     # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
+    """
 
 
 # SECTION 15. Retrieve secrets from AWS KMS
