@@ -132,12 +132,44 @@ https://gist.github.com/dokterbob/6410844
 
 # Obtain program starting time as the very start of execution:
 # See https://wilsonmar.github.io/python-coding/#DurationCalcs
+my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
+
 start_run_time = time.monotonic()  # for wall-clock time (includes any sleep).
 start_epoch_time = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
+
+curr_time = time.localtime()
+curr_clock = time.strftime(my_date_format, curr_time)
+print(curr_clock)  # Friday 10 Dec 2021 11:59:25 PM MST -0700
+
 #import pytz
 start_UTC_time = pytz.utc   # get the standard UTC time
-print(start_UTC_time)  # NameError: name 'pytz' is not defined
+datetime_utc = datetime.now(start_UTC_time)
+print(datetime_utc.strftime(my_date_format))
+
+IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
+datetime_utc = datetime.now(IST)
+print(datetime_utc.strftime(my_date_format))
+
+from datetime import timezone
+import datetime
+dt = datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
+#dt = datetime.datetime.now()  # returns number of seconds since the epoch.
+# use tzinfo class to convert datetime to UTC:
+utc_time = dt.replace(tzinfo=timezone.utc)
+print(utc_time)
+# Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
+utc_timestamp = utc_time.timestamp()
+print(utc_timestamp)
+   # Can't print(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
+
+# Get a UTC tzinfo object – by calling tz.tzutc():
+from dateutil import tz
+tz.tzutc()
+# Get offset 0 by calling the utcoffset() method with a UTC datetime object:
+import datetime
+print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
+# datetime.timedelta(0)
 
 # This handles situation when user is in su mode. See http://docs.python.org/library/pwd.html
 #import psutil
@@ -581,17 +613,6 @@ if show_verbose:
 
 
 # SECTION  7. Define Localization (to translate text to the specified locale)
-
-my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
-# strftime Saturday 27 Nov 2021 07:38:05 AM MST -0700
-# '%Y-%m-%d %H:%M:%S (%I:%M %p)'
-# '%Y-%m-%d %I:%M:%S %p'  # for sunrise/sunset
-# print("***", start_datetime.ctime() )  # for "Mon Feb 24 04:39:46 2020"
-# ISO 8601 format: 2020-02-22T07:53:19.051615-05:00
-# See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
-# See https://www.codingeek.com/tutorials/python/datetime-strftime/
-# use the .st_birthtime attribute of the result of a call to os.stat().
-
 
 # internationalization according to localization setting:
 def format_epoch_datetime(date_in):
@@ -1360,7 +1381,7 @@ class Fibonacci(object):
         12: 233,
         13: 377,
         14: 610}
-
+# 15: 987, 16: 1597}
 
     def fibonacci_memoized(n):
         """Calculate value of n-th Fibonacci sequence using recursive approach for O(1) time complexity.
@@ -1370,14 +1391,18 @@ class Fibonacci(object):
         if n in Fibonacci.fibonacci_memoized_cache:  # Base case
             return Fibonacci.fibonacci_memoized_cache[n]
 
-        # if Fibonacci.fibonacci_memoized_cache is available :
         Fibonacci.fibonacci_memoized_cache[n] = Fibonacci.fibonacci_memoized(
             n - 1) + Fibonacci.fibonacci_memoized(n - 2)
+
         new_num = Fibonacci.fibonacci_memoized(
             n - 1) + Fibonacci.fibonacci_memoized(n - 2)
-        # TODO: Add entry to Fibonacci.fibonacci_memoized_cache
-        
-        return Fibonacci.fibonacci_memoized_cache[n]
+
+        # FIXME: Add entry to Fibonacci.fibonacci_memoized_cache
+            # see https://careerkarma.com/blog/python-add-to-dictionary/        
+        Fibonacci.fibonacci_memoized_cache[n] = new_num
+        print( Fibonacci.fibonacci_memoized_cache )
+
+        return Fibonacci.fibonacci_memoized_cache[n]  # return whole cache?
 
 
 class TestFibonacci(unittest.TestCase):
@@ -1390,7 +1415,7 @@ class TestFibonacci(unittest.TestCase):
             print_separator()
 
             # https://realpython.com/fibonacci-sequence-python/
-            n = 15  # n=610
+            n = 16  # n=610
 
             func_start_timer = timer()
             result = Fibonacci.fibonacci_recursive(n)
