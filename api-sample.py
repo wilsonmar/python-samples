@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.70"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.71"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -1311,64 +1311,6 @@ class Fibonacci(object):
             n - 1) + Fibonacci.fibonacci_recursive(n - 2)
 
 
-    def fibonacci_iterative(n):
-        """Calculate value of n-th Fibonacci sequence using iterative approach for O(1) time complexity.
-           This is considered a "bottom-up" dynamic programming.
-           The memoized cache is generated.
-        """
-        if n in {
-                0,
-                1,
-                2,
-                3}:   # the first result values (0, 1, 2, 3) are the same as the request value.
-            return n
-        # Initialize cache:
-        cache = [n + 1]
-        # cache[1] = 1
-
-        # FIXME: Fill cache iteratively:
-        # for i to n:
-        #    cache[i] = cache[i-1] + cache[i-2]
-        return cache[n]
-
-
-    def fibonacci_redis_read():
-        # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
-        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
-        import redis
-        azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
-        azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
-        azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
-        reddis_connect_dict={
-            'host': azure_redis_hostname,
-            'port': azure_redis_port,
-            'password': azure_redis_password,
-            'ssl': False}
-        try:
-            # Retrieve fibonacci_memoized_cache from Redis:
-            redis_fibonacci_connect = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
-            # FIXME: use connection object to get 
-            result = redis_fibonacci.get("MESSAGE")
-            print_trace("*** GET Message returned : " + result.decode("utf-8"))
-            return result
-        except :
-            print_fail("fibonacci_redis_read failed.")  # DEBGGING
-            use_azure_redis = False
-            return None
-                
-
-    def fibonacci_redis_write(n, result):
-        """ Update Redis cache with next Fibonacci number: """
-            # FIXME:
-        result = redis_fibonacci.set("n: number")
-        print("*** SET Message returned : " + str(result))
-
-        # result = redis_fibonacci.client_list()
-        # print("CLIENT LIST returned : ")
-        # for c in result:
-        #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
-
-
     # Starting point in local:
     fibonacci_memoized_cache = {
         0: 0,
@@ -1387,6 +1329,96 @@ class Fibonacci(object):
         13: 377,
         14: 610}
 # 15: 987, 16: 1597}
+
+
+    def fibonacci_iterative(n):
+        """Calculate value of n-th Fibonacci sequence using iterative approach for O(1) time complexity.
+           This is considered a "bottom-up" dynamic programming.
+           The memoized cache is generated.
+        """
+        if n in {
+                0,
+                1,
+                2,
+                3}:   # the first result values (0, 1, 2, 3) are the same as the request value.
+            return n
+        # Initialize cache:
+        cache = list(range(n+1))
+        cache[0:4] = [0,1,2,3]
+        for i in range (4,n+1):
+            cache[i] = cache[i-1] + cache[i-2]
+        # TODO: Make use of hard-coded Fibonacci.fibonacci_memoized_cache
+        Fibonacci.fibonacci_memoized_cache = {i:cache[i] for i in cache}
+        return cache[n]
+
+
+    def fibonacci_redis_rw(n):
+        # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
+        # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
+        # Check for availability of single n in the local fibonacci_memoized_cache:
+        print("*** Working on : " + str(n) )
+        if n in Fibonacci.fibonacci_memoized_cache.keys():
+            result_number = Fibonacci.fibonacci_memoized_cache[n] 
+            print("*** Local returned : " + str(result_number) )
+        else:  # If not, lookup from Redis:
+            print("Lookup from Redis")
+            import redis
+            azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+            azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
+            azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
+            reddis_connect_dict={
+                'host': azure_redis_hostname,
+                'port': azure_redis_port,
+                'password': azure_redis_password,
+                'ssl': False}
+            try:
+                # Retrieve fibonacci_memoized_cache from Redis:
+                redis_fibonacci_connect = redis.StrictRedis(**reddis_connect_dict)  # PROTIP: ** means to unpack dictionary.
+
+                # WARNING: Be off VPN for this to work:
+                result = redis_fibonacci_connect.ping()
+                print("*** redis_fibonacci_connect established! (Ping returned) : " + str(result))
+
+                result = redis_fibonacci_connect.exists(n)  # single key/value.
+                if result:  # found in Redis:
+                    print("*** Found in Redis : ")
+                    # FIXME Retrieve entire contents of Redis in fibonacci_memoized_cache (for future efficiency)
+                    sys.exit()  # DEBUGGING                    
+                    # no need to add to Redis.
+                else:  # If not in Redis, create it and add to Redis:
+                    result = Fibonacci.fibonacci_recursive(n)
+                    if result: # Add to Redis:
+                        true_false = redis_fibonacci_connect.set(n, result)
+                        print(f'*** redis_fibonacci_connect.set returns {true_false} ')
+                    else:
+                        return None
+                return result
+            except Exception as e :
+                print_fail(e)
+                print_fail("fibonacci_redis_rw failed.")  # DEBGGING
+                use_azure_redis = False
+                return None
+
+    """
+            
+            return returned_result  # individual value
+    """                
+
+    def fibonacci_redis_write(n, result):
+        """ Update Redis cache with next Fibonacci number: """
+            # FIXME:
+        result = redis_fibonacci.set("n: number")
+        print("*** SET Message returned : " + str(result))
+
+        result = redis_fibonacci_connect.set('k1','v1')
+        print("Ping set returned : " + str(result))
+        
+        
+        # result = redis_fibonacci.client_list()
+        # print("CLIENT LIST returned : ")
+        # for c in result:
+        #     print("*** id : " + c['id'] + ", addr : " + c['addr'])
+
 
     def fibonacci_memoized(n):
         """Calculate value of n-th Fibonacci sequence using recursive approach for O(1) time complexity.
@@ -1421,7 +1453,7 @@ class TestFibonacci(unittest.TestCase):
 
             # https://realpython.com/fibonacci-sequence-python/
             # hard-coded value (to go with hard-coded array above)
-            n = 16  # n=610
+            n = 15  # For 14, n=610
 
             func_start_timer = timer()
             result = Fibonacci.fibonacci_recursive(n)
@@ -1433,7 +1465,7 @@ class TestFibonacci(unittest.TestCase):
 
             # For my next trick, replace local array with array from Redis:
             if use_azure_redis:
-                redis_fibonacci = Fibonacci.fibonacci_redis_read()
+                redis_fibonacci = Fibonacci.fibonacci_redis_rw(n)
                 if redis_fibonacci:
                     fibonacci_memoized_cache = redis_fibonacci
                 print(Fibonacci.fibonacci_memoized_cache)  # DEBUGGIN
@@ -2783,13 +2815,12 @@ with Image(blob = image_binary) as img:
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
 
-slack_user_name = 'Double Images Monitor'
-slack_token = 'xoxb-my-bot-token'
-slack_channel = '#my-channel'
-slack_icon_emoji = ':see_no_evil:'
-slack_icon_url = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuGqps7ZafuzUsViFGIremEL2a3NR0KO0s0RTCMXmzmREJd5m4MA&s'
-slack_text = "Hello!"
-
+slack_token = os.environ.get('SLACK_TOKEN')       # This is a secret and should not be here
+slack_user_name = os.environ.get('SLACK_USER_NAME')   # 'Double Images Monitor'
+slack_channel = os.environ.get('SLACK_CHANNEL')     # #my-channel'
+slack_icon_url = os.environ.get('SLACK_ICON_URL')
+slack_icon_emoji = os.environ.get('SLACK_ICON_EMOJI')  # ':see_no_evil:'
+slack_text = os.environ.get('SLACK_TEXT')
 
 def post_message_to_slack(text, blocks=None):
     return requests.post('https://slack.com/api/chat.postMessage', {
@@ -2800,6 +2831,7 @@ def post_message_to_slack(text, blocks=None):
         'username': slack_user_name,
         'blocks': json.dumps(blocks) if blocks else None
     }).json()
+    del os.environ["SLACK_TOKEN"]  # remove
 
 
 def post_file_to_slack(

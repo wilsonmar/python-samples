@@ -229,6 +229,8 @@ fi  # RUN_VIRTUALENV
 
 #    Python packages (dependencies) needed by "import" statements in the code
 
+     # Put these in the requirements.txt file or run the following:
+
        # https://realpython.com/python-virtual-environments-a-primer/
        # BEWARE https://github.com/Homebrew/homebrew-core/issues/76621
        # -U specifies Update (re-install) when run after initial installation.
@@ -279,7 +281,7 @@ fi  # RUN_VIRTUALENV
     fi
    # 6. Pyreverse: UML Diagrams for Python - https://www.logilab.org/blogentry/6883
    # 7. Bandit
-    if [ "${run_flake8}" = true ]; then
+    if [ "${run_bandit}" = true ]; then
        pip install -U bandit
     fi
 
