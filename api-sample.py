@@ -180,7 +180,7 @@ print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
 import os   # only on unix-like systems
 import pwd  # Get username both with and without logging in:
 
-
+####
 
 global_username=pwd.getpwuid(os.getuid()).pw_name  # preferred over os.getuid())[0]
 
@@ -203,6 +203,8 @@ show_samples = False
 
 # 5. Obtain run control data from .env file in the user's $HOME folder
 # to obtain the desired cloud region, zip code, and other variable specs.
+env_file = 'python-samples.env'
+show_env = False
 remove_env_line = False
 
 # 6. Define Localization (to translate text to the specified locale)
@@ -500,7 +502,7 @@ if True:
 # TODO: Create, navigate to, and remove local working folders:
 
 
-# SECTION  6. Obtain run control data from .env file in the user's $HOME folder
+###### SECTION  6. Obtain run control data from .env file in the user's $HOME folder
 
 # See https://wilsonmar.github.io/python-samples#run_env
 
@@ -511,14 +513,14 @@ home = str(Path.home())   # example: /users/wilson_mar
 
 # This code downloads file "python-samples.sh" from GitHub to the user's
 # $HOME folder for reference:
-env_file = 'python-samples.env'
+
 # TODO: Check to see if the file is available. Download sample file
 # "python-samples.env" from GitHub to the user's $HOME folder for
 # reference:
 global_env_path = Path(home) / env_file
 load_dotenv(global_env_path)
 
-if True:  # Globals defined on every run: These should be listed in same order as in the .env file:
+if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
     # "ar_EG", "ja_JP", "zh_CN", "zh_TW", "hi" (Hindi), "sv_SE" #swedish
     locale_from_env = os.environ.get('LOCALE')
     if locale_from_env:
@@ -594,16 +596,17 @@ if True:  # Globals defined on every run: These should be listed in same order a
     else:
         azure_region = "us-east-1"  # "Friends don't let friends use AWS us-east-1 in production"
 
-if show_verbose:
+if show_env:
     print_separator()
 
-    text_to_print = "global_env_path=" + str(global_env_path)
     print_verbose(text_to_print)
     
+    text_to_print = "global_env_path=" + str(global_env_path)
     # ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
     global_env_path_time = file_creation_date(global_env_path, my_os_platform)
     dt = _datetime.datetime.utcfromtimestamp( global_env_path_time )
     iso_format = dt.strftime('%A %d %b %Y %I:%M:%S %p Z')  # Z - no time zone
+
     text_to_print = "created " + iso_format   # ?.strftime(my_date_format)
     print_verbose(text_to_print)
 
@@ -1352,7 +1355,6 @@ class Fibonacci(object):
         return cache[n]
 
 
-
     def fibonacci_redis_connect():
             import redis
             azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
@@ -1377,6 +1379,8 @@ class Fibonacci(object):
                 use_azure_redis = False
                 return False
 
+    # https://azure.microsoft.com/en-us/blog/view-your-azure-cache-for-redis-data-in-new-visual-studio-code-extension/
+    # View your Azure Cache for Redis data in new Visual Studio Code extension
 
     def fibonacci_redis_rw(n):
         # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
