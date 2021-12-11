@@ -1288,7 +1288,8 @@ class TestGen8Ball(unittest.TestCase):
             # random number generated?
 
 
-# SECTION 9.8 Generate Fibonacci to compare recursion vs memoization:
+
+# SECTION 9.8 Generate Fibonacci to compare recursion vs memoization locally and in Redis:
 
 # alternative:
 # https://github.com/samgh/DynamicProgrammingEbook/blob/master/python/Fibonacci.py
@@ -1351,7 +1352,7 @@ class Fibonacci(object):
             print_trace("*** GET Message returned : " + result.decode("utf-8"))
             return result
         except :
-            print_fail("fibonacci_redis_read failed.")
+            print_fail("fibonacci_redis_read failed.")  # DEBGGING
             use_azure_redis = False
             return None
                 
@@ -1419,6 +1420,7 @@ class TestFibonacci(unittest.TestCase):
             print_separator()
 
             # https://realpython.com/fibonacci-sequence-python/
+            # hard-coded value (to go with hard-coded array above)
             n = 16  # n=610
 
             func_start_timer = timer()
@@ -1446,7 +1448,7 @@ class TestFibonacci(unittest.TestCase):
                 Fibonacci.fibonacci_redis_write(n, result)
             func_end_timer = timer()
             memoized_time_duration = func_end_timer - func_start_timer
-            diff_order=( memoized_time_duration / recursive_time_duration )
+            diff_order=( recursive_time_duration / memoized_time_duration )
             if show_info == True:
                 print(f'*** fibonacci_memoized: {n} => {result} in {timedelta(seconds=memoized_time_duration)} seconds ({"%.2f" % diff_order}X faster).')
 
