@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.73"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.75"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -97,6 +97,8 @@ from timeit import default_timer as timer
 import unittest
 import urllib.request
 import uuid       # https://docs.python.org/3/library/uuid.html
+import webbrowser
+
 
 """The setup needed to run this program on your laptop using a Terminal program:
 https://gist.github.com/dokterbob/6410844
@@ -259,9 +261,11 @@ img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
 send_slack = False
 
 # 22. Send email thru Gmail         = email_via_gmail
-email_via_gmail = True
-verify_email = True
+email_via_gmail = False
+verify_email = False
 email_file_path = ""
+
+view_gravatar = True
 
 # 23. Calculte BMI using units of measure based on country = categorize_bmi
 categorize_bmi = False
@@ -996,6 +1000,42 @@ class TestGenHash(unittest.TestCase):
 
             # See
             # http://coders-errand.com/hash-functions-for-smart-contracts-part-3/
+
+
+def get_gravatar_url(email, size, default, rating):
+    # Commentary of this is at https://wilsonmar.github.io/python-samples#view_gravatar
+    hash = hashlib.md5(email.encode('utf-8')).hexdigest()
+    url = "https://secure.gravatar.com/avatar/"
+    # TODO: Validate size, rating
+    url_string = url + hash +"&size="+ str(size) +"&d="+ default +"&r="+ rating
+    return url_string
+
+
+class TestViewGravatar(unittest.TestCase):
+    def test_view_gravatar(self):
+
+        # TODO: Obtain from user parameter specification:
+        some_email=os.environ.get('MY_EMAIL')  # "johnsmith@example.com"
+        print_verbose( some_email)
+        some_email_gravatar=""
+
+        if view_gravatar:
+            print_separator()
+            print_heading("view_gravatar :")
+
+            if not some_email_gravatar:
+                url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
+                print_info(url_string)
+                some_email_gravatar = url_string
+
+                # TODO: Optionally, if save_gravatar = True:
+                    # Save gravatar_url associated with email so it won't have to be created again.
+
+            import webbrowser
+            print_verbose("Opening web browser to view gravatar image of "+ some_email)
+            webbrowser.open(some_email_gravatar, new=2)
+                # new=2 opens the url in a new tab. Default new=0 opens in an existing browser window. 
+                # See https://docs.python.org/2/library/webbrowser.html#webbrowser.open
 
 
 # SECTION 9.2 Generate a random Salt
