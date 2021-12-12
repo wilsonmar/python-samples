@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.71"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.73"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -201,7 +201,7 @@ gen_lotto = False
 gen_magic_8ball = False
 
 # 9.8. Generate a fibonacci number recursion    = gen_fibonacci
-gen_fibonacci = True
+gen_fibonacci = False
 # 9.9 Make change using Dynamic Programming     = make_change
 make_change = False
 # 9.10 "Knapsack"
@@ -259,7 +259,9 @@ img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
 send_slack = False
 
 # 22. Send email thru Gmail         = email_via_gmail
-email_via_gmail = False
+email_via_gmail = True
+verify_email = True
+email_file_path = ""
 
 # 23. Calculte BMI using units of measure based on country = categorize_bmi
 categorize_bmi = False
@@ -2886,10 +2888,22 @@ class TestSendSlack(unittest.TestCase):
 # https://www.101daysofdevops.com/courses/101-days-of-devops/lessons/day-14/
 
 def verify_email_address( to_email_address ):
-    verifier_api = os.environ.get('MAILBOXLAYER_API')
-    # https://apilayer.net/api/check?access_key = YOUR_ACCESS_KEY & email = support@apilayer.com
+    if verify_email:
+        # First, get API from https://mailboxlayer.com/product
+        verify_email_api = os.environ.get('MAILBOXLAYER_API')
+        del os.environ["MAILBOXLAYER_API"]
+        # https://apilayer.net/api/check?access_key = YOUR_ACCESS_KEY & email = support@apilayer.com
+        url = "http://apilayer.net/api/check?access_key=" + verify_email_api + \
+            "&email=" + to_email_address + \
+            "&smtp=1&format=1"  # format=1 for JSON response
+        print_trace(url)
+        result = requests.get(url, allow_redirects=False)
+        print_trace( result )
+        if result:
+            return True
+        else:
+            return False
 
-    return True
 
 def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
     # subject_in = "hello"
@@ -2897,6 +2911,7 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
     # "loadtesters@gmail.com" # Authenticate to google (use a separate gmail account just for this)
     from_gmail_address = os.environ.get('THOWAWAY_GMAIL_ADDRESS')
     from_gmail_password = os.environ.get('THOWAWAY_GMAIL_PASSWORD')  # a secret
+    
     if show_trace:
         print(
             f'*** send_self_gmail : from_gmail_address={from_gmail_address} ')
@@ -2911,21 +2926,26 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
             # Response expected = (235, '2.7.0 Accepted')
         del os.environ["THOWAWAY_GMAIL_ADDRESS"]
         del os.environ["THOWAWAY_GMAIL_PASSWORD"]  # remove
-        text_msg="Gmail login response=" + response
+        text_msg="Gmail login response=" + str(response)
         print_trace(text_msg)
 
         ok_to_email = verify_email_address( to_email_address )
-        if ok_to_email:
-            s.sendmail(from_gmail_address, to_email_address,
-                   message)  # FROM addr, TO addr, message
-            # To avoid this error response: Allow less secure apps: ON - see https://support.google.com/accounts/answer/6010255
-            # smtplib.SMTPAuthenticationError: (535, b'5.7.8 Username and Password not accepted. Learn more at\n
-            # 5.7.8  https://support.google.com/mail/?p=BadCredentials
-            # nm13sm5582986pjb.56 - gsmtp')
-        s.quit()
-    # except Exception as e:
-    #    print(f'*** sendmail() error! ')
-    #    s.quit()
+        if not ok_to_email:
+            print_fail("Not OK to email.")
+        else:
+            try:
+                result = s.sendmail(from_gmail_address, to_email_address, message)  
+                         # FROM addr, TO addr, message
+                # To avoid this error response: Allow less secure apps: ON - see https://support.google.com/accounts/answer/6010255
+                # smtplib.SMTPAuthenticationError: (535, b'5.7.8 Username and Password not accepted. Learn more at\n
+                # 5.7.8  https://support.google.com/mail/?p=BadCredentials
+                # nm13sm5582986pjb.56 - gsmtp')
+                print(result)  # RESPONSE: <Response [200]>
+            except Exception as e:
+                print(f'*** sendmail() error! Quitting. ')
+                s.quit()
+            
+    # FIXME: ResourceWarning: Enable tracemalloc to get the object allocation traceback
 
     # TODO: For attachments, see
     # https://github.com/Mohamed-S-Helal/Auto-gmail-draft-pdf-attatching/blob/main/gmailAPI.py
@@ -2936,19 +2956,23 @@ class TestSendEmail(unittest.TestCase):
         if email_via_gmail:
             print_separator()
 
-            # TODO: Parametize
-            to_gmail_address = ""  # mohamed.salah.pet@gmail.com
-            subject_text = "Hello from " + program_name
+            # Open file from email_file_path & read csv/json emails to email
+            to_gmail_address = os.environ.get('TO_EMAIL_ADDRESS')  # static not a secret
+            subject_text = "Hello from " + program_name  # Customize this!
+            if True:  # TODO: for loop through email addresses and text in file:
 
-            trans_datetime = str(_datetime.datetime.fromtimestamp(
-                time.time()))  # Default: 2021-11-20 07:59:44.412845
-            body_text = "Please call me. It's now " + trans_datetime
+                # Optionally, add datestamp to email body:
+                trans_datetime = str(_datetime.datetime.fromtimestamp(
+                    time.time()))  # Default: 2021-11-20 07:59:44.412845
+                body_text = "Please call me. It's now " + trans_datetime
 
-            if show_heading:
-                print(
-                    f'***{bcolors.HEADING} email_via_gmail : {trans_datetime} {bcolors.RESET}')
+                if show_heading:
+                    print(
+                        f'***{bcolors.HEADING} email_via_gmail : {trans_datetime} {bcolors.RESET}')
 
-            smtplib_sendmail_gmail(to_gmail_address, subject_text, body_text)
+                smtplib_sendmail_gmail(to_gmail_address, subject_text, body_text)
+                
+                # Loop to get next for 
 
 
 # SECTION  23. Generate BMI  = categorize_bmi
