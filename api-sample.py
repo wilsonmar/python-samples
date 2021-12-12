@@ -64,8 +64,9 @@ import keyring   # used by use_keyring
 import keyring.util.platform_ as keyring_platform
 import locale  # https://phrase.com/blog/posts/beginners-guide-to-locale-in-python/
 import logging    # see https://realpython.com/python-logging/
+import os   # only on unix-like systems
+            # for os.getenv,  os.uname, os.getpid(), os.environ, os.import, os.path
 from os import path
-import os         # for os.getenv,  os.uname, os.getpid(), os.environ, os.import, os.path
 # import pyjwt  # Requirement already satisfied: pyjwt in
 # ~/.local/lib/python3.8/site-packages (2.3.0)
 from pathlib import Path  # python3 only
@@ -140,45 +141,11 @@ start_run_time = time.monotonic()  # for wall-clock time (includes any sleep).
 start_epoch_time = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
 
-curr_time = time.localtime()
-curr_clock = time.strftime(my_date_format, curr_time)
-print(curr_clock)  # Friday 10 Dec 2021 11:59:25 PM MST -0700
-
-#import pytz
-start_UTC_time = pytz.utc   # get the standard UTC time
-datetime_utc = datetime.now(start_UTC_time)
-print(datetime_utc.strftime(my_date_format))
-
-IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
-datetime_utc = datetime.now(IST)
-print(datetime_utc.strftime(my_date_format))
-
-#from datetime import timezone
-#import datetime
-dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
-#dt = datetime.datetime.now()  # returns number of seconds since the epoch.
-# use tzinfo class to convert datetime to UTC:
-utc_time = dt.replace(tzinfo=timezone.utc)
-print(utc_time)
-# Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
-utc_timestamp = utc_time.timestamp()
-print(utc_timestamp)
-   # Can't print(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
-
-# Get a UTC tzinfo object – by calling tz.tzutc():
-from dateutil import tz
-tz.tzutc()
-# Get offset 0 by calling the utcoffset() method with a UTC datetime object:
-import datetime
-print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
-# datetime.timedelta(0)
 
 # This handles situation when user is in su mode. See http://docs.python.org/library/pwd.html
 #import psutil
 #global_username = psutil.Process().username()
 
-import os   # only on unix-like systems
-import pwd  # Get username both with and without logging in:
 
 ####
 
@@ -214,6 +181,7 @@ localize_text = False
 show_pgminfo = False
 
 # 8. Define utilities for managing local data storage folders and files
+show_dates = False
 
 # 9. Generate various calculations for hashing, encryption, etc.
 
@@ -495,11 +463,44 @@ def file_remove(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)  # deletes a directory and all its contents.
 
-if True:
-    # Capture system information:
-    my_os_platform = os_platform()
 
 # TODO: Create, navigate to, and remove local working folders:
+
+if show_dates:  # temporarily - never execute
+
+    # import time
+    curr_time = time.localtime()
+    curr_clock = time.strftime(my_date_format, curr_time)
+    print(curr_clock)  # Friday 10 Dec 2021 11:59:25 PM MST -0700
+
+    # import pytz
+    start_UTC_time = pytz.utc   # get the standard UTC time
+    datetime_utc = datetime.now(start_UTC_time)
+    print(datetime_utc.strftime(my_date_format))
+
+    IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
+    datetime_utc = datetime.now(IST)
+    print(datetime_utc.strftime(my_date_format))
+
+    #from datetime import timezone
+    #import datetime
+    dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
+    #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
+    # use tzinfo class to convert datetime to UTC:
+    utc_time = dt.replace(tzinfo=timezone.utc)
+    print(utc_time)
+    # Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
+    utc_timestamp = utc_time.timestamp()
+    print(utc_timestamp)
+    # Can't print(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
+
+    # Get a UTC tzinfo object – by calling tz.tzutc():
+    from dateutil import tz
+    tz.tzutc()
+    # Get offset 0 by calling the utcoffset() method with a UTC datetime object:
+    import datetime
+    print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
+    # datetime.timedelta(0)
 
 
 ###### SECTION  6. Obtain run control data from .env file in the user's $HOME folder
@@ -1371,7 +1372,7 @@ class Fibonacci(object):
 
                 # WARNING: Be off VPN for this to work:
                 result = redis_fibonacci_connect.ping()
-                print("*** redis_fibonacci_connect established! (Ping returned) : " + str(result))
+                print(f'*** Redis Host \"{azure_redis_hostname}\" established!" ')
                 return redis_fibonacci_connect
             except Exception as e :
                 print_fail(e)
@@ -1386,22 +1387,19 @@ class Fibonacci(object):
         # see https://docs.microsoft.com/en-us/azure/azure-cache-for-redis/cache-python-get-started
         # BEFORE ON TERMINAL: pip3 install -U redis  # to install package https://github.com/redis/redis-py
         # Check for availability of single n in the local fibonacci_memoized_cache:
-        print("*** Working on : " + str(n) )
         if n in Fibonacci.fibonacci_memoized_cache.keys():
             result_number = Fibonacci.fibonacci_memoized_cache[n] 
             print("*** Local returned : " + str(result_number) )
         else:  # If not, lookup from Redis:
-            print("Lookup from Redis")
             redis_fibonacci_connect = Fibonacci.fibonacci_redis_connect()
             if redis_fibonacci_connect:
                 result = redis_fibonacci_connect.exists(n)  # single key/value.
                 if result:  # found in Redis:
-                    print("*** Found in Redis : ")
                     # Retrieve entire contents of Redis in fibonacci_memoized_cache (for future efficiency)
                     keys = list(redis_fibonacci_connect.scan_iter())
                     values = redis_fibonacci_connect.mget(keys)
                     cache = {k.decode("utf-8"):v.decode("utf-8") for k,v in zip(keys, values)}
-                    print(f'*** Redis cache={cache} ')
+                    # print(f'*** Redis cache={cache} ')
                     # return cache
                 else:  # If not in Redis, create it and add to Redis:
                     result = Fibonacci.fibonacci_recursive(n)
