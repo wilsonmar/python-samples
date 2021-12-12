@@ -1006,7 +1006,18 @@ def get_gravatar_url(email, size, default, rating):
     # Commentary of this is at https://wilsonmar.github.io/python-samples#view_gravatar
     hash = hashlib.md5(email.encode('utf-8')).hexdigest()
     url = "https://secure.gravatar.com/avatar/"
-    # TODO: Validate size, rating
+    
+    # Validate size up to 2048px, rating G,PG,R,X per https://en.gravatar.com/site/implement/images/
+    if ( type(size) != "<class 'int'>" ):
+        size=int(size)
+    if ( size > 2048 ):
+        print_fail("Parameter size cannot be more than 2048px. Set to 100.")
+        size = 100
+    rating = rating.upper()
+    if rating in {"G","PG","R","X"}:
+        print_fail('Rating " + rating_in + " not recognized. Set to "G". ')
+        rating = "G"
+    
     url_string = url + hash +"&size="+ str(size) +"&d="+ default +"&r="+ rating
     return url_string
 
@@ -1014,7 +1025,7 @@ def get_gravatar_url(email, size, default, rating):
 class TestViewGravatar(unittest.TestCase):
     def test_view_gravatar(self):
 
-        # TODO: Obtain from user parameter specification:
+        # TODO: Alternately, obtain from user parameter specification:
         some_email=os.environ.get('MY_EMAIL')  # "johnsmith@example.com"
         print_verbose( some_email)
         some_email_gravatar=""
@@ -1024,7 +1035,7 @@ class TestViewGravatar(unittest.TestCase):
             print_heading("view_gravatar :")
 
             if not some_email_gravatar:
-                url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
+                url_string = get_gravatar_url( some_email, size=100, default='identicon', rating='G')            
                 print_info(url_string)
                 some_email_gravatar = url_string
 
