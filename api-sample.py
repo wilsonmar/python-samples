@@ -155,6 +155,8 @@ global_username=pwd.getpwuid(os.getuid()).pw_name  # preferred over os.getuid())
 
 # NOTE: Feature flag settings below are arranged in the order of code:
 
+run_mode = "dev"  # vs. "prod"
+
 # TODO: Change values in program call parameters:
 show_warning = True    # -wx  Don't display warning
 show_info = True       # -qq  Display app's informational status and results for end-users
