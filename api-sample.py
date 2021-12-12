@@ -1008,7 +1008,7 @@ def get_gravatar_url(email, size, default, rating):
     url = "https://secure.gravatar.com/avatar/"
     
     # Validate size up to 2048px, rating G,PG,R,X per https://en.gravatar.com/site/implement/images/
-    if ( type(size) != "<class 'int'>" ):
+    if not isinstance(size, int)):   # if ( type(size) != "<class 'int'>" ):
         size=int(size)
     if ( size > 2048 ):
         print_fail("Parameter size cannot be more than 2048px. Set to 100.")
@@ -1035,7 +1035,7 @@ class TestViewGravatar(unittest.TestCase):
             print_heading("view_gravatar :")
 
             if not some_email_gravatar:
-                url_string = get_gravatar_url( some_email, size=100, default='identicon', rating='G')            
+                url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
                 print_info(url_string)
                 some_email_gravatar = url_string
 
