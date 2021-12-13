@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.75"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.76"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
