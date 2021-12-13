@@ -227,7 +227,7 @@ use_keyring = False
 
 # 14. Retrieve secrets from Azure Key Vault  = use_azure
 use_azure = True
-use_azure_redis = True
+use_azure_redis = False
 
 # 15. Retrieve secrets from AWS KMS         = use_aws
 use_aws = False
@@ -267,9 +267,10 @@ email_via_gmail = False
 verify_email = False
 email_file_path = ""
 
-view_gravatar = True
+# 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
+view_gravatar = False
 
-# 23. Calculte BMI using units of measure based on country = categorize_bmi
+# 24. Calculte BMI using units of measure based on country = categorize_bmi
 categorize_bmi = False
 email_weather = False
 
@@ -1004,52 +1005,6 @@ class TestGenHash(unittest.TestCase):
             # http://coders-errand.com/hash-functions-for-smart-contracts-part-3/
 
 
-def get_gravatar_url(email, size, default, rating):
-    # Commentary of this is at https://wilsonmar.github.io/python-samples#view_gravatar
-    hash = hashlib.md5(email.encode('utf-8')).hexdigest()
-    url = "https://secure.gravatar.com/avatar/"
-    
-    # Validate size up to 2048px, rating G,PG,R,X per https://en.gravatar.com/site/implement/images/
-    # PROTIP: Check if a data type is numeric before doing arithmetic using it.
-    if not isinstance(size, int):   # if ( type(size) != "<class 'int'>" ):
-        size=int(size)
-    if ( size > 2048 ):
-        print_fail("Parameter size cannot be more than 2048px. Set to 100.")
-        size = 100
-    rating = rating.upper()
-    if rating not in {"G","PG","R","X"}:
-        print_fail('Rating " + rating_in + " not recognized. Set to "G". ')
-        rating = "G"
-    
-    url_string = url + hash +"&size="+ str(size) +"&d="+ default +"&r="+ rating
-    return url_string
-
-
-class TestViewGravatar(unittest.TestCase):
-    def test_view_gravatar(self):
-
-        # TODO: Alternately, obtain from user parameter specification:
-        some_email=os.environ.get('MY_EMAIL')  # "johnsmith@example.com"
-        print_verbose( some_email)
-        some_email_gravatar=""
-
-        if view_gravatar:
-            print_separator()
-            print_heading("view_gravatar :")
-
-            if not some_email_gravatar:
-                url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
-                print_info(url_string)
-                # Save gravatar_url associated with email so it won't have to be created again:
-                some_email_gravatar = url_string
-
-            import webbrowser
-            print_verbose("Opening web browser to view gravatar image of "+ some_email)
-            webbrowser.open(some_email_gravatar, new=2)
-                # new=2 opens the url in a new tab. Default new=0 opens in an existing browser window. 
-                # See https://docs.python.org/2/library/webbrowser.html#webbrowser.open
-
-
 # SECTION 9.2 Generate a random Salt
 
 
@@ -1413,6 +1368,7 @@ class Fibonacci(object):
     def fibonacci_redis_connect():
             import redis
             azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+            
             azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
             azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
             reddis_connect_dict={
@@ -2124,21 +2080,25 @@ if use_keyring:
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_azure
 
-def save_azure_secret(secretName):
-    secretValue = os.environ.get(secretName)  # from .env file
-    # Instead of prompting on Console:
-    # #secretName = input("Input a name for your secret > ")
+def set_azure_secret_from_env(secretName):
+    # TODO: Get from user prompt?
+    # secretName  = input("Input a name for your secret > ")
     # secretValue = input("Input a value for your secret > ")
+
+    secretValue = os.environ.get(secretName)  # from .env file
+    if not secretValue:
+        print_fail("No " + secretName + " in .env")
+        return None
     try:
         client.set_secret(secretName, secretValue)
-        print(f'*** Secret "{secretName}" = "{secretValue}" saved.')
-        print(
-            f'***{bcolors.WARNING} WARNING: Please store \"AZURE\" in a Vault instead of .env file.{bcolors.RESET}')
-        # The secretValue shown is encrypted?
+        print_verbose("Secret " + secretName+ " saved.")
+        print_info("Please store in a Vault instead of .env file.")
     except Exception:
+        # FIXME: 
         print(
             f'***{bcolors.FAIL} client.set.secret of \"{secretName}\" failed.{bcolors.RESET}')
-        print(f'*** Using secret value from .env file.')
+        return None
+
     # python3 wants to use your confidential
     # information stored in "VS Code Azure" in your
     # keychain
@@ -2148,11 +2108,11 @@ def save_azure_secret(secretName):
 def retrieve_azure_secret(secretName):
     try:
         retrieved_secret = client.get_secret(secretName)
-        print(f'*** Secret \"{secretName}\" = \"{retrieved_secret.value}\".')
+        # Don't print secrets: print(f'*** Secret \"{secretName}\" = \"{retrieved_secret.value}\".')
+        return retrieved_secret
     except Exception:
         print(
             f'***{bcolors.FAIL} client.get.secret of \"{secretName}\" failed.{bcolors.RESET}')
-        print(f'*** Using secret value from .env file.')
 
 
 def delete_azure_secret(secretName):
@@ -2173,12 +2133,17 @@ if use_azure:
     # https://docs.microsoft.com/en-us/azure/key-vault/secrets/quick-create-python
 
     # Before running this, in a Terminal type: "az login" for the default browser to enable you to login.
-    # Return to the Terminal.
+    # Return to the Terminal.  TODO: Service account login?
 
-    azure_subscription_id = os.environ.get(
-        'AZURE_SUBSCRIPTION_ID')  # from .env file
+    AZ_SUBSCRIPTION_ID = os.environ.get('AZ_SUBSCRIPTION_ID')  # from .env file
+    if not AZ_SUBSCRIPTION_ID:
+        print_fail("No AZ_SUBSCRIPTION_ID.")
+        exit
 
     azure_region = os.environ.get('AZURE_REGION')  # from .env file
+    if not azure_region:
+        print_fail("No AZURE_REGION.")
+        exit
 
     # ON A CLI TERMINAL:
     # pip install -U azure-keyvault-secrets
@@ -2194,9 +2159,11 @@ if use_azure:
     # from azure.keyvault.secrets import SecretClient
     # from azure.identity import DefaultAzureCredential
 
-    """
-    azure_keyVaultName = os.environ.get('KEY_VAULT_NAME')  # from .env file
-    #   azure_keyVaultName = os.environ["KEY_VAULT_NAME"]  # from .env file
+    azure_keyVaultName = os.environ.get('AZ_KEY_VAULT_NAME')  # from .env file
+    if not azure_keyVaultName:
+        print_fail("No AZ_KEY_VAULT_NAME.")
+        exit
+
     KVUri = f"https://{azure_keyVaultName}.vault.azure.net"
     try:
         credential = DefaultAzureCredential()
@@ -2207,19 +2174,22 @@ if use_azure:
         print(
             f'***{bcolors.FAIL} Azure Key Vault {azure_keyVaultName} auth failed.{bcolors.RESET}')
         # don't exit. Using .env file failure.
+    
+    # TODO: Encrypt/hash secret in transit and at rest!    
+    result = set_azure_secret_from_env("OPENWEATHERMAP_API_KEY")
+        # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
+    if not result:
+        exit
+    
+    #retrieved_secret = retrieve_azure_secret("OPENWEATHERMAP_API_KEY")
+    #print_trace("Secret retrieved: " + str(retrieved_secret) )  # please avoid printing out secret values.
+    # TODO: Unencrypt/rehash secretValue?
 
-    save_azure_secret("OPENWEATHERMAP_API_KEY")
-    # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
+    x=input("Press Enter to continue")  # DEBUGGING
 
-    save_azure_secret("IPFIND_API_KEY")
-    # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
-
-    retrieve_azure_secret("OPENWEATHERMAP_API_KEY")
-    # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
-
-    retrieve_azure_secret("IPFIND_API_KEY")
-    # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
-    """
+    # set_azure_secret_from_env("IPFIND_API_KEY")
+    # retrieve_azure_secret("IPFIND_API_KEY")
+        # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
 
 
 # SECTION 15. Retrieve secrets from AWS KMS
@@ -3027,7 +2997,57 @@ class TestSendEmail(unittest.TestCase):
                 # Loop to get next for 
 
 
-# SECTION  23. Generate BMI  = categorize_bmi
+# SECTION 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
+
+
+def get_gravatar_url(email, size, default, rating):
+    # Commentary of this is at https://wilsonmar.github.io/python-samples#view_gravatar
+    hash = hashlib.md5(email.encode('utf-8')).hexdigest()
+    url = "https://secure.gravatar.com/avatar/"
+    
+    # Validate size up to 2048px, rating G,PG,R,X per https://en.gravatar.com/site/implement/images/
+    # PROTIP: Check if a data type is numeric before doing arithmetic using it.
+    if not isinstance(size, int):   # if ( type(size) != "<class 'int'>" ):
+        size=int(size)
+    if ( size > 2048 ):
+        print_fail("Parameter size cannot be more than 2048px. Set to 100.")
+        size = 100
+    rating = rating.upper()
+    if rating not in {"G","PG","R","X"}:
+        print_fail('Rating " + rating_in + " not recognized. Set to "G". ')
+        rating = "G"
+    
+    url_string = url + hash +"&size="+ str(size) +"&d="+ default +"&r="+ rating
+    return url_string
+
+
+class TestViewGravatar(unittest.TestCase):
+    def test_view_gravatar(self):
+
+        # TODO: Alternately, obtain from user parameter specification:
+        some_email=os.environ.get('MY_EMAIL')  # "johnsmith@example.com"
+        print_verbose( some_email)
+        some_email_gravatar=""
+
+        if view_gravatar:
+            print_separator()
+            print_heading("view_gravatar :")
+
+            if not some_email_gravatar:
+                url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
+                print_info(url_string)
+                # Save gravatar_url associated with email so it won't have to be created again:
+                some_email_gravatar = url_string
+
+            import webbrowser
+            print_verbose("Opening web browser to view gravatar image of "+ some_email)
+            webbrowser.open(some_email_gravatar, new=2)
+                # new=2 opens the url in a new tab. Default new=0 opens in an existing browser window. 
+                # See https://docs.python.org/2/library/webbrowser.html#webbrowser.open
+
+
+# 
+# SECTION 24. Generate BMI  = categorize_bmi
 
 class TestGemBMI(unittest.TestCase):
     def test_categorize_bmi(self):
