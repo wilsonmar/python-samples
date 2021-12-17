@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.76"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.77"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -56,6 +56,7 @@ from datetime import timezone
 from decimal import Decimal
 # Needs  # see https://pypi.org/project/python-dotenv/
 from dotenv import load_dotenv
+from google.cloud import secretmanager
 import hashlib  # https://docs.python.org/3/library/hashlib.html
 import hvac     # for Hashicorp Vault
 import json
@@ -226,14 +227,14 @@ email_weather = False
 use_keyring = False
 
 # 14. Retrieve secrets from Azure Key Vault  = use_azure
-use_azure = True
+use_azure = False
 use_azure_redis = False
 
 # 15. Retrieve secrets from AWS KMS         = use_aws
 use_aws = False
 
-# 16. Retrieve secrets from GCP             = use_gcp
-use_gcp = False
+# 16. Retrieve secrets from GCP Secret Manager = use_gcp
+use_gcp = True
 
 # 17. Retrieve secrets from Hashicorp Vault = use_vault
 use_vault = False
@@ -530,28 +531,43 @@ home = str(Path.home())   # example: /users/wilson_mar
 global_env_path = Path(home) / env_file
 load_dotenv(global_env_path)
 
+def get_env(key_in):
+    """
+    Return a value from .env file based on key provided.
+    Used instead of os.environ.get('SOME_URL')
+    """
+    value = get_env(key_in)
+    if not value:
+        print_fail(key_in +" not found in .env file")
+        # os.exit()
+        return None
+    else:
+        print_verbose(key_in +"="+ value)
+    return value
+
+
 if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
     # "ar_EG", "ja_JP", "zh_CN", "zh_TW", "hi" (Hindi), "sv_SE" #swedish
-    locale_from_env = os.environ.get('LOCALE')
+    locale_from_env = get_env('LOCALE')
     if locale_from_env:
         my_locale = locale_from_env
     else:
         my_locale = "en_US"
 
-    my_encoding_from_env = os.environ.get('MY_ENCODING')  # "UTF-8"
+    my_encoding_from_env = get_env('MY_ENCODING')  # "UTF-8"
     if my_encoding_from_env:
         my_encoding = my_encoding_from_env
     else:
         my_encoding = "UTF-8"
 
     # "US"      # For use in whether to use metric
-    my_country_from_env = os.environ.get('MY_COUNTRY')
+    my_country_from_env = get_env('MY_COUNTRY')
     if my_country_from_env:
         my_country = my_country_from_env
     else:
         my_country = "US"
 
-    my_tz_name_from_env = os.environ.get('MY_TIMEZONE_NAME')
+    my_tz_name_from_env = get_env('MY_TIMEZONE_NAME')
     if my_tz_name_from_env:
         my_tz_name = my_tz_name_from_env
     else:
@@ -564,43 +580,43 @@ if True:  # Always get globals defined on every run: These should be listed in s
 
 
     """
-    my_zip_code_from_env     = os.environ.get('MY_ZIP_CODE')   # "90210"  # use to lookup country, US state, long/lat, etc.
+    my_zip_code_from_env     = get_env('MY_ZIP_CODE')   # "90210"  # use to lookup country, US state, long/lat, etc.
     if my_zip_code_from_env: my_zip_code = my_zip_code_from_env
     else: my_zip_code = "90210"   # Beverly Hills, CA, for demo usage.
     """
 
-    my_longitude_from_env = os.environ.get('MY_LONGITUDE')
+    my_longitude_from_env = get_env('MY_LONGITUDE')
     if my_longitude_from_env:
         my_longitude = my_longitude_from_env
     else:
         my_longitude = "104.322"
 
-    my_latitude_from_env = os.environ.get('MY_LATITUDE')
+    my_latitude_from_env = get_env('MY_LATITUDE')
     if my_latitude_from_env:
         my_latitude = my_latitude_from_env
     else:
         my_latitude = "34.123"
 
-    my_curency_from_env = os.environ.get('MY_CURRENCY')
+    my_curency_from_env = get_env('MY_CURRENCY')
     if my_curency_from_env:
         my_currency = my_curency_from_env
     else:
         my_currency = "USD"
 
-    my_languages_from_env = os.environ.get('MY_LANGUAGES')
+    my_languages_from_env = get_env('MY_LANGUAGES')
     if my_languages_from_env:
         my_languages = my_languages_from_env
     else:
         my_languages = "???"
 
     # "eastus"  # aka LOCATION using the service.
-    az_region_from_env = os.environ.get('AZURE_REGION')
+    az_region_from_env = get_env('AZURE_REGION')
     if az_region_from_env:
         azure_region = az_region_from_env
     else:
         azure_region = "eastus"
 
-    aws_region_from_env = os.environ.get('AWS_REGION')   # "us-east-1"
+    aws_region_from_env = get_env('AWS_REGION')   # "us-east-1"
     if az_region_from_env:
         azure_region = az_region_from_env
     else:
@@ -1367,10 +1383,10 @@ class Fibonacci(object):
 
     def fibonacci_redis_connect():
             import redis
-            azure_redis_hostname=os.environ.get('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+            azure_redis_hostname=get_env('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
             
-            azure_redis_port=os.environ.get('AZURE_REDIS_PORT_FOR_FIBONACCI')
-            azure_redis_password=os.environ.get('AZURE_REDIS_ACCESS_KEY')
+            azure_redis_port=get_env('AZURE_REDIS_PORT_FOR_FIBONACCI')
+            azure_redis_password=get_env('AZURE_REDIS_ACCESS_KEY')
             reddis_connect_dict={
                 'host': azure_redis_hostname,
                 'port': azure_redis_port,
@@ -1613,7 +1629,7 @@ class TestShowIpAddr(unittest.TestCase):
             # Alternative: https://api.ipify.org/?format=json
 
             if len(
-                    my_ipaddr_from_env) == 0:  # my_ipaddr_from_env = os.environ.get('MY_IP_ADDRESS')
+                    my_ipaddr_from_env) == 0:  # my_ipaddr_from_env = get_env('MY_IP_ADDRESS')
                 print(
                     f'*** {localize_blob("IP Address is blank.")} in .env file.')
             else:
@@ -1641,7 +1657,7 @@ class TestShowIpAddr(unittest.TestCase):
 
 def find_ip_geodata():
 
-    ipfind_api_key = os.environ.get('IPFIND_API_KEY')
+    ipfind_api_key = get_env('IPFIND_API_KEY')
     # Sample IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
     if len(my_ip_address) == 0:
         print(f'*** IPFIND_API_KEY in .env file {localize_blob("is blank")}.')
@@ -1714,7 +1730,7 @@ class TestLookupIpAddr(unittest.TestCase):
 def obtain_zip_code():
 
     # use to lookup country, US state, long/lat, etc.
-    my_zip_code_from_env = os.environ.get('MY_ZIP_CODE')
+    my_zip_code_from_env = get_env('MY_ZIP_CODE')
     ZIP_CODE_DEFAULT = "90210"  # Beverly Hills, CA, for demo usage.
     if my_zip_code_from_env:
         # Empty strings are "falsy" - considered false in a Boolean context:
@@ -1852,7 +1868,7 @@ if show_weather:
     # then https://home.openweathermap.org/users/sign_in
 
     # Retrieve from .env file in case vault doesn't work:
-    openweathermap_api_key = os.environ.get('OPENWEATHERMAP_API_KEY')
+    openweathermap_api_key = get_env('OPENWEATHERMAP_API_KEY')
     # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
     # remove OPENWEATHERMAP_API_KEY value from memory.
     del os.environ["OPENWEATHERMAP_API_KEY"]
@@ -1991,7 +2007,7 @@ if show_weather:
         if email_weather:
             message = text_weather_location + "\n" + text_weather_min + "\n" + \
                 text_weather_cur + "\n" + text_weather_max + "\n" + text_wind + "\n" + text_pressure
-            to_gmail_address = os.environ.get("TO_EMAIL_ADDRESS")
+            to_gmail_address = get_env("TO_EMAIL_ADDRESS")
             subject_text = "Current weather for " + x["name"]
             # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
             # print("Emailed to ...")
@@ -2085,7 +2101,7 @@ def set_azure_secret_from_env(secretName):
     # secretName  = input("Input a name for your secret > ")
     # secretValue = input("Input a value for your secret > ")
 
-    secretValue = os.environ.get(secretName)  # from .env file
+    secretValue = get_env(secretName)  # from .env file
     if not secretValue:
         print_fail("No " + secretName + " in .env")
         return None
@@ -2135,12 +2151,12 @@ if use_azure:
     # Before running this, in a Terminal type: "az login" for the default browser to enable you to login.
     # Return to the Terminal.  TODO: Service account login?
 
-    AZ_SUBSCRIPTION_ID = os.environ.get('AZ_SUBSCRIPTION_ID')  # from .env file
+    AZ_SUBSCRIPTION_ID = get_env('AZ_SUBSCRIPTION_ID')  # from .env file
     if not AZ_SUBSCRIPTION_ID:
         print_fail("No AZ_SUBSCRIPTION_ID.")
         exit
 
-    azure_region = os.environ.get('AZURE_REGION')  # from .env file
+    azure_region = get_env('AZURE_REGION')  # from .env file
     if not azure_region:
         print_fail("No AZURE_REGION.")
         exit
@@ -2159,7 +2175,7 @@ if use_azure:
     # from azure.keyvault.secrets import SecretClient
     # from azure.identity import DefaultAzureCredential
 
-    azure_keyVaultName = os.environ.get('AZ_KEY_VAULT_NAME')  # from .env file
+    azure_keyVaultName = get_env('AZ_KEY_VAULT_NAME')  # from .env file
     if not azure_keyVaultName:
         print_fail("No AZ_KEY_VAULT_NAME.")
         exit
@@ -2355,7 +2371,7 @@ if use_aws:
     print_separator()
 
     # Retrieve from .env file:
-    aws_cmk_description = os.environ.get('AWS_CMK_DESCRIPTION')
+    aws_cmk_description = get_env('AWS_CMK_DESCRIPTION')
     if not aws_cmk_description:
         print(
             f'***{bcolors.FAIL} AWS_CMK_DESCRIPTION not in .env{bcolors.RESET}')
@@ -2391,9 +2407,10 @@ if use_aws:
     # this file will be encrypted
 
 
-# SECTION 16. TODO: Retrieve secrets from GCP
+# SECTION 16. Retrieve secrets from GCP Secret Manager = use_gcp
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_gcp
+# https://wilsonmar.github.io/gcp
 
 # Adapted from
 # https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
@@ -2404,7 +2421,7 @@ def create_gcp_secret(gcp_project_id_in, secret_id):
     around a collection of secret versions. Secret versions hold the actual
     secret material.
     """
-    # from google.cloud import secretmanager
+    from google.cloud import secretmanager
 
     # Create the Secret Manager client:
     client = secretmanager.SecretManagerServiceClient()
@@ -2504,52 +2521,50 @@ def list_gcp_secrets(gcp_project_id_in):
 
 # Based on https://cloud.google.com/secret-manager/docs/managing-secrets
 # TODO: Getting details about a secret, Managing access to secrets,
-# Updating a secret, Deleting a secret
-
+# TODO: Updating a secret, Deleting a secret
 
 if use_gcp:
     # Adapted from
     # https://codelabs.developers.google.com/codelabs/secret-manager-python#5
-
-    # pip install google-cloud-secret-manager
+    # pip install -U google-cloud-secret-manager
     # from google.cloud import secretmanager  #
     # https://cloud.google.com/secret-manager/docs/reference/libraries
 
-    gcp_project_id = os.environ.get('GCP_PROJECT_ID')
-    if len(my_ip_address) == 0:
-        print(f'*** GCP_PROJECT_ID in .env file {localize_blob("is blank")}.')
-        # exit
+    gcp_project_id = get_env('GCP_PROJECT_ID')
 
-    # Create a new secret called my_secret_value:
-    create_gcp_secret(gcp_project_id, "my_secret_value")
+    gcp_creds = get_env('GOOGLE_APPLICATION_CREDENTIALS')  # "path_to_json_credentials_file"
+    
+    # Create a new secret value "my_secret_value":
+    my_secret_value="secret here"
+    create_gcp_secret(gcp_project_id, my_secret_value)
     # Created secret: projects/<PROJECT_NUM>/secrets/my_secret_value
 
-    # Secrets can have multiple versions. Call the function again with a
-    # different value:
+    # Each value of a secrets is a different version:
     add_gcp_secret_version(
         gcp_project_id,
-        "my_secret_value",
+        my_secret_value,
         "Hello Secret Manager")
     # Added secret version:
     # projects/<PROJECT_NUM>/secrets/my_secret_value/versions/1
-    add_gcp_secret_version("my_secret_value", "Hello Again, Secret Manager")
+    add_gcp_secret_version(my_secret_value, "Hello Again, Secret Manager")
     # Added secret version:
     # projects/<PROJECT_NUM>/secrets/my_secret_value/versions/2
 
-    hash_gcp_secret(access_secret_version("my_secret_value"))
+    hash_gcp_secret(access_secret_version(my_secret_value))
     # Example: 83f8a4edb555cde4271029354395c9f4b7d79706ffa90c746e021d11
 
     # Conform Since you did not specify a version, the latest value was
     # retrieved.
-    hash_gcp_secret(access_secret_version("my_secret_value", version_id=2))
+    hash_gcp_secret(access_secret_version(my_secret_value, version_id=2))
 
     # You should see the same output as the last command.
     # Call the function again, but this time specifying the first version:
-    hash_gcp_secret(access_secret_version("my_secret_value", version_id=1))
+    hash_gcp_secret(access_secret_version(my_secret_value, version_id=1))
     # You should see a different hash this time, indicating a different output:
 
     if show_verbose:
         list_gcp_secrets(gcp_project_id_in)
+
 
 
 # SECTION 17. Retrieve secrets from Hashicorp Vault
@@ -2592,8 +2607,8 @@ def retrieve_secret():
 if use_vault:
     # TODO: Make into function
 
-    vault_url = os.environ.get('VAULT_URL')
-    vault_url = os.environ.get('VAULT_TOKEN')
+    vault_url = get_env('VAULT_URL')
+    vault_token = get_env('VAULT_TOKEN')
 
     hashicorp_vault_secret_path = "secret/snakes"
 
@@ -2662,12 +2677,11 @@ if download_imgs:
             f'***{bcolors.FAIL} img_set \"{img_set}\" not recognized in coding!{bcolors.RESET}')
         exit(1)
 
-    img_project_root = os.environ.get(
-        'IMG_PROJECT_ROOT')  # $HOME (or ~) folder
+    img_project_root = get_env('IMG_PROJECT_ROOT')  # $HOME (or ~) folder
     # FIXME: If it's blank, use hard-coded default
 
     # under user's $HOME (or ~) folder
-    img_project_folder = os.environ.get('IMG_PROJECT_FOLDER')
+    img_project_folder = get_env('IMG_PROJECT_FOLDER')
     # FIXME: If it's blank, use hard-coded default
 
     # Convert "$HOME" or "~" (tilde) in IMG_PROJECT_PATH to "/Users/wilsonmar":
@@ -2842,12 +2856,12 @@ with Image(blob = image_binary) as img:
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
 
-slack_token = os.environ.get('SLACK_TOKEN')       # This is a secret and should not be here
-slack_user_name = os.environ.get('SLACK_USER_NAME')   # 'Double Images Monitor'
-slack_channel = os.environ.get('SLACK_CHANNEL')     # #my-channel'
-slack_icon_url = os.environ.get('SLACK_ICON_URL')
-slack_icon_emoji = os.environ.get('SLACK_ICON_EMOJI')  # ':see_no_evil:'
-slack_text = os.environ.get('SLACK_TEXT')
+slack_token = get_env('SLACK_TOKEN')       # This is a secret and should not be here
+slack_user_name = get_env('SLACK_USER_NAME')   # 'Double Images Monitor'
+slack_channel = get_env('SLACK_CHANNEL')     # #my-channel'
+slack_icon_url = get_env('SLACK_ICON_URL')
+slack_icon_emoji = get_env('SLACK_ICON_EMOJI')  # ':see_no_evil:'
+slack_text = get_env('SLACK_TEXT')
 
 def post_message_to_slack(text, blocks=None):
     return requests.post('https://slack.com/api/chat.postMessage', {
@@ -2912,7 +2926,7 @@ class TestSendSlack(unittest.TestCase):
 def verify_email_address( to_email_address ):
     if verify_email:
         # First, get API from https://mailboxlayer.com/product
-        verify_email_api = os.environ.get('MAILBOXLAYER_API')
+        verify_email_api = get_env('MAILBOXLAYER_API')
         del os.environ["MAILBOXLAYER_API"]
         # https://apilayer.net/api/check?access_key = YOUR_ACCESS_KEY & email = support@apilayer.com
         url = "http://apilayer.net/api/check?access_key=" + verify_email_api + \
@@ -2931,8 +2945,8 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
     # subject_in = "hello"
     # body_in = "testing ... "
     # "loadtesters@gmail.com" # Authenticate to google (use a separate gmail account just for this)
-    from_gmail_address = os.environ.get('THOWAWAY_GMAIL_ADDRESS')
-    from_gmail_password = os.environ.get('THOWAWAY_GMAIL_PASSWORD')  # a secret
+    from_gmail_address = get_env('THOWAWAY_GMAIL_ADDRESS')
+    from_gmail_password = get_env('THOWAWAY_GMAIL_PASSWORD')  # a secret
     
     if show_trace:
         print(
@@ -2979,7 +2993,7 @@ class TestSendEmail(unittest.TestCase):
             print_separator()
 
             # Open file from email_file_path & read csv/json emails to email
-            to_gmail_address = os.environ.get('TO_EMAIL_ADDRESS')  # static not a secret
+            to_gmail_address = get_env('TO_EMAIL_ADDRESS')  # static not a secret
             subject_text = "Hello from " + program_name  # Customize this!
             if True:  # TODO: for loop through email addresses and text in file:
 
@@ -3025,7 +3039,7 @@ class TestViewGravatar(unittest.TestCase):
     def test_view_gravatar(self):
 
         # TODO: Alternately, obtain from user parameter specification:
-        some_email=os.environ.get('MY_EMAIL')  # "johnsmith@example.com"
+        some_email=get_env('MY_EMAIL')  # "johnsmith@example.com"
         print_verbose( some_email)
         some_email_gravatar=""
 
