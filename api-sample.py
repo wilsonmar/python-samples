@@ -205,13 +205,6 @@ gen_lotto = False
 # 9.7. Make a decision                          = magic_8ball
 gen_magic_8ball = False
 
-# 9.8. Generate a fibonacci number recursion    = gen_fibonacci
-gen_fibonacci = False
-# 9.9 Make change using Dynamic Programming     = make_change
-make_change = False
-# 9.10 "Knapsack"
-fill_knapsack = False
-
 # 10. Retrieve client IP address                  = get_ipaddr
 get_ipaddr = False
 # 11. Lookup geolocation info from IP Address     = lookup_ipaddr
@@ -229,6 +222,16 @@ use_keyring = False
 # 14. Retrieve secrets from Azure Key Vault  = use_azure
 use_azure = False
 use_azure_redis = False
+
+# 14.1 Generate a fibonacci number recursion    = gen_fibonacci
+# (write and read to Azure Redis)
+gen_fibonacci = False
+
+# 9.9 Make change using Dynamic Programming     = make_change
+make_change = False
+
+# 9.10 "Knapsack"
+fill_knapsack = False
 
 # 15. Retrieve secrets from AWS KMS         = use_aws
 use_aws = False
@@ -269,9 +272,11 @@ verify_email = False
 email_file_path = ""
 
 # 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
+# (use MD5 Hash)
 view_gravatar = False
 
-# 24. Calculte BMI using units of measure based on country = categorize_bmi
+# 24. Calculte BMI using units of measure  = categorize_bmi
+# (Metric vs English conversoin based on country code)
 categorize_bmi = False
 email_weather = False
 
@@ -279,6 +284,7 @@ email_weather = False
 cleanup_img_files = False
 # 99. Display run time stats at end of program = display_run_stats
 display_run_stats = False
+
 
 
 # SECTION  3. Parse arguments that control program operation
