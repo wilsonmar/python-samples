@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.77"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.78"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -137,13 +137,10 @@ https://gist.github.com/dokterbob/6410844
 # SECTION  2. Capture starting time and set default global values
 
 # Obtain program starting time as the very start of execution:
-# See https://wilsonmar.github.io/python-coding/#DurationCalcs
-my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
 
 start_run_time = time.monotonic()  # for wall-clock time (includes any sleep).
 start_epoch_time = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
-
 
 # This handles situation when user is in su mode. See http://docs.python.org/library/pwd.html
 #import psutil
@@ -157,6 +154,8 @@ global_username=pwd.getpwuid(os.getuid()).pw_name  # preferred over os.getuid())
 # NOTE: Feature flag settings below are arranged in the order of code:
 
 run_mode = "dev"  # vs. "prod"
+
+clear_cli = True   # Clear Console so output always appears at top of screen.
 
 # TODO: Change values in program call parameters:
 show_warning = True    # -wx  Don't display warning
@@ -186,7 +185,7 @@ localize_text = False
 show_pgminfo = False
 
 # 8. Define utilities for managing local data storage folders and files
-show_dates = False
+show_dates = True
 
 # 9. Generate various calculations for hashing, encryption, etc.
 
@@ -206,12 +205,12 @@ gen_lotto = False
 gen_magic_8ball = False
 
 # 10. Retrieve client IP address                  = get_ipaddr
-get_ipaddr = False
+get_ipaddr = True
 # 11. Lookup geolocation info from IP Address     = lookup_ipaddr
-lookup_ipaddr = False
+lookup_ipaddr = False  # FIXME
 
 # 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
-lookup_zipinfo = False
+lookup_zipinfo = True
 # 13. Retrieve Weather info using API             = show_weather
 show_weather = False
 email_weather = False
@@ -237,7 +236,7 @@ fill_knapsack = False
 use_aws = False
 
 # 16. Retrieve secrets from GCP Secret Manager = use_gcp
-use_gcp = True
+use_gcp = False
 
 # 17. Retrieve secrets from Hashicorp Vault = use_vault
 use_vault = False
@@ -280,10 +279,14 @@ view_gravatar = False
 categorize_bmi = False
 email_weather = False
 
+# 97. Play text to sound:
+gen_sound_for_text = False
+remove_sound_file_generated = False
+
 # 98. Remove (clean-up) folder/files created   = cleanup_img_files
 cleanup_img_files = False
 # 99. Display run time stats at end of program = display_run_stats
-display_run_stats = False
+display_run_stats = True
 
 
 
@@ -314,6 +317,12 @@ args = parser.parse_args()
 
 
 # SECTION  4. Define utilities for printing (in color), logging, etc.
+
+if clear_cli:
+    import os
+    # PROTIP: Use Lambda syntax
+    lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
 
 def print_separator():
     """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. """
@@ -379,147 +388,8 @@ if show_samples:
     print_trace("sample trace")
 
 
-# SECTION  5. Define utilities for managing data storage folders and files"
 
-def os_platform():
-    this_platform = platform.system()
-    if this_platform == "Darwin":
-        my_platform = "macOS"
-    elif this_platform == "linux" or this_platform == "linux2":
-        my_platform = "Linux"
-    elif this_platform == "win32":
-        my_platform = "Windows"
-    else:
-        print(
-            f'***{bcolors.FAIL} Platform {this_platform} is unknown!{bcolors.RESET} ')
-        exit(1)
-    return my_platform
-
-
-def creation_date(path_to_file):
-    """
-    Requires import platform, import os, from stat import *
-    Try to get the date that a file was created, falling back to when it was
-    last modified if that isn't possible.
-    See http://stackoverflow.com/a/39501288/1709587 for explanation.
-    """
-    if platform.system() == 'Windows':
-        return os.path.getctime(path_to_file)
-    else:
-        stat = os.stat(path_to_file)
-        try:
-            return stat.st_birthtime
-        except AttributeError:
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            return stat.st_mtime
-
-
-def dir_remove(dir_path):
-    if os.path.exists(dir_path):
-        shutil.rmtree(dir_path)  # deletes a directory and all its contents.
-        # os.remove(img_file_path)  # single file
-    # Alternative: Path objects from the Python 3.4+ pathlib module also expose these instance methods:
-        # pathlib.Path.unlink()  # removes a file or symbolic link.
-        # pathlib.Path.rmdir()   # removes an empty directory.
-
-
-def dir_tree(startpath):
-    # Thanks to
-    # https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        indent = ' ' * 4 * (level)
-        print('{}{}/'.format(indent, os.path.basename(root)))
-        subindent = ' ' * 4 * (level + 1)
-        for f in files:
-            print('{}{}'.format(subindent, f))
-
-
-def about_disk_space():
-    statvfs = os.statvfs(".")
-    # Convert to bytes, multiply by statvfs.f_frsize and divide for Gigabyte
-    # representation:
-    GB = 1000000
-    disk_total = ((statvfs.f_frsize * statvfs.f_blocks) /
-                  statvfs.f_frsize) / GB
-    disk_free = ((statvfs.f_frsize * statvfs.f_bfree) / statvfs.f_frsize) / GB
-    # disk_available = ((statvfs.f_frsize * statvfs.f_bavail ) / statvfs.f_frsize ) / GB
-    disk_list = [disk_total, disk_free]
-    return disk_list
-
-
-def file_creation_date(path_to_file, my_os_platform):
-    """
-    Get the datetime stamp that a file was created, falling back to when it was
-    last modified if that isn't possible.
-    See http://stackoverflow.com/a/39501288/1709587 for explanation.
-    WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
-    """
-    if path_to_file is None:
-        if show_trace:
-            print(
-                f'***{bcolors.TRACE} path_to_file={path_to_file} {bcolors.RESET} ')
-    #if show_trace:
-    #    print(f'***{bcolors.TRACE} platform.system()={platform.system()}{bcolors.RESET} ')
-    if platform.system() == 'Windows':
-        return os.path.getctime(path_to_file)
-    else:
-        stat = os.stat(path_to_file)
-        try:
-            return stat.st_birthtime
-
-        except AttributeError:
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            return stat.st_mtime
-
-
-def file_remove(file_path):
-    if os.path.exists(file_path):
-        os.remove(file_path)  # deletes a directory and all its contents.
-
-
-# TODO: Create, navigate to, and remove local working folders:
-
-if show_dates:  # temporarily - never execute
-
-    # import time
-    curr_time = time.localtime()
-    curr_clock = time.strftime(my_date_format, curr_time)
-    print(curr_clock)  # Friday 10 Dec 2021 11:59:25 PM MST -0700
-
-    # import pytz
-    start_UTC_time = pytz.utc   # get the standard UTC time
-    datetime_utc = datetime.now(start_UTC_time)
-    print(datetime_utc.strftime(my_date_format))
-
-    IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
-    datetime_utc = datetime.now(IST)
-    print(datetime_utc.strftime(my_date_format))
-
-    #from datetime import timezone
-    #import datetime
-    dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
-    #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
-    # use tzinfo class to convert datetime to UTC:
-    utc_time = dt.replace(tzinfo=timezone.utc)
-    print(utc_time)
-    # Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
-    utc_timestamp = utc_time.timestamp()
-    print(utc_timestamp)
-    # Can't print(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
-
-    # Get a UTC tzinfo object – by calling tz.tzutc():
-    from dateutil import tz
-    tz.tzutc()
-    # Get offset 0 by calling the utcoffset() method with a UTC datetime object:
-    import datetime
-    print( tz.tzutc().utcoffset(datetime.datetime.utcnow()) )
-    # datetime.timedelta(0)
-
-
-###### SECTION  6. Obtain run control data from .env file in the user's $HOME folder
+###### SECTION  5. Obtain run control data from .env file in the user's $HOME folder
 
 # See https://wilsonmar.github.io/python-samples#run_env
 
@@ -537,112 +407,6 @@ home = str(Path.home())   # example: /users/wilson_mar
 global_env_path = Path(home) / env_file
 load_dotenv(global_env_path)
 
-def get_env(key_in):
-    """
-    Return a value from .env file based on key provided.
-    Used instead of os.environ.get('SOME_URL')
-    """
-    value = get_env(key_in)
-    if not value:
-        print_fail(key_in +" not found in .env file")
-        # os.exit()
-        return None
-    else:
-        print_verbose(key_in +"="+ value)
-    return value
-
-
-if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
-    # "ar_EG", "ja_JP", "zh_CN", "zh_TW", "hi" (Hindi), "sv_SE" #swedish
-    locale_from_env = get_env('LOCALE')
-    if locale_from_env:
-        my_locale = locale_from_env
-    else:
-        my_locale = "en_US"
-
-    my_encoding_from_env = get_env('MY_ENCODING')  # "UTF-8"
-    if my_encoding_from_env:
-        my_encoding = my_encoding_from_env
-    else:
-        my_encoding = "UTF-8"
-
-    # "US"      # For use in whether to use metric
-    my_country_from_env = get_env('MY_COUNTRY')
-    if my_country_from_env:
-        my_country = my_country_from_env
-    else:
-        my_country = "US"
-
-    my_tz_name_from_env = get_env('MY_TIMEZONE_NAME')
-    if my_tz_name_from_env:
-        my_tz_name = my_tz_name_from_env
-    else:
-        # Get time zone code from local operating system:
-        # import datetime  # for Python 3.6+
-        my_tz_name = _datetime.datetime.utcnow().astimezone().tzinfo
-            # _datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-            # = "MST" for U.S. Mountain Standard Time, or 'Asia/Kolkata'
-        # print(my_tz_name)
-
-
-    """
-    my_zip_code_from_env     = get_env('MY_ZIP_CODE')   # "90210"  # use to lookup country, US state, long/lat, etc.
-    if my_zip_code_from_env: my_zip_code = my_zip_code_from_env
-    else: my_zip_code = "90210"   # Beverly Hills, CA, for demo usage.
-    """
-
-    my_longitude_from_env = get_env('MY_LONGITUDE')
-    if my_longitude_from_env:
-        my_longitude = my_longitude_from_env
-    else:
-        my_longitude = "104.322"
-
-    my_latitude_from_env = get_env('MY_LATITUDE')
-    if my_latitude_from_env:
-        my_latitude = my_latitude_from_env
-    else:
-        my_latitude = "34.123"
-
-    my_curency_from_env = get_env('MY_CURRENCY')
-    if my_curency_from_env:
-        my_currency = my_curency_from_env
-    else:
-        my_currency = "USD"
-
-    my_languages_from_env = get_env('MY_LANGUAGES')
-    if my_languages_from_env:
-        my_languages = my_languages_from_env
-    else:
-        my_languages = "???"
-
-    # "eastus"  # aka LOCATION using the service.
-    az_region_from_env = get_env('AZURE_REGION')
-    if az_region_from_env:
-        azure_region = az_region_from_env
-    else:
-        azure_region = "eastus"
-
-    aws_region_from_env = get_env('AWS_REGION')   # "us-east-1"
-    if az_region_from_env:
-        azure_region = az_region_from_env
-    else:
-        azure_region = "us-east-1"  # "Friends don't let friends use AWS us-east-1 in production"
-
-if show_env:
-    print_separator()
-
-    print_verbose(text_to_print)
-    
-    text_to_print = "global_env_path=" + str(global_env_path)
-    # ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
-    global_env_path_time = file_creation_date(global_env_path, my_os_platform)
-    dt = _datetime.datetime.utcfromtimestamp( global_env_path_time )
-    iso_format = dt.strftime('%A %d %b %Y %I:%M:%S %p Z')  # Z - no time zone
-
-    text_to_print = "created " + iso_format   # ?.strftime(my_date_format)
-    print_verbose(text_to_print)
-
-
 # CAUTION: Avoid printing api_key value and other secrets to console or logs.
 
 # CAUTION: Leaving secrets anywhere on a laptop is dangerous. One click on a malicious website and it can be stolen.
@@ -651,7 +415,128 @@ if show_env:
 # https://vault-cli.readthedocs.io/en/latest/discussions.html#why-not-vault-hvac-or-hvac-cli
 
 
-# SECTION  7. Define Localization (to translate text to the specified locale)
+    # TODO: PROTIP: Hint that return value is a string:
+def get_from_env_file(key_in) -> str:
+    """
+    Return a string obtained from .env file based on key provided.
+    Used instead of os.environ.get('SOME_URL')
+    """
+    # TODO: Check if file is available:
+
+    value = os.environ.get(key_in)  # built-in function
+    if not value:
+        print_warning(key_in +" not found in .env file "+ env_file)
+        return None
+    else:
+        # del os.environ[key_in]
+        os.environ[key_in] = value
+        print_trace(key_in +"=\""+ value +"\"")
+    return value
+
+
+if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
+
+    # PROTIP: Don't change the system's locale setting within a Python program because
+    # locale is global and affects other applications.
+
+    # "US"      # For use in whether to use metric
+    my_country_from_env = get_from_env_file('MY_COUNTRY')
+    if not my_country_from_env:
+        my_country = "US"
+    else:
+        my_country = my_country_from_env
+
+    # CAUTION: PROTIP: LOCALE values are different on Windows than Linux/MacOS
+    # "ar_EG", "ja_JP", "zh_CN", "zh_TW", "hi" (Hindi), "sv_SE" #swedish
+    locale_from_env = get_from_env_file('LOCALE')  # for translation
+    if not locale_from_env:
+        my_locale = "en_US"
+    else:
+        my_locale = locale_from_env
+
+    my_encoding_from_env = get_from_env_file('MY_ENCODING')  # "UTF-8"
+    if not my_encoding_from_env:
+        my_encoding = "UTF-8"
+    else:
+        my_encoding = my_encoding_from_env
+
+    my_date_format_from_env = get_from_env_file('MY_DATE_FORMAT')
+    if not my_date_format_from_env:
+        my_date_format = my_date_format_from_env
+    else:
+#       if not my_country:
+        my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
+            # Swedish a date is represented as 2014-11-14 instead of 11/14/2014.
+        # TODO: else:
+        # PROTIP: Set date format based on country
+        # https://www.wikiwand.com/en/Date_format_by_country shows only 7 Order style formats
+        # See https://wilsonmar.github.io/python-coding/#DurationCalcs
+    print_verbose("my data format="+ my_date_format)
+
+    my_tz_name_from_env = get_from_env_file('MY_TIMEZONE_NAME')
+    if not my_tz_name_from_env:
+        # Get time zone code from local operating system:
+        # import datetime  # for Python 3.6+
+        my_tz_name = _datetime.datetime.utcnow().astimezone().tzinfo
+            # _datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+            # = "MST" for U.S. Mountain Standard Time, or 'Asia/Kolkata'
+        # print(my_tz_name)
+    else:
+        my_tz_name = my_tz_name_from_env
+
+
+    """
+    my_zip_code_from_env     = get_from_env_file('MY_ZIP_CODE')   # "90210"  # use to lookup country, US state, long/lat, etc.
+    if my_zip_code_from_env: my_zip_code = my_zip_code_from_env
+    else: my_zip_code = "90210"   # Beverly Hills, CA, for demo usage.
+    """
+
+    my_longitude_from_env = get_from_env_file('MY_LONGITUDE')
+    if my_longitude_from_env:
+        my_longitude = my_longitude_from_env
+    else:
+        my_longitude = "104.322"
+
+    my_latitude_from_env = get_from_env_file('MY_LATITUDE')
+    if my_latitude_from_env:
+        my_latitude = my_latitude_from_env
+    else:
+        my_latitude = "34.123"
+
+    my_curency_from_env = get_from_env_file('MY_CURRENCY')
+    if my_curency_from_env:
+        my_currency = my_curency_from_env
+    else:
+        my_currency = "USD"
+
+    # "eastus"  # aka LOCATION using the service.
+    az_region_from_env = get_from_env_file('AZURE_REGION')
+    if az_region_from_env:
+        azure_region = az_region_from_env
+    else:
+        azure_region = "eastus"
+
+    aws_region_from_env = get_from_env_file('AWS_REGION')   # "us-east-1"
+    if az_region_from_env:
+        azure_region = az_region_from_env
+    else:
+        azure_region = "us-east-1"  # "Friends don't let friends use AWS us-east-1 in production"
+
+if show_env:
+    print_separator()
+    print_verbose(text_to_print)
+    
+    text_to_print = "global_env_path=" + str(global_env_path)
+    # ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
+    global_env_path_time = file_creation_date(global_env_path, my_os_platform)
+    dt = _datetime.datetime.utcfromtimestamp( global_env_path_time )
+    iso_format = dt.strftime('%A %d %b %Y %I:%M:%S %p Z')  # Z = UTC with no time zone
+
+    text_to_print = "created " + iso_format   # ?.strftime(my_date_format)
+    print_verbose(text_to_print)
+
+
+# SECTION  6. Define Localization (to translate text to the specified locale)
 
 # internationalization according to localization setting:
 def format_epoch_datetime(date_in):
@@ -661,7 +546,6 @@ def format_epoch_datetime(date_in):
 # internationalization according to localization setting:
 def format_number(number):
     return ("{:,}".format(number))
-
 
 # Use user's default settings by setting as blank:
 locale.setlocale(locale.LC_ALL, '')
@@ -711,6 +595,26 @@ def localize_blob(byte_array_in):
     # classification, translation, and more.
 
 
+    # TODO: PROTIP: Provide hint that data type is a time object:
+def creation_date(path_to_file):
+    """
+    Requires import platform, import os, from stat import *
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
+
+
 def part_of_day_greeting():
     from datetime import datetime
     current_hour = datetime.now().hour
@@ -751,6 +655,7 @@ def verify_yes_no_manually(question, default='no'):
 
 
 if localize_text:
+
     # if env_locale != my_locale[0] : # 'en_US'
     #   print("error")
     if show_warning:
@@ -775,9 +680,145 @@ if localize_text:
 """
 
 
+# SECTION  7. Define utilities for managing data storage folders and files"
+
+def os_platform():
+    this_platform = platform.system()
+    if this_platform == "Darwin":
+        my_platform = "macOS"
+    elif this_platform == "linux" or this_platform == "linux2":
+        my_platform = "Linux"
+    elif this_platform == "win32":
+        my_platform = "Windows"
+    else:
+        print(
+            f'***{bcolors.FAIL} Platform {this_platform} is unknown!{bcolors.RESET} ')
+        exit(1)
+    return my_platform
+
+
+def dir_remove(dir_path):
+    if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)  # deletes a directory and all its contents.
+        # os.remove(img_file_path)  # single file
+    # Alternative: Path objects from the Python 3.4+ pathlib module also expose these instance methods:
+        # pathlib.Path.unlink()  # removes a file or symbolic link.
+        # pathlib.Path.rmdir()   # removes an empty directory.
+
+
+def dir_tree(startpath):
+    # Thanks to
+    # https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        print('{}{}/'.format(indent, os.path.basename(root)))
+        subindent = ' ' * 4 * (level + 1)
+        for f in files:
+            print('{}{}'.format(subindent, f))
+
+
+    # TODO: Hint that this returns list data type:
+def about_disk_space():
+    statvfs = os.statvfs(".")
+    # Convert to bytes, multiply by statvfs.f_frsize and divide for Gigabyte
+    # representation:
+    GB = 1000000
+    disk_total = ((statvfs.f_frsize * statvfs.f_blocks) /
+                  statvfs.f_frsize) / GB
+    disk_free = ((statvfs.f_frsize * statvfs.f_bfree) / statvfs.f_frsize) / GB
+    # disk_available = ((statvfs.f_frsize * statvfs.f_bavail ) / statvfs.f_frsize ) / GB
+    disk_list = [disk_total, disk_free]
+    return disk_list
+
+
+    # TODO: PROTIP: Hint this returns date object:
+def file_creation_date(path_to_file, my_os_platform):
+    """
+    Get the datetime stamp that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
+    """
+    if path_to_file is None:
+        if show_trace:
+            print(
+                f'***{bcolors.TRACE} path_to_file={path_to_file} {bcolors.RESET} ')
+    #if show_trace:
+    #    print(f'***{bcolors.TRACE} platform.system()={platform.system()}{bcolors.RESET} ')
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
+
+
+def file_remove(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)  # deletes a directory and all its contents.
+
+
+# TODO: Create, navigate to, and remove local working folders:
+
+if show_dates:  # temporarily - never execute
+    print_separator()
+    print_heading("show_dates :")
+
+    # https://www.youtube.com/watch?v=r1Iv4d6CO2Q&list=PL98qAXLA6afuh50qD2MdAj3ofYjZR_Phn&t=50s
+
+    # import time
+    curr_time = time.localtime()
+    curr_clock = time.strftime(my_date_format, curr_time)
+    print(curr_clock +" local time")  # Friday 10 Dec 2021 11:59:25 PM MST -0700
+
+    # import pytz
+    start_UTC_time = pytz.utc   # get the standard UTC time
+    datetime_utc = datetime.now(start_UTC_time)
+    print(datetime_utc.strftime(my_date_format))
+
+    IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
+    datetime_utc = datetime.now(IST)
+    print(datetime_utc.strftime(my_date_format) +" India")
+
+    # Get a UTC tzinfo object – by calling tz.tzutc():
+    from dateutil import tz
+    tz.tzutc()
+    # Get offset 0 by calling the utcoffset() method with a UTC datetime object:
+
+    #from datetime import timezone
+    #import datetime
+    dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
+    #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
+    # use tzinfo class to convert datetime to UTC:
+    utc_time = dt.replace(tzinfo=timezone.utc)
+    print(utc_time)
+    # Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
+    utc_timestamp = utc_time.timestamp()
+    print_verbose("Epoch utc_timestamp now: "+ str(utc_timestamp))
+    # Can't print(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
+
+    import time
+    epoch_time = 9999999999
+    time_val = time.localtime(epoch_time)
+    print_verbose("Epoch 9999999999 apocolypse time_struct:" + str( time_val ) )
+
+    """
+    import datetime
+    print("tz.tzutc now: "+ str(tz.tzutc().utcoffset(datetime.datetime.utcnow())) )
+    # datetime.timedelta(0)
+    """
+
+
 # SECTION  8. Display run conditions: datetime, OS, Python version, etc.
 
 
+    # TODO: Hint that return value is a list:
 def macos_version_name(release_in):
     """ Returns the marketing name of macOS versions which are not available
         from the running macOS operating system.
@@ -1389,10 +1430,10 @@ class Fibonacci(object):
 
     def fibonacci_redis_connect():
             import redis
-            azure_redis_hostname=get_env('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
+            azure_redis_hostname=get_from_env_file('AZURE_REDIS_HOSTNAME_FOR_FIBONACCI')
             
-            azure_redis_port=get_env('AZURE_REDIS_PORT_FOR_FIBONACCI')
-            azure_redis_password=get_env('AZURE_REDIS_ACCESS_KEY')
+            azure_redis_port=get_from_env_file('AZURE_REDIS_PORT_FOR_FIBONACCI')
+            azure_redis_password=get_from_env_file('AZURE_REDIS_ACCESS_KEY')
             reddis_connect_dict={
                 'host': azure_redis_hostname,
                 'port': azure_redis_port,
@@ -1626,31 +1667,55 @@ class TestFillKnapsack(unittest.TestCase):
 
 # SECTION 10. Retrieve client IP address    = get_ipaddr
 
+my_ip_address=""  # Global
+
 class TestShowIpAddr(unittest.TestCase):
     def test_get_ipaddr(self):
 
         if get_ipaddr:
+            print_separator()
+            print_heading("get_ipaddr:")
 
-            # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
-            # Alternative: https://api.ipify.org/?format=json
+            """
+            import socket  # https://docs.python.org/3/library/socket.html
+            print_verbose("IP address from socket.gethostname: "+socket.gethostbyname(socket.gethostname()))  # 192.168.0.118
+                # 127.0.0.1
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.config['keep_alive'] = False
+            my_ipaddr = s.getsockname()[0]
+            # FIXME: Close socket
+            print_verbose("IP address from getsockname (default route): " + s.getsockname()[0])
+            """
 
-            if len(
-                    my_ipaddr_from_env) == 0:  # my_ipaddr_from_env = get_env('MY_IP_ADDRESS')
-                print(
-                    f'*** {localize_blob("IP Address is blank.")} in .env file.')
+            """
+            # https://www.delftstack.com/howto/python/get-ip-address-python/
+            from netifaces import interfaces, ifaddresses, AF_INET
+            for ifaceName in interfaces():
+                addresses = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
+                print(' '.join(addresses))
+            sys.exit()  # DEBUGGING
+            """
+
+            my_ipaddr_from_env = get_from_env_file('MY_IP_ADDRESS')
+            if my_ipaddr_from_env and len(my_ipaddr_from_env) > 0:
+               my_ip_address = my_ipaddr_from_env
             else:
+                # print_warning("IP Address is blank in .env file.")
                 # Lookup the ip address on the internet:
                 url = "http://checkip.dyndns.org"
-                request = requests.get(url, allow_redirects=False)
+                    # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
+                    # Alternative: https://api.ipify.org/?format=json
+
+                # PROTIP: Close connection immediatelyto reduce man-in-the-middle attacks:
+                #s = requests.session()
+                #s.config['keep_alive'] = False
+                request = requests.get(url, allow_redirects=False, headers={'Connection':'close'})
                 # print( request.text )
                 # <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
-                clean = request.text.split(
-                    ': ', 1)[1]  # split 1once, index [1]
+                clean = request.text.split(': ', 1)[1]  # split 1once, index [1]
                 # [0] for first item.
                 my_ip_address = clean.split('</body></html>', 1)[0]
-                if show_verbose:
-                    print(
-                        f'*** {localize_blob("My IP Address")}={my_ip_address}')
+                print_info( "My external IP Address: " + my_ip_address +" from "+ url )
 
             # NOTE: This is like curl ipinfo.io (which provides additional info associated with ip address)
             # IP Address is used for geolocation (zip & lat/long) for weather info.
@@ -1661,12 +1726,12 @@ class TestShowIpAddr(unittest.TestCase):
 
 # SECTION 11. Lookup geolocation info from IP Address
 
-def find_ip_geodata():
+def find_ip_geodata(my_ip_address):
 
-    ipfind_api_key = get_env('IPFIND_API_KEY')
+    ipfind_api_key = get_from_env_file('IPFIND_API_KEY')
     # Sample IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
-    if len(my_ip_address) == 0:
-        print(f'*** IPFIND_API_KEY in .env file {localize_blob("is blank")}.')
+    if ipfind_api_key and len(my_ip_address) > 0:
+        print_verbose("Using IPFIND_API_KEY in .env file.")
     else:
         # remove key from memory others might peak at.
         # remove key from memory so others can't peak at it.
@@ -1677,7 +1742,6 @@ def find_ip_geodata():
     # TODO: Verify ipfind_api_key
 
     url = 'https://ipfind.co/?auth=' + ipfind_api_key + '&ip=' + my_ip_address
-
     try:
         # import urllib, json # at top of this file.
         # https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b310-urllib-urlopen
@@ -1697,14 +1761,17 @@ def find_ip_geodata():
                 # "languages":["en-US","es-US","haw","fr"]}
                 print(
                     f'*** {localize_blob("Longitude")}: {ip_base["longitude"]} {localize_blob("Latitude")}: {ip_base["latitude"]} in {ip_base["country_code"]} {ip_base["timezone"]} {ip_base["currency"]} (VPN IP).')
+                return ip_base
         except Exception:
             print(
                 f'***{bcolors.FAIL} ipfind.co {localize_blob("response not read")}.{bcolors.RESET}')
             # exit()
+            return None
     except Exception:
         print(
             f'***{bcolors.FAIL} {url} {localize_blob("not operational")}.{bcolors.RESET}')
         # exit()
+        return None
 
 
 class TestLookupIpAddr(unittest.TestCase):
@@ -1712,22 +1779,27 @@ class TestLookupIpAddr(unittest.TestCase):
 
         if lookup_ipaddr:
             print_separator()
+            print_heading("lookup_ipaddr :")
 
-            find_ip_geodata()
+            ip_base=find_ip_geodata(my_ip_address)
+            if ip_base:
+                print_fail("ip_base has None.")
+            else:
+                print(ip_base)  # DEBUGGIN
+                # Replace global defaults:
+                # FIXME: TypeError: 'NoneType' object is not subscriptable
+                if ip_base["country_code"]:
+                    my_country = ip_base["country_code"]
+                if ip_base["longitude"]:
+                    my_longitude = ip_base["longitude"]
+                if ip_base["latitude"]:
+                    my_latitude = ip_base["latitude"]
+                if ip_base["timezone"]:
+                    my_timezone = ip_base["timezone"]
+                if ip_base["currency"]:
+                    my_currency = ip_base["currency"]
 
-            # Replace default
-            if ip_base["country_code"]:
-                my_country = ip_base["country_code"]
-            if ip_base["longitude"]:
-                my_longitude = ip_base["longitude"]
-            if ip_base["latitude"]:
-                my_latitude = ip_base["latitude"]
-            if ip_base["timezone"]:
-                my_timezone = ip_base["timezone"]
-            if ip_base["currency"]:
-                my_currency = ip_base["currency"]
-
-            # TODO: my_country = ip_base["country_code"]
+                # TODO: my_country = ip_base["country_code"]
 
 
 # SECTION 12. Obtain Zip Code (used to retrieve Weather info)
@@ -1736,14 +1808,14 @@ class TestLookupIpAddr(unittest.TestCase):
 def obtain_zip_code():
 
     # use to lookup country, US state, long/lat, etc.
-    my_zip_code_from_env = get_env('MY_ZIP_CODE')
-    ZIP_CODE_DEFAULT = "90210"  # Beverly Hills, CA, for demo usage.
+    my_zip_code_from_env = get_from_env_file('MY_ZIP_CODE')    
     if my_zip_code_from_env:
         # Empty strings are "falsy" - considered false in a Boolean context:
-        print(
-            f'*** US Zip Code \"{my_zip_code_from_env}\" obtained from file {global_env_path} ')
+        text_msg="US Zip Code: "+ str(my_zip_code_from_env) +" obtained from file "+ str(global_env_path)
+        print_verbose(text_msg)
         return my_zip_code_from_env
     else:   # zip code NOT supplied from .env:
+        ZIP_CODE_DEFAULT = "90210"  # Beverly Hills, CA, for demo usage.
         zip_code = ZIP_CODE_DEFAULT
         if show_warning:
             print(
@@ -1791,7 +1863,6 @@ class TestLookupZipinfo(unittest.TestCase):
 
         if lookup_zipinfo:
             print_separator()
-
             print_heading("lookup_zipinfo:")
 
             zip_code = obtain_zip_code()
@@ -1803,8 +1874,7 @@ class TestLookupZipinfo(unittest.TestCase):
             try:
                 response = requests.get(zippopotam_url, allow_redirects=False)
                 x = response.json()
-                if show_trace:
-                    print(x)  # sample response:
+                print_trace(x)  # sample response:
                 # {"post code": "59041", "country": "United States", "country abbreviation": "US", \
                 # "places": [{"place name": "Joliet", "longitude": "-108.9922", "state": "Montana", "state abbreviation": "MT", "latitude": "45.4941"}]}
                 y = x["places"]
@@ -1874,7 +1944,7 @@ if show_weather:
     # then https://home.openweathermap.org/users/sign_in
 
     # Retrieve from .env file in case vault doesn't work:
-    openweathermap_api_key = get_env('OPENWEATHERMAP_API_KEY')
+    openweathermap_api_key = get_from_env_file('OPENWEATHERMAP_API_KEY')
     # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
     # remove OPENWEATHERMAP_API_KEY value from memory.
     del os.environ["OPENWEATHERMAP_API_KEY"]
@@ -2013,7 +2083,7 @@ if show_weather:
         if email_weather:
             message = text_weather_location + "\n" + text_weather_min + "\n" + \
                 text_weather_cur + "\n" + text_weather_max + "\n" + text_wind + "\n" + text_pressure
-            to_gmail_address = get_env("TO_EMAIL_ADDRESS")
+            to_gmail_address = get_from_env_file("TO_EMAIL_ADDRESS")
             subject_text = "Current weather for " + x["name"]
             # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
             # print("Emailed to ...")
@@ -2107,7 +2177,7 @@ def set_azure_secret_from_env(secretName):
     # secretName  = input("Input a name for your secret > ")
     # secretValue = input("Input a value for your secret > ")
 
-    secretValue = get_env(secretName)  # from .env file
+    secretValue = get_from_env_file(secretName)  # from .env file
     if not secretValue:
         print_fail("No " + secretName + " in .env")
         return None
@@ -2157,12 +2227,12 @@ if use_azure:
     # Before running this, in a Terminal type: "az login" for the default browser to enable you to login.
     # Return to the Terminal.  TODO: Service account login?
 
-    AZ_SUBSCRIPTION_ID = get_env('AZ_SUBSCRIPTION_ID')  # from .env file
+    AZ_SUBSCRIPTION_ID = get_from_env_file('AZ_SUBSCRIPTION_ID')  # from .env file
     if not AZ_SUBSCRIPTION_ID:
         print_fail("No AZ_SUBSCRIPTION_ID.")
         exit
 
-    azure_region = get_env('AZURE_REGION')  # from .env file
+    azure_region = get_from_env_file('AZURE_REGION')  # from .env file
     if not azure_region:
         print_fail("No AZURE_REGION.")
         exit
@@ -2181,7 +2251,7 @@ if use_azure:
     # from azure.keyvault.secrets import SecretClient
     # from azure.identity import DefaultAzureCredential
 
-    azure_keyVaultName = get_env('AZ_KEY_VAULT_NAME')  # from .env file
+    azure_keyVaultName = get_from_env_file('AZ_KEY_VAULT_NAME')  # from .env file
     if not azure_keyVaultName:
         print_fail("No AZ_KEY_VAULT_NAME.")
         exit
@@ -2377,7 +2447,7 @@ if use_aws:
     print_separator()
 
     # Retrieve from .env file:
-    aws_cmk_description = get_env('AWS_CMK_DESCRIPTION')
+    aws_cmk_description = get_from_env_file('AWS_CMK_DESCRIPTION')
     if not aws_cmk_description:
         print(
             f'***{bcolors.FAIL} AWS_CMK_DESCRIPTION not in .env{bcolors.RESET}')
@@ -2535,37 +2605,35 @@ if use_gcp:
     # pip install -U google-cloud-secret-manager
     # from google.cloud import secretmanager  #
     # https://cloud.google.com/secret-manager/docs/reference/libraries
+    # CAUTION: On FreeBSD and Mac OS X, putenv() setting environ may cause memory leaks. https://docs.python.org/2/library/os.html#os.environ
 
-    gcp_project_id = get_env('GCP_PROJECT_ID')
+    gcp_project_id = get_from_env_file('GCP_PROJECT_ID')
 
-    gcp_creds = get_env('GOOGLE_APPLICATION_CREDENTIALS')  # "path_to_json_credentials_file"
+    gcp_creds = get_from_env_file('GOOGLE_APPLICATION_CREDENTIALS')  # "path_to_json_credentials_file"
     
-    # Create a new secret value "my_secret_value":
-    my_secret_value="secret here"
-    create_gcp_secret(gcp_project_id, my_secret_value)
-    # Created secret: projects/<PROJECT_NUM>/secrets/my_secret_value
+    my_secret_key="secret123a"  # format: [[a-zA-Z_0-9]+]
+    my_secret_value="can't tell you"
 
-    # Each value of a secrets is a different version:
-    add_gcp_secret_version(
-        gcp_project_id,
-        my_secret_value,
-        "Hello Secret Manager")
-    # Added secret version:
-    # projects/<PROJECT_NUM>/secrets/my_secret_value/versions/1
-    add_gcp_secret_version(my_secret_value, "Hello Again, Secret Manager")
-    # Added secret version:
-    # projects/<PROJECT_NUM>/secrets/my_secret_value/versions/2
+    result = create_gcp_secret(gcp_project_id, my_secret_key)
+    # Created secret: projects/<PROJECT_NUM>/secrets/my_secret_key
 
-    hash_gcp_secret(access_secret_version(my_secret_value))
+    # Each payload value of a secret key is a different version:
+    result = add_gcp_secret_version(gcp_project_id,my_secret_key,my_secret_value)
+
+    # Added secret version:
+    result = add_gcp_secret_version(gcp_project_id, my_secret_key, my_secret_key)
+        # google.api_core.exceptions.AlreadyExists: 409 Secret [projects/1070308975221/secrets/secret123] already exists.
+    # projects/<PROJECT_NUM>/secrets/my_secret_key/versions/2
+
+    result = hash_gcp_secret(access_secret_version(my_secret_key))
     # Example: 83f8a4edb555cde4271029354395c9f4b7d79706ffa90c746e021d11
 
-    # Conform Since you did not specify a version, the latest value was
-    # retrieved.
-    hash_gcp_secret(access_secret_version(my_secret_value, version_id=2))
+    # Since previous call did not specify a version, the latest value is retrieved:
+    result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=2))
 
     # You should see the same output as the last command.
     # Call the function again, but this time specifying the first version:
-    hash_gcp_secret(access_secret_version(my_secret_value, version_id=1))
+    result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=1))
     # You should see a different hash this time, indicating a different output:
 
     if show_verbose:
@@ -2613,8 +2681,8 @@ def retrieve_secret():
 if use_vault:
     # TODO: Make into function
 
-    vault_url = get_env('VAULT_URL')
-    vault_token = get_env('VAULT_TOKEN')
+    vault_url = get_from_env_file('VAULT_URL')
+    vault_token = get_from_env_file('VAULT_TOKEN')
 
     hashicorp_vault_secret_path = "secret/snakes"
 
@@ -2683,11 +2751,11 @@ if download_imgs:
             f'***{bcolors.FAIL} img_set \"{img_set}\" not recognized in coding!{bcolors.RESET}')
         exit(1)
 
-    img_project_root = get_env('IMG_PROJECT_ROOT')  # $HOME (or ~) folder
+    img_project_root = get_from_env_file('IMG_PROJECT_ROOT')  # $HOME (or ~) folder
     # FIXME: If it's blank, use hard-coded default
 
     # under user's $HOME (or ~) folder
-    img_project_folder = get_env('IMG_PROJECT_FOLDER')
+    img_project_folder = get_from_env_file('IMG_PROJECT_FOLDER')
     # FIXME: If it's blank, use hard-coded default
 
     # Convert "$HOME" or "~" (tilde) in IMG_PROJECT_PATH to "/Users/wilsonmar":
@@ -2862,12 +2930,12 @@ with Image(blob = image_binary) as img:
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
 
-slack_token = get_env('SLACK_TOKEN')       # This is a secret and should not be here
-slack_user_name = get_env('SLACK_USER_NAME')   # 'Double Images Monitor'
-slack_channel = get_env('SLACK_CHANNEL')     # #my-channel'
-slack_icon_url = get_env('SLACK_ICON_URL')
-slack_icon_emoji = get_env('SLACK_ICON_EMOJI')  # ':see_no_evil:'
-slack_text = get_env('SLACK_TEXT')
+slack_token = get_from_env_file('SLACK_TOKEN')       # This is a secret and should not be here
+slack_user_name = get_from_env_file('SLACK_USER_NAME')   # 'Double Images Monitor'
+slack_channel = get_from_env_file('SLACK_CHANNEL')     # #my-channel'
+slack_icon_url = get_from_env_file('SLACK_ICON_URL')
+slack_icon_emoji = get_from_env_file('SLACK_ICON_EMOJI')  # ':see_no_evil:'
+slack_text = get_from_env_file('SLACK_TEXT')
 
 def post_message_to_slack(text, blocks=None):
     return requests.post('https://slack.com/api/chat.postMessage', {
@@ -2932,7 +3000,7 @@ class TestSendSlack(unittest.TestCase):
 def verify_email_address( to_email_address ):
     if verify_email:
         # First, get API from https://mailboxlayer.com/product
-        verify_email_api = get_env('MAILBOXLAYER_API')
+        verify_email_api = get_from_env_file('MAILBOXLAYER_API')
         del os.environ["MAILBOXLAYER_API"]
         # https://apilayer.net/api/check?access_key = YOUR_ACCESS_KEY & email = support@apilayer.com
         url = "http://apilayer.net/api/check?access_key=" + verify_email_api + \
@@ -2951,8 +3019,8 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
     # subject_in = "hello"
     # body_in = "testing ... "
     # "loadtesters@gmail.com" # Authenticate to google (use a separate gmail account just for this)
-    from_gmail_address = get_env('THOWAWAY_GMAIL_ADDRESS')
-    from_gmail_password = get_env('THOWAWAY_GMAIL_PASSWORD')  # a secret
+    from_gmail_address = get_from_env_file('THOWAWAY_GMAIL_ADDRESS')
+    from_gmail_password = get_from_env_file('THOWAWAY_GMAIL_PASSWORD')  # a secret
     
     if show_trace:
         print(
@@ -2999,7 +3067,7 @@ class TestSendEmail(unittest.TestCase):
             print_separator()
 
             # Open file from email_file_path & read csv/json emails to email
-            to_gmail_address = get_env('TO_EMAIL_ADDRESS')  # static not a secret
+            to_gmail_address = get_from_env_file('TO_EMAIL_ADDRESS')  # static not a secret
             subject_text = "Hello from " + program_name  # Customize this!
             if True:  # TODO: for loop through email addresses and text in file:
 
@@ -3044,14 +3112,14 @@ def get_gravatar_url(email, size, default, rating):
 class TestViewGravatar(unittest.TestCase):
     def test_view_gravatar(self):
 
-        # TODO: Alternately, obtain from user parameter specification:
-        some_email=get_env('MY_EMAIL')  # "johnsmith@example.com"
-        print_verbose( some_email)
-        some_email_gravatar=""
-
         if view_gravatar:
             print_separator()
             print_heading("view_gravatar :")
+
+            # TODO: Alternately, obtain from user parameter specification:
+            some_email=get_from_env_file('MY_EMAIL')  # "johnsmith@example.com"
+            print_verbose( some_email)
+            some_email_gravatar=""
 
             if not some_email_gravatar:
                 url_string = get_gravatar_url( some_email, size="100", default='identicon', rating='G')            
@@ -3177,6 +3245,50 @@ class TestGemBMI(unittest.TestCase):
             # print(f'*** Ideal weight at BMI 21.7 = {ideal_pounds} pounds.')
 
 
+# SECTION 97. Play text to sound:
+
+# https://cloud.google.com/text-to-speech/docs/quickstart-protocol
+
+if gen_sound_for_text:
+    print_separator()
+    print_heading("gen_sound_for_text :")
+
+    my_accent=get_from_env_file('MY_ACCENT')
+    if not my_accent:
+        my_accent="en"  # or "en" "uk" "fr" (for English with French accent)
+    text_from_env = get_from_env_file('TEXT_TO_SAY')
+    if not text_from_env:
+        text_from_env="hello world!"
+    from gtts import gTTS            # pip install -upgrade gtts
+    s = gTTS(text=text_from_env, lang=my_accent)
+
+    speech_file_name = get_from_env_file('SPEECH_FILE_NAME')
+    if not speech_file_name:
+        speech_file_name="speech.mp3"
+    s.save(speech_file_name)  # generate mp3 file.
+    
+    # Alternate 1:
+    # On a Mac, double-clicking on the mp3 file by default invokes Apple Music app:
+       # so NO: os.system(f'start {speech_file_name}')
+    
+    # Alternate 2:  # pip install -U playsound
+    import playsound
+    playsound.playsound(speech_file_name, True)
+
+    # Alternate 3:  # pip install -U pyttsx3
+    #import pyttsx3
+    #engine = pyttsx3.init()
+    #engine.say
+    
+    # Alternate 4:
+    # from playsound import playsound  # pip install -upgrade playsound
+    # playsound(speech_file_name)
+
+    # Remove file:
+    if remove_sound_file_generated:
+        os.remove(speech_file_name)
+
+
 # SECTION 98. Remove (clean-up) folder/files created   = cleanup_files
 if cleanup_img_files:
     # Remove files and folders to conserve disk space and avoid extraneous
@@ -3221,6 +3333,7 @@ class TestDisplayRunStats(unittest.TestCase):
             #print(f'*** {localize_blob("Ended")} {stop_datetime.strftime(my_date_format)} ')
 
             run_time_duration = stop_run_time - start_run_time
+            print(type(run_time_duration))  # <class 'datetime.timedelta'>
             if show_info:
                 print(
                     f'*** {program_name} done in {round( run_time_duration, 2 )} seconds clock time. ')
