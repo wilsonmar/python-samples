@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.78"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.79"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -164,15 +164,16 @@ show_heading = True    # -q  Don't display step headings before attempting actio
 show_verbose = True    # -v  Display technical program run conditions
 show_trace = True     # -vv Display responses from API calls for debugging code
 show_fail = True       # Always show
+show_secrets = True       # Never show
 
 verify_manually = True
 
 # 3. Parse arguments that control program operation
 
 # 4. Define utilities for printing (in color), logging, etc.
-show_samples = False
+show_samples = True
 
-# 5. Obtain run control data from .env file in the user's $HOME folder
+# 6. Obtain run control data from .env file in the user's $HOME folder
 # to obtain the desired cloud region, zip code, and other variable specs.
 env_file = 'python-samples.env'
 show_env = False
@@ -180,12 +181,14 @@ remove_env_line = False
 
 # 6. Define Localization (to translate text to the specified locale)
 localize_text = False
+   # Load Country SQLite in-memory database for date-time formats = load_country_db
+load_country_db = True
 
 # 7. Display run conditions: datetime, OS, Python version, etc. = show_pgminfo
 show_pgminfo = False
 
 # 8. Define utilities for managing local data storage folders and files
-show_dates = True
+show_dates = False
 
 # 9. Generate various calculations for hashing, encryption, etc.
 
@@ -207,10 +210,10 @@ gen_magic_8ball = False
 # 10. Retrieve client IP address                  = get_ipaddr
 get_ipaddr = True
 # 11. Lookup geolocation info from IP Address     = lookup_ipaddr
-lookup_ipaddr = False  # FIXME
+lookup_ipaddr = True  # FIXME
 
 # 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
-lookup_zipinfo = True
+lookup_zipinfo = False
 # 13. Retrieve Weather info using API             = show_weather
 show_weather = False
 email_weather = False
@@ -286,7 +289,7 @@ remove_sound_file_generated = False
 # 98. Remove (clean-up) folder/files created   = cleanup_img_files
 cleanup_img_files = False
 # 99. Display run time stats at end of program = display_run_stats
-display_run_stats = True
+display_run_stats = False
 
 
 
@@ -324,11 +327,6 @@ if clear_cli:
     lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 
-def print_separator():
-    """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. """
-    print(" ")
-
-
 class bcolors:  # ANSI escape sequences:
     HEADING = '\033[94m'   # blue
     FAIL = '\033[91m'      # red
@@ -346,12 +344,16 @@ class bcolors:  # ANSI escape sequences:
 
     RESET = '\033[0m'      # switch back to default color
 
-# FIXME: How to pull in text_in containing {}.
+# QUESTION: How to pull in text_in containing {}.
 
+
+def print_separator():
+    """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. """
+    print(" ")
 
 def print_heading(text_in):
     if show_heading:
-        print('***', bcolors.HEADING, f'{text_in}', bcolors.RESET)
+        print('\n***', bcolors.HEADING, f'{text_in}', " : ", bcolors.RESET)
 
 
 def print_fail(text_in):
@@ -379,13 +381,26 @@ def print_trace(text_in):
         print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
 
 
+def print_secret(secret_in):
+    """ Outputs only the first few characters (like Git) plus dots replacing the rest """
+    secret_len = 32  # same length regardless of secret length to reduce ability to guess:
+    if len(secret_in) >= 20 :  # slice 
+       secret_out = secret_in[0:4] + "."*(secret_len-4)
+    else:
+       secret_out = secret_in[0:1] + "."*(secret_len-1)
+    print('***', bcolors.HEADING, "SECRET: ", f'{secret_out}', bcolors.RESET)
+
+
 if show_samples:
+    print_heading("show_samples")
+    
     print_heading("sample heading")
     print_fail("sample fail")
     print_warning("sample warning")
     print_info("sample info")
     print_verbose("sample verbose")
     print_trace("sample trace")
+    print_secret("1234567890123456789")
 
 
 
@@ -415,7 +430,7 @@ load_dotenv(global_env_path)
 # https://vault-cli.readthedocs.io/en/latest/discussions.html#why-not-vault-hvac-or-hvac-cli
 
 
-    # TODO: PROTIP: Hint that return value is a string:
+    # PROTIP: Hint that return value is a string:
 def get_from_env_file(key_in) -> str:
     """
     Return a string obtained from .env file based on key provided.
@@ -434,11 +449,58 @@ def get_from_env_file(key_in) -> str:
     return value
 
 
+def get_data_from_country_db(country_id):
+    # Load Country SQLite in-memory database for date-time formats = load_country_db
+
+    sqlite3_db_name="SQLite_country.db"
+    create_country_table_query = '''CREATE TABLE Country_data (
+                                id INTEGER PRIMARY KEY,
+                                name TEXT NOT NULL,
+                                email text NOT NULL UNIQUE,
+                                joining_date datetime,
+                                salary REAL NOT NULL);'''
+    import sqlite3
+    try:
+        sqliteConnection = sqlite3.connect(sqlite3_db_name)
+        cursor = sqliteConnection.cursor()
+        print_verbose("SQLite database "+ sqlite3_db_name+" created and connected to SQLite.")
+
+        sqlite_select_Query = "select sqlite_version();"
+        cursor.execute(sqlite_select_Query)
+        record = cursor.fetchall()
+        print_verbose("SQLite database "+ sqlite3_db_name+" version: "+ str(record) )
+
+        cursor.execute(create_country_table_query)
+        sqliteConnection.commit()
+        print_trace("SQLite table Country_data created.")
+
+        # TODO: Load data from csv
+        # TODO: Create indexes
+        # TODO: Lookup index 1 - 2 char country for Linux (highest priority)
+        # TODO: Lookup index 2 - 3 char country for Windows (medium priority)
+        # TODO: Lookup index 3 - Phone code (low priority)
+
+        # TODO: Retrieve date_time, phone, population, land, GDP
+
+        cursor.close()
+    
+    except sqlite3.Error as error:
+        print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
+        return None
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            print_trace("SQLite database "+ sqlite3_db_name+" connection closed.")
+    
+    return "D/M/Y"  # dictionary
+
+
 if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
 
     # PROTIP: Don't change the system's locale setting within a Python program because
     # locale is global and affects other applications.
 
+    # NOTE: Country code can come from IP Address lookup
     # "US"      # For use in whether to use metric
     my_country_from_env = get_from_env_file('MY_COUNTRY')
     if not my_country_from_env:
@@ -464,7 +526,11 @@ if True:  # Always get globals defined on every run: These should be listed in s
     if not my_date_format_from_env:
         my_date_format = my_date_format_from_env
     else:
-#       if not my_country:
+        if load_country_db:
+            country_info_dict=get_data_from_country_db(my_country)
+            if country_info_dict:  # TODO:
+                print(country_info_dict)  # "D/M/Y" 
+            
         my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
             # Swedish a date is represented as 2014-11-14 instead of 11/14/2014.
         # TODO: else:
@@ -497,6 +563,7 @@ if True:  # Always get globals defined on every run: These should be listed in s
     else:
         my_longitude = "104.322"
 
+    """
     my_latitude_from_env = get_from_env_file('MY_LATITUDE')
     if my_latitude_from_env:
         my_latitude = my_latitude_from_env
@@ -508,23 +575,10 @@ if True:  # Always get globals defined on every run: These should be listed in s
         my_currency = my_curency_from_env
     else:
         my_currency = "USD"
-
-    # "eastus"  # aka LOCATION using the service.
-    az_region_from_env = get_from_env_file('AZURE_REGION')
-    if az_region_from_env:
-        azure_region = az_region_from_env
-    else:
-        azure_region = "eastus"
-
-    aws_region_from_env = get_from_env_file('AWS_REGION')   # "us-east-1"
-    if az_region_from_env:
-        azure_region = az_region_from_env
-    else:
-        azure_region = "us-east-1"  # "Friends don't let friends use AWS us-east-1 in production"
+    """
 
 if show_env:
-    print_separator()
-    print_verbose(text_to_print)
+    print_heading("show_env")
     
     text_to_print = "global_env_path=" + str(global_env_path)
     # ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
@@ -679,7 +733,6 @@ if localize_text:
         print("*** %s: %s" % (key, value))
 """
 
-
 # SECTION  7. Define utilities for managing data storage folders and files"
 
 def os_platform():
@@ -767,8 +820,7 @@ def file_remove(file_path):
 # TODO: Create, navigate to, and remove local working folders:
 
 if show_dates:  # temporarily - never execute
-    print_separator()
-    print_heading("show_dates :")
+    print_heading("show_dates")
 
     # https://www.youtube.com/watch?v=r1Iv4d6CO2Q&list=PL98qAXLA6afuh50qD2MdAj3ofYjZR_Phn&t=50s
 
@@ -870,8 +922,7 @@ def macos_version_name(release_in):
 program_name = os.path.basename(os.path.normpath(sys.argv[0]))
 
 if show_pgminfo:
-    print_separator()
-    print_heading("show_pgminfo :")
+    print_heading("show_pgminfo")
     # Adapted from https://www.python-course.eu/python3_formatted_output.php
 
     # my_os_platform = os_platform()
@@ -1032,9 +1083,7 @@ class TestGenHash(unittest.TestCase):
     def test_gen_hash(self):
 
         if gen_hash:
-            print_separator()
-
-            print_heading("gen_hash :")
+            print_heading("gen_hash")
 
             # Making each image file name unique ensures that changes in the file resets cache of previous version.
             # UUID = Universally Unique Identifier, which Microsoft calls Globally Unique Identifier or GUID.
@@ -1082,7 +1131,7 @@ def token_urlsafe(nbytes=None):
 
 if gen_salt:
     # “full entropy” (i.e. 128-bit uniformly random value)
-    print_separator()
+    print_heading("gen_sale")
 
     # Based on https://github.com/python/cpython/blob/3.6/Lib/secrets.py
     #     tok=token_urlsafe(16)
@@ -1090,7 +1139,7 @@ if gen_salt:
     # 'Drmhze6EPcv0fN_81Bj-nA'
     #print(f' *** tok{tok} ')
 
-    print_heading("gen_salt :")
+    print_heading("gen_salt")
     from random import SystemRandom
     cryptogen = SystemRandom()
     x = [cryptogen.randrange(3) for i in range(20)]  # random ints in range(3)
@@ -1110,7 +1159,7 @@ if gen_salt:
 # SECTION 9.3 Generate random percent of 100:
 
 if gen_1_in_100:
-    print_separator()
+    print_heading("gen_1_in_100")
 
     print("*** 5 Random number between 1 and 100:")
     import random
@@ -1234,7 +1283,7 @@ class RomanToDecimal(object):
 """
 
 if process_romans:
-    print_separator()
+    print_heading("process_romans")
 
     my_roman = "MMXXI"  # "MMXXI" = 2021
     ob1 = roman_to_int(my_roman)
@@ -1252,7 +1301,7 @@ if process_romans:
 # SECTION 9.5 Generate JSON Web Token          = gen_jwt
 
 if gen_jwt:
-    print_separator()
+    print_heading("gen_jwt")
     # import jwt
     jwt_some = "something"
     jwt_payload = "my payload"
@@ -1285,9 +1334,9 @@ class TestGenLotto(unittest.TestCase):
     def test_gen_lotto_num(self):
 
         if gen_lotto:
-            print_separator()
+            print_heading("gen_lotto")
 
-            print_heading(
+            print_verbose(
                 "Lotto America: 5 lucky numbers between 1 and 52 and 1 Star number between 1 and 10:")
             lotto_numbers = gen_lotto_num()
             # Based on https://www.lottoamerica.com/numbers/montana
@@ -1356,7 +1405,7 @@ class TestGen8Ball(unittest.TestCase):
     def test_gen_magic_8ball(self):
 
         if gen_magic_8ball:
-            print_separator()
+            print_heading("gen_magic_8ball")
 
             do_gen_magic_8ball()
 
@@ -1522,7 +1571,7 @@ class TestFibonacci(unittest.TestCase):
             """ Fibonacci numbers are recursive in design to generate sequence.
                 But storing calculated values can reduce the time complexity to O(1).
             """
-            print_separator()
+            print_heading("gen_fibonacci")
 
             #result = Fibonacci.fibonacci_redis_delete()
             #print(f'*** {result} from delete() ')
@@ -1624,7 +1673,7 @@ class TestMakeChange(unittest.TestCase):
     def test_make_change(self):
 
         if make_change:
-            print_separator()
+            print_heading("make_change")
 
             # TODO: Add timings
             change_for = 34
@@ -1642,7 +1691,7 @@ class TestFillKnapsack(unittest.TestCase):
     def test_fill_knapsack(self):
 
         if fill_knapsack:
-            print_separator()
+            print_heading("fill_knapsack")
 
             print(f'*** fill_knapsack: ')
 
@@ -1669,62 +1718,7 @@ class TestFillKnapsack(unittest.TestCase):
 
 my_ip_address=""  # Global
 
-class TestShowIpAddr(unittest.TestCase):
-    def test_get_ipaddr(self):
-
-        if get_ipaddr:
-            print_separator()
-            print_heading("get_ipaddr:")
-
-            """
-            import socket  # https://docs.python.org/3/library/socket.html
-            print_verbose("IP address from socket.gethostname: "+socket.gethostbyname(socket.gethostname()))  # 192.168.0.118
-                # 127.0.0.1
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.config['keep_alive'] = False
-            my_ipaddr = s.getsockname()[0]
-            # FIXME: Close socket
-            print_verbose("IP address from getsockname (default route): " + s.getsockname()[0])
-            """
-
-            """
-            # https://www.delftstack.com/howto/python/get-ip-address-python/
-            from netifaces import interfaces, ifaddresses, AF_INET
-            for ifaceName in interfaces():
-                addresses = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
-                print(' '.join(addresses))
-            sys.exit()  # DEBUGGING
-            """
-
-            my_ipaddr_from_env = get_from_env_file('MY_IP_ADDRESS')
-            if my_ipaddr_from_env and len(my_ipaddr_from_env) > 0:
-               my_ip_address = my_ipaddr_from_env
-            else:
-                # print_warning("IP Address is blank in .env file.")
-                # Lookup the ip address on the internet:
-                url = "http://checkip.dyndns.org"
-                    # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
-                    # Alternative: https://api.ipify.org/?format=json
-
-                # PROTIP: Close connection immediatelyto reduce man-in-the-middle attacks:
-                #s = requests.session()
-                #s.config['keep_alive'] = False
-                request = requests.get(url, allow_redirects=False, headers={'Connection':'close'})
-                # print( request.text )
-                # <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
-                clean = request.text.split(': ', 1)[1]  # split 1once, index [1]
-                # [0] for first item.
-                my_ip_address = clean.split('</body></html>', 1)[0]
-                print_info( "My external IP Address: " + my_ip_address +" from "+ url )
-
-            # NOTE: This is like curl ipinfo.io (which provides additional info associated with ip address)
-            # IP Address is used for geolocation (zip & lat/long) for weather info.
-            # List of geolocation APIs: https://www.formget.com/ip-to-zip-code/
-            # Fastest is https://ipfind.com/ offering Developers - Free, 100
-            # requests/day
-
-
-# SECTION 11. Lookup geolocation info from IP Address
+# class TestShowIpAddr(unittest.TestCase):
 
 def find_ip_geodata(my_ip_address):
 
@@ -1741,6 +1735,7 @@ def find_ip_geodata(my_ip_address):
                 f'***{bcolors.WARNING} Please remove secret \"IPFIND_API_KEY\" from .env file.{bcolors.RESET}')
     # TODO: Verify ipfind_api_key
 
+    # Alternative: https://httpbin.org/ip returns JSON { "origin": "98.97.111.222" }
     url = 'https://ipfind.co/?auth=' + ipfind_api_key + '&ip=' + my_ip_address
     try:
         # import urllib, json # at top of this file.
@@ -1749,7 +1744,7 @@ def find_ip_geodata(my_ip_address):
         # See https://docs.python.org/3/howto/urllib2.html
         try:
             ip_base = json.loads(response.read())
-            # example='{"my_ip_address":"98.97.114.236","country":"United States","country_code":"US","continent":"North America","continent_code":"NA","city":null,"county":null,"region":null,"region_code":null,"postal_code":null,"timezone":"America\/Chicago","owner":null,"longitude":-97.822,"latitude":37.751,"currency":"USD","languages":["en-US","es-US","haw","fr"]}'
+            # example='{"my_ip_address":"98.97.111.222","country":"United States","country_code":"US","continent":"North America","continent_code":"NA","city":null,"county":null,"region":null,"region_code":null,"postal_code":null,"timezone":"America\/Chicago","owner":null,"longitude":-97.822,"latitude":37.751,"currency":"USD","languages":["en-US","es-US","haw","fr"]}'
             # As of Python version 3.7, dictionaries are ordered. In Python 3.6
             # and earlier, dictionaries are unordered.
             if show_info:
@@ -1774,32 +1769,80 @@ def find_ip_geodata(my_ip_address):
         return None
 
 
-class TestLookupIpAddr(unittest.TestCase):
-    def test_find_ip_geodata(self):
+# def test_get_ipaddr(self):
+if get_ipaddr:
+    print_heading("get_ipaddr")
 
-        if lookup_ipaddr:
-            print_separator()
-            print_heading("lookup_ipaddr :")
+    import socket  # https://docs.python.org/3/library/socket.html
+    print_verbose("IP address from socket.gethostname: "+socket.gethostbyname(socket.gethostname()))  # 192.168.0.118
+        # 127.0.0.1
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    my_ipaddr = s.getsockname()[0]
+    # FIXME: Close socket
+    # s.close(fd)
+    print_verbose("IP address from getsockname (default route): " + s.getsockname()[0])
 
-            ip_base=find_ip_geodata(my_ip_address)
-            if ip_base:
-                print_fail("ip_base has None.")
-            else:
-                print(ip_base)  # DEBUGGIN
-                # Replace global defaults:
-                # FIXME: TypeError: 'NoneType' object is not subscriptable
-                if ip_base["country_code"]:
-                    my_country = ip_base["country_code"]
-                if ip_base["longitude"]:
-                    my_longitude = ip_base["longitude"]
-                if ip_base["latitude"]:
-                    my_latitude = ip_base["latitude"]
-                if ip_base["timezone"]:
-                    my_timezone = ip_base["timezone"]
-                if ip_base["currency"]:
-                    my_currency = ip_base["currency"]
+    """
+    # https://www.delftstack.com/howto/python/get-ip-address-python/
+    from netifaces import interfaces, ifaddresses, AF_INET
+    for ifaceName in interfaces():
+        addresses = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
+        print(' '.join(addresses))
+    sys.exit()  # DEBUGGING
+    """
 
-                # TODO: my_country = ip_base["country_code"]
+    my_ipaddr_from_env = get_from_env_file('MY_IP_ADDRESS')
+    if my_ipaddr_from_env and len(my_ipaddr_from_env) > 0:
+        my_ip_address = my_ipaddr_from_env
+    else:
+        # print_warning("IP Address is blank in .env file.")
+        # Lookup the ip address on the internet:
+        url = "http://checkip.dyndns.org"
+            # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
+            # Alternative: https://api.ipify.org/?format=json
+
+        # PROTIP: Close connection immediatelyto reduce man-in-the-middle attacks:
+        #s = requests.session()
+        #s.config['keep_alive'] = False
+        request = requests.get(url, allow_redirects=False, headers={'Connection':'close'})
+        # print( request.text )
+        # <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
+        clean = request.text.split(': ', 1)[1]  # split 1once, index [1]
+        # [0] for first item.
+        my_ip_address = clean.split('</body></html>', 1)[0]
+        print_info( "My external IP Address: " + my_ip_address +" from "+ url )
+
+    # NOTE: This is like curl ipinfo.io (which provides additional info associated with ip address)
+    # IP Address is used for geolocation (zip & lat/long) for weather info.
+    # List of geolocation APIs: https://www.formget.com/ip-to-zip-code/
+    # Fastest is https://ipfind.com/ offering Developers - Free, 100
+    # requests/day
+
+
+# Lookup geolocation info from IP Address
+if lookup_ipaddr:
+    print_heading("lookup_ipaddr")
+    print_trace("lookup_ipaddr for ip: " + my_ip_address)
+
+    ip_base=find_ip_geodata(my_ip_address)
+    if not ip_base:
+        print_fail("ip_base not found: " + str(ip_base))
+    else:
+        print_verbose("ip_base found: " + str(ip_base))
+        # Replace global defaults:
+        # FIXME: TypeError: 'NoneType' object is not subscriptable
+        if ip_base["country_code"]:
+            my_country = ip_base["country_code"]
+        if ip_base["longitude"]:
+            my_longitude = ip_base["longitude"]
+        if ip_base["latitude"]:
+            my_latitude = ip_base["latitude"]
+        if ip_base["timezone"]:
+            my_timezone = ip_base["timezone"]
+        if ip_base["currency"]:
+            my_currency = ip_base["currency"]
+
+        # TODO: my_country = ip_base["country_code"]
 
 
 # SECTION 12. Obtain Zip Code (used to retrieve Weather info)
@@ -1811,8 +1854,8 @@ def obtain_zip_code():
     my_zip_code_from_env = get_from_env_file('MY_ZIP_CODE')    
     if my_zip_code_from_env:
         # Empty strings are "falsy" - considered false in a Boolean context:
-        text_msg="US Zip Code: "+ str(my_zip_code_from_env) +" obtained from file "+ str(global_env_path)
-        print_verbose(text_msg)
+        #text_msg="US Zip Code: "+ str(my_zip_code_from_env) +" obtained from file "+ str(global_env_path)
+        #print_verbose(text_msg)
         return my_zip_code_from_env
     else:   # zip code NOT supplied from .env:
         ZIP_CODE_DEFAULT = "90210"  # Beverly Hills, CA, for demo usage.
@@ -1862,8 +1905,7 @@ class TestLookupZipinfo(unittest.TestCase):
     def test_lookup_zipinfo(self):
 
         if lookup_zipinfo:
-            print_separator()
-            print_heading("lookup_zipinfo:")
+            print_heading("lookup_zipinfo")
 
             zip_code = obtain_zip_code()
             zippopotam_url = "https://api.zippopotam.us/us/" + zip_code
@@ -1929,8 +1971,7 @@ def compass_text_from_degrees(degrees):
 
 
 if show_weather:
-    print_separator()
-    print_heading("show_weather :")
+    print_heading("show_weather")
 
     # Commentary on this at
     # https://wilsonmar.github.io/python-samples#show_weather
@@ -2152,8 +2193,7 @@ if remove_env_line:
     print_verbose(text_msg)
 
 if use_keyring:
-    print_separator()
-    print_heading("use_keyring :")
+    print_heading("use_keyring")
 
     # TODO: Replace these hard-coded with real values:
     key_namespace = "my-app"
@@ -2226,6 +2266,14 @@ if use_azure:
 
     # Before running this, in a Terminal type: "az login" for the default browser to enable you to login.
     # Return to the Terminal.  TODO: Service account login?
+
+    # "eastus"  # aka LOCATION using the service.
+    az_region_from_env = get_from_env_file('AZURE_REGION')
+    if az_region_from_env:
+        azure_region = az_region_from_env
+    else:
+        azure_region = "eastus"
+
 
     AZ_SUBSCRIPTION_ID = get_from_env_file('AZ_SUBSCRIPTION_ID')  # from .env file
     if not AZ_SUBSCRIPTION_ID:
@@ -2444,13 +2492,18 @@ def decrypt_aws_file(filename):
 
 
 if use_aws:
-    print_separator()
+    print_heading("use_aws")
+
+    aws_region_from_env = get_from_env_file('AWS_REGION')   # "us-east-1"
+    if az_region_from_env:
+        azure_region = az_region_from_env
+    else:
+        azure_region = "us-east-1"  # "Friends don't let friends use AWS us-east-1 in production"
 
     # Retrieve from .env file:
     aws_cmk_description = get_from_env_file('AWS_CMK_DESCRIPTION')
     if not aws_cmk_description:
-        print(
-            f'***{bcolors.FAIL} AWS_CMK_DESCRIPTION not in .env{bcolors.RESET}')
+        print_fail("AWS_CMK_DESCRIPTION not in .env")
         exit(1)
     else:
         if show_verbose:
@@ -2742,7 +2795,7 @@ if download_imgs:
         # start-with-lorem: optional pass 1 to start the first paragraph with ‘Bacon ipsum dolor sit amet’.
         # format: ‘json’ (default), ‘text’, or ‘html’
 
-    # TODO: QR Code Generator https://www.qrcode-monkey.com/qr-code-api-with-logo/
+    # TODO: QR Code Generator https://www.qrcode-monkey.com/qr-code-api-with-logo/ for url to mobile authenticator app (Google) for MFA
         # import pyqrcode - https://github.com/mindninjaX/Python-Projects-for-Beginners/blob/master/QR%20code%20generator/QR%20code%20generator.py
     # TODO: Generate photo of people who don't exist.
 
@@ -2805,7 +2858,7 @@ if download_imgs:
 # https://wilsonmar.github.io/python-samples#download_imgs
 
 if download_imgs:
-    print_separator()
+    print_heading("download_imgs")
 
     # STEP: Get current path of the script being run:
     img_parent_path = pathlib.Path(
@@ -2930,13 +2983,6 @@ with Image(blob = image_binary) as img:
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
 
-slack_token = get_from_env_file('SLACK_TOKEN')       # This is a secret and should not be here
-slack_user_name = get_from_env_file('SLACK_USER_NAME')   # 'Double Images Monitor'
-slack_channel = get_from_env_file('SLACK_CHANNEL')     # #my-channel'
-slack_icon_url = get_from_env_file('SLACK_ICON_URL')
-slack_icon_emoji = get_from_env_file('SLACK_ICON_EMOJI')  # ':see_no_evil:'
-slack_text = get_from_env_file('SLACK_TEXT')
-
 def post_message_to_slack(text, blocks=None):
     return requests.post('https://slack.com/api/chat.postMessage', {
         'token': slack_token,
@@ -2973,9 +3019,14 @@ def post_file_to_slack(
 class TestSendSlack(unittest.TestCase):
     def test_send_slack(self):
         if send_slack:
-            print_separator()
-            if show_heading:
-                print(f'***{bcolors.HEADING} send_slack : {bcolors.RESET}')
+            print_heading("send_slack")
+
+            slack_token = get_from_env_file('SLACK_TOKEN')       # This is a secret and should not be here
+            slack_user_name = get_from_env_file('SLACK_USER_NAME')   # 'Double Images Monitor'
+            slack_channel = get_from_env_file('SLACK_CHANNEL')     # #my-channel'
+            slack_icon_url = get_from_env_file('SLACK_ICON_URL')
+            slack_icon_emoji = get_from_env_file('SLACK_ICON_EMOJI')  # ':see_no_evil:'
+            slack_text = get_from_env_file('SLACK_TEXT')
 
             double_images_count = 0
             products_count = 0
@@ -3064,9 +3115,8 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
 class TestSendEmail(unittest.TestCase):
     def test_email_via_gmail(self):
         if email_via_gmail:
-            print_separator()
+            print_heading("email_via_gmail")
 
-            # Open file from email_file_path & read csv/json emails to email
             to_gmail_address = get_from_env_file('TO_EMAIL_ADDRESS')  # static not a secret
             subject_text = "Hello from " + program_name  # Customize this!
             if True:  # TODO: for loop through email addresses and text in file:
@@ -3113,8 +3163,7 @@ class TestViewGravatar(unittest.TestCase):
     def test_view_gravatar(self):
 
         if view_gravatar:
-            print_separator()
-            print_heading("view_gravatar :")
+            print_heading("view_gravatar")
 
             # TODO: Alternately, obtain from user parameter specification:
             some_email=get_from_env_file('MY_EMAIL')  # "johnsmith@example.com"
@@ -3141,8 +3190,7 @@ class TestGemBMI(unittest.TestCase):
     def test_categorize_bmi(self):
 
         if categorize_bmi:
-            print_separator()
-            print_heading("categorize_bmi :")
+            print_heading("categorize_bmi")
 
             # WARNING: Hard-coded values:
             # TODO: Get values from argparse of program invocation parameters.
@@ -3205,9 +3253,7 @@ class TestGemBMI(unittest.TestCase):
             # BMI = ( weight_pounds / height_inches / height_inches ) * 703  #
             # BMI = Body Mass Index
             if height_cm > 0:  # https://www.cdc.gov/nccdphp/dnpao/growthcharts/training/bmiage/page5_1.html
-                BMI = (weight_kg / height_cm / height_cm) * \
-                    10000  # BMI = Body Mass Index
-
+                BMI = (weight_kg / height_cm / height_cm) * 10000
             if BMI < 16:
                 print(f'*** categorize_bmi ERROR: BMI of {BMI} lower than 16.')
             elif BMI > 40:
@@ -3223,7 +3269,7 @@ class TestGemBMI(unittest.TestCase):
                 category_text = '(< 18.4) = ' + localize_blob('Underweight')
             elif BMI <= 24.9:
                 category_text = '(18.5 to 24.9) = ' + \
-                    localize_blob('Normal, Healthy')
+                    localize_blob('Healthy')
             elif BMI <= 29.9:
                 category_text = '(25 to 29.9) = ' + localize_blob('Overweight')
             elif BMI <= 34.9:
@@ -3250,8 +3296,7 @@ class TestGemBMI(unittest.TestCase):
 # https://cloud.google.com/text-to-speech/docs/quickstart-protocol
 
 if gen_sound_for_text:
-    print_separator()
-    print_heading("gen_sound_for_text :")
+    print_heading("gen_sound_for_text")
 
     my_accent=get_from_env_file('MY_ACCENT')
     if not my_accent:
@@ -3320,9 +3365,7 @@ class TestDisplayRunStats(unittest.TestCase):
     def test_display_run_stats(self):
 
         if display_run_stats:
-            print_separator()
-
-            print_heading("display_run_stats :")
+            print_heading("display_run_stats")
 
             # Compare for run duration:
             stop_run_time = time.monotonic()
