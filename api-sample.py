@@ -22,7 +22,7 @@ __repository__ = "https://github.com/wilsonmar/python-samples"
 __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
-__version__ = "0.0.79"  # change on every push - Semver.org format per PEP440
+__version__ = "0.0.80"  # change on every push - Semver.org format per PEP440
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 
 
@@ -171,7 +171,7 @@ verify_manually = True
 # 3. Parse arguments that control program operation
 
 # 4. Define utilities for printing (in color), logging, etc.
-show_samples = True
+show_samples = False
 
 # 6. Obtain run control data from .env file in the user's $HOME folder
 # to obtain the desired cloud region, zip code, and other variable specs.
@@ -181,11 +181,12 @@ remove_env_line = False
 
 # 6. Define Localization (to translate text to the specified locale)
 localize_text = False
-   # Load Country SQLite in-memory database for date-time formats = load_country_db
-load_country_db = True
 
 # 7. Display run conditions: datetime, OS, Python version, etc. = show_pgminfo
-show_pgminfo = False
+show_pgminfo = True
+
+   # Load Country SQLite in-memory database for date-time formats = load_country_db
+load_country_db = True
 
 # 8. Define utilities for managing local data storage folders and files
 show_dates = False
@@ -208,9 +209,9 @@ gen_lotto = False
 gen_magic_8ball = False
 
 # 10. Retrieve client IP address                  = get_ipaddr
-get_ipaddr = True
+get_ipaddr = False
 # 11. Lookup geolocation info from IP Address     = lookup_ipaddr
-lookup_ipaddr = True  # FIXME
+lookup_ipaddr = False
 
 # 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
 lookup_zipinfo = False
@@ -449,50 +450,93 @@ def get_from_env_file(key_in) -> str:
     return value
 
 
-def get_data_from_country_db(country_id):
-    # Load Country SQLite in-memory database for date-time formats = load_country_db
+def open_sqlite3_db(sqlite3_db_name):
 
-    sqlite3_db_name="SQLite_country.db"
-    create_country_table_query = '''CREATE TABLE Country_data (
-                                id INTEGER PRIMARY KEY,
-                                name TEXT NOT NULL,
-                                email text NOT NULL UNIQUE,
-                                joining_date datetime,
-                                salary REAL NOT NULL);'''
+    cwd = os.getcwd()  # Get current working directory
+    print_verbose("Current working directory: {0}".format(cwd))
+
     import sqlite3
     try:
-        sqliteConnection = sqlite3.connect(sqlite3_db_name)
-        cursor = sqliteConnection.cursor()
-        print_verbose("SQLite database "+ sqlite3_db_name+" created and connected to SQLite.")
+        # Try to see if db file exists (can be opened) in operating system:
+        with open(cwd +"/"+ sqlite3_db_name): pass
+        # WARNING: Use SQLite rather than operating system commands to delete db.
+    except IOError:
+        print_verbose("Create SQLite database "+ sqlite3_db_name)    
+
+    try:  # Connect to SQLite:
+        conn = sqlite3.connect(sqlite3_db_name)
+        cursor = conn.cursor()
 
         sqlite_select_Query = "select sqlite_version();"
         cursor.execute(sqlite_select_Query)
         record = cursor.fetchall()
         print_verbose("SQLite database "+ sqlite3_db_name+" version: "+ str(record) )
 
-        cursor.execute(create_country_table_query)
-        sqliteConnection.commit()
-        print_trace("SQLite table Country_data created.")
-
-        # TODO: Load data from csv
-        # TODO: Create indexes
-        # TODO: Lookup index 1 - 2 char country for Linux (highest priority)
-        # TODO: Lookup index 2 - 3 char country for Windows (medium priority)
-        # TODO: Lookup index 3 - Phone code (low priority)
-
-        # TODO: Retrieve date_time, phone, population, land, GDP
-
-        cursor.close()
-    
-    except sqlite3.Error as error:
-        print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
+        # See if table can be accessed by querying the built-in sqlite_master table within every db:
+        cursor.execute('''SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='table_name';''')
+        if cursor.fetchone()[0]==1 :  #if the count is 1, then table exists:
+            print_trace('Table exists.')
+            return cursor  # FIXME: TypeError: 'NoneType' object is not subscriptable
+        else:
+            print_trace('Table does not exist.')
+            # Create db if not there:
+            try:
+                create_country_table_query = '''CREATE TABLE Country_data (
+                                        country_name TEXT NOT NULL,
+                                        country_id2 INTEGER PRIMARY KEY,
+                                        country_id3 INTEGER SECONDARY KEY,
+                                        country_population REAL,
+                                        country_area_km2 REAL,
+                                        country_gdp REAL);'''
+                conn.execute(create_country_table_query)
+                conn.commit()
+                print_trace("SQLite table Country_data created.")
+                return cursor
+            except:
+                print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
+                return None
+    except IOError as error:
+        # FIXME: print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
+        print_fail("SQLite database "+ sqlite3_db_name+" error")
         return None
-    finally:
-        if sqliteConnection:
-            sqliteConnection.close()
-            print_trace("SQLite database "+ sqlite3_db_name+" connection closed.")
     
-    return "D/M/Y"  # dictionary
+
+def get_data_from_country_db(country_id):
+    # Load Country SQLite in-memory database for date-time formats = load_country_db
+    # TODO: Delete database if requested.
+    print_heading("load_country_db")
+
+    sqlite3_db_name="SQLite3_country.db"
+    conn = open_sqlite3_db(sqlite3_db_name)
+    if load_country_db:
+        try:
+            cursor.execute('''SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='table_name';''')
+            if cursor.fetchone()[0]==1 :  #if the count is 1, then table exists:
+                print_trace('Table exists.')
+                return cursor
+            else:
+                print_trace('Do main table tasks.')
+                # TODO: Load country data from csv file
+                # TODO: Create indexes
+                # TODO: Lookup index 1 - 2 char country for Linux (highest priority)
+                # TODO: Lookup index 2 - 3 char country for Windows (medium priority)
+                # TODO: Lookup index 3 - Phone code (low priority)
+
+                # TODO: Retrieve date_time, phone, population, land, GDP
+
+        except IOError as error:
+            print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
+            return None
+        finally:
+            if conn:
+                conn.close()
+                print_trace("SQLite database "+ sqlite3_db_name+" connection closed.")
+        
+        locale_dict = dict()
+        locale_dict['en_US'] = 'D/M/Y'  # HARD-CODING FOR DEBUGGING
+        return locale_dict   # {'en_US': 'D/M/Y'}
 
 
 if True:  # Always get globals defined on every run: These should be listed in same order as in the .env file:
@@ -577,17 +621,32 @@ if True:  # Always get globals defined on every run: These should be listed in s
         my_currency = "USD"
     """
 
+def os_platform():
+    this_platform = platform.system()
+    if this_platform == "Darwin":
+        my_platform = "macOS"
+    elif this_platform == "linux" or this_platform == "linux2":
+        my_platform = "Linux"
+    elif this_platform == "win32":
+        my_platform = "Windows"
+    else:
+        print(
+            f'***{bcolors.FAIL} Platform {this_platform} is unknown!{bcolors.RESET} ')
+        exit(1)
+    return my_platform
+
+
 if show_env:
     print_heading("show_env")
     
     text_to_print = "global_env_path=" + str(global_env_path)
     # ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
+    my_os_platform = os_platform()
     global_env_path_time = file_creation_date(global_env_path, my_os_platform)
     dt = _datetime.datetime.utcfromtimestamp( global_env_path_time )
     iso_format = dt.strftime('%A %d %b %Y %I:%M:%S %p Z')  # Z = UTC with no time zone
 
-    text_to_print = "created " + iso_format   # ?.strftime(my_date_format)
-    print_verbose(text_to_print)
+    print_verbose( "created " + iso_format )
 
 
 # SECTION  6. Define Localization (to translate text to the specified locale)
@@ -651,6 +710,7 @@ def localize_blob(byte_array_in):
 
     # TODO: PROTIP: Provide hint that data type is a time object:
 def creation_date(path_to_file):
+    print("path_to_file type="+type(path_to_file))
     """
     Requires import platform, import os, from stat import *
     Try to get the date that a file was created, falling back to when it was
@@ -734,21 +794,6 @@ if localize_text:
 """
 
 # SECTION  7. Define utilities for managing data storage folders and files"
-
-def os_platform():
-    this_platform = platform.system()
-    if this_platform == "Darwin":
-        my_platform = "macOS"
-    elif this_platform == "linux" or this_platform == "linux2":
-        my_platform = "Linux"
-    elif this_platform == "win32":
-        my_platform = "Windows"
-    else:
-        print(
-            f'***{bcolors.FAIL} Platform {this_platform} is unknown!{bcolors.RESET} ')
-        exit(1)
-    return my_platform
-
 
 def dir_remove(dir_path):
     if os.path.exists(dir_path):
@@ -925,7 +970,7 @@ if show_pgminfo:
     print_heading("show_pgminfo")
     # Adapted from https://www.python-course.eu/python3_formatted_output.php
 
-    # my_os_platform = os_platform()
+    my_os_platform = os_platform()
     last_modified_epoch = file_creation_date(
         os.path.realpath(sys.argv[0]), my_os_platform)
     # last_modified_epoch=os.path.getmtime(os.path.realpath(sys.argv[0]))
