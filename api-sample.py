@@ -463,7 +463,7 @@ def open_sqlite3_db(sqlite3_db_name):
     except IOError:
         print_verbose("Create SQLite database "+ sqlite3_db_name)    
 
-    try:  # Connect to SQLite:
+    try:  # Connect to SQLite: https://zetcode.com/db/sqlitepythontutorial/
         conn = sqlite3.connect(sqlite3_db_name)
         cursor = conn.cursor()
 
@@ -493,7 +493,7 @@ def open_sqlite3_db(sqlite3_db_name):
                 conn.commit()
                 print_trace("SQLite table Country_data created.")
                 return cursor
-            except:
+            except sqlite3 as error:
                 print_fail("SQLite database "+ sqlite3_db_name+" error: " + str(error))
                 return None
     except IOError as error:
@@ -501,6 +501,9 @@ def open_sqlite3_db(sqlite3_db_name):
         print_fail("SQLite database "+ sqlite3_db_name+" error")
         return None
     
+
+# TODO: def get_dtformat_from_locale():
+
 
 def get_data_from_country_db(country_id):
     # Load Country SQLite in-memory database for date-time formats = load_country_db
@@ -518,8 +521,19 @@ def get_data_from_country_db(country_id):
                 return cursor
             else:
                 print_trace('Do main table tasks.')
-                # TODO: Load country data from csv file
+                # https://towardsdatascience.com/python-sqlite-tutorial-the-ultimate-guide-fdcb8d7a4f30
+                # https://datagy.io/sql-beginners-tutorial/
+
+                # TODO: Load country data from csv file 
+                # Alternately (Excel vis=a OpenPyXL):
+                # more_users = [('00003', 'Peter', 'Parker', 'Male'), ('00004', 'Bruce', 'Wayne', 'male')]
+                # cur.execute("INSERT INTO users VALUES(?, ?, ?, ?);", user)
+                # conn.commit()
+
                 # TODO: Create indexes
+                # cur.execute("""SELECT *, users.fname, users.lname FROM orders LEFT JOIN users ON users.userid=orders.userid;""")
+                # print(cur.fetchall())
+            
                 # TODO: Lookup index 1 - 2 char country for Linux (highest priority)
                 # TODO: Lookup index 2 - 3 char country for Windows (medium priority)
                 # TODO: Lookup index 3 - Phone code (low priority)
