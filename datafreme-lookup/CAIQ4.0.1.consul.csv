@@ -1,0 +1,7 @@
+﻿ID,_QID,_Title,_Apply,_Question,_Answer,_Answer_ID,
+17,AIS-06.2,,,"Is the deployment and integration of application code automated where possible?
+",We installed Consul using automated CI/CD for repeatability.,,
+18,AIS-07.1,Application Vulnerability Remediation,,"Are application security vulnerabilities remediated following defined processes?
+",,,
+19,AIS-07.2,,,"Is the remediation of application security vulnerabilities automated when possible?
+",,,

@@ -1,0 +1,4 @@
+_ID,_CCM_ID,_Metric_ID,_Metric_Title,_Metric_Desc,_SLO,_Note1
+,AIS-06,AIS-06-M1,Test Coverage,percent of running production code can be directly traced back to automated security and quality tests that verify the compliance of each build.,95%,
+,AIS-07,AIS-07-M3,Safe Apps,percent problematic (criticical or high vulnerabilities) not fixed or marked as accepted within the time specified by policy.,zero,
+,AIS-07,AIS-07-M6,Problematic Vulnerabilities Unfixed,percent of critical or high vulnerabilities fixed or marked as accepted within the time specified by policy (have an age greater than the policy defined maximum age).,90%,reversed

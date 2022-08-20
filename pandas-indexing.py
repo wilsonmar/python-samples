@@ -47,7 +47,7 @@ print("***\r\n")
 
 print("\r\n*** next(df.itertuples() -- as namedtuples ")
 #  iterate over DataFrame rows 
-row = next(df.itertuples(index = True, name='Tution'))
+row = next(df.itertuples(index = True, name='Tuition'))
 print("Data For First Row :")
 print(row)
 print("***\r\n")
@@ -108,5 +108,19 @@ print("***\r\n")
 
 # https://pandas.pydata.org/docs/reference/api/pandas.Series.iteritems.html
 
-# What I really need: lookup values based on an indexed key, then 
-# iterate through all values matching that key found.
+# https://www.geeksforgeeks.org/different-ways-to-iterate-over-rows-in-pandas-dataframe/
+
+###########
+
+# What I really need: lookup values based on an indexed key column, then 
+# iterate through several values matching that key found.
+
+# https://www.geeksforgeeks.org/indexing-and-selecting-data-with-pandas/
+print("*** using .loc reading nba-2 "
+# making data frame from csv file
+data = pd.read_csv("nba-2.csv", index_col ="Name")  
+# retrieving row by loc method
+first = data.loc["Avery Bradley"]
+second = data.loc["R.J. Hunter"]
+print(first, "\n\n\n", second)
+print("***\r\n")
