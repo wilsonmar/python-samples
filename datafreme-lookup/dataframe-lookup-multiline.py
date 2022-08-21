@@ -2,12 +2,10 @@
 # caiq-yaml-gen.py in https://github.com/wilsonmar/python-samples/blob/main/dataframe-lookup-multiline.py
 # by Wilson Mar
 
-# This reads a csv file (of CAIQ questions). 
-# A value from that file is used ask a key to retrieve rows in the 
-# Each For looking up metrics text associated,
-# it builds an internal matrix by reading another CSV file.
-# Text is carried over from previous row so the assumed value is displayed if blank.
-# Output is filtered and formatted according to various boolean flags.
+# This reads the "CAIQ4.0.1.consul.csv" file (of CAIQ questions). 
+# A value from that file is used as a key to retrieve values for its row in the metrics.csv file.
+# The problem now is that "AIS-07" is a key in more than one row in the metrics.csv
+# When read, an error is returned.
 
 import csv
 import os
@@ -60,7 +58,7 @@ stop_after_caiq_item=18
 
 file_subject_text="for Consul users' auditors"
 caiq_file_to_open='CAIQ4.0.1.consul.csv'
-metrics_file_to_open='caiq-metrics-v1.csv'
+metrics_file_to_open='metrics.csv'
 
 #output_file_date=str(local_dt)[0:10]
 output_file_date="2022-08-09"
@@ -266,16 +264,35 @@ with open(caiq_file_to_open, mode='r') as csv_file:
                 if caiq_ccm_id != prev_caiq_ccm_id :
                     try:
                         # TODO: If CCM_ID is a Series in dataframe (not unique):
+                        #if df.loc[caiq_ccm_id,'_Metric_ID'].shape[0] == 2 :
+#                        print(df.loc[caiq_ccm_id]) 
+                        #print( df[df['????'] == caiq_ccm_id])
+                        # `print`( "shape"+ df.loc[caiq_ccm_id,'_CCM_ID'].shape[0] )
+                        print("ccm="+ caiq_ccm_id +" shape="+ str(df.loc[caiq_ccm_id].shape[0]) )
 
-                        metrics_line='<a name="'+ df.loc[caiq_ccm_id,'_Metric_ID'] +'"></a>'+ df.loc[caiq_ccm_id,'_Metric_ID'] +" CCM METRIC SLO: "+ str(df.loc[caiq_ccm_id,'_SLO']) +" <strong>" + df.loc[caiq_ccm_id,'_Metric_Title'] +"</strong> = " + df.loc[caiq_ccm_id,'_Metric_Desc']
-                        if bool_output_console == True :
-                            print("\r\n"+line_prefix+metrics_line +"\r\n")
-                        if bool_output_file == True :
-                            if bool_output_table == True :
-                                f.write('<tr valign="top" colspan="4"><td>'+metrics_line+'</td></tr')
-                            else:
-                                f.write('\r\n\r\n'+line_prefix+'<table border="1" cellpadding="4" cellspacing="0"><tr valign="top"><td>'+ metrics_line +'</td></tr></table>\r\n')
-                        metric_rows_printed += 1
+                        if df.loc[caiq_ccm_id].shape[0] == 2 :
+                            for index, mrow in df.loc[caiq_ccm_id].iterrows() :
+                                metrics_line='<a name="'+ mrow['_Metric_ID'] +'"></a>'+ mrow['_Metric_ID'] +" CCM METRIC SLO: "+ str(mrow['_SLO']) +" <strong>" + mrow['_Metric_Title'] +"</strong> = " + mrow['_Metric_Desc']
+                                if bool_output_console == True :
+                                    print("\r\n"+line_prefix+metrics_line +"\r\n")
+                                if bool_output_file == True :
+                                    if bool_output_table == True :
+                                        f.write('<tr valign="top" colspan="4"><td>'+metrics_line+'</td></tr')
+                                    else:
+                                        f.write('\r\n\r\n'+line_prefix+'<table border="1" cellpadding="4" cellspacing="0"><tr valign="top"><td>'+ metrics_line +'</td></tr></table>\r\n')
+                                metric_rows_printed += 1
+                        else:  # 1
+                                metrics_line='<a name="'+ df.loc[caiq_ccm_id,'_Metric_ID'] +'"></a>'+ df.loc[caiq_ccm_id,'_Metric_ID'] +" CCM METRIC SLO: "+ str(df.loc[caiq_ccm_id,'_SLO']) +" <strong>" + df.loc[caiq_ccm_id,'_Metric_Title'] +"</strong> = " + df.loc[caiq_ccm_id,'_Metric_Desc']
+
+                                if bool_output_console == True :
+                                    print("\r\n"+line_prefix+metrics_line +"\r\n")
+                                if bool_output_file == True :
+                                    if bool_output_table == True :
+                                        f.write('<tr valign="top" colspan="4"><td>'+metrics_line+'</td></tr')
+                                    else:
+                                        f.write('\r\n\r\n'+line_prefix+'<table border="1" cellpadding="4" cellspacing="0"><tr valign="top"><td>'+ metrics_line +'</td></tr></table>\r\n')
+                                metric_rows_printed += 1
+
                     except:
                         # FIX: error when more than one metric for a CAIQ CCM ID. AIS-07-M3 & AIS-07-M6
                         # TODO: Check in dataframe if response
