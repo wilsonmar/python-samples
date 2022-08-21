@@ -112,9 +112,6 @@ if bool_output_file == True :
 #    f.write("<!-- At https://github.com/bomonike/fullest-stack/blob/main/python/caiq-yaml-gen/ -->\r\n")
 #    f.write("\r\n")
 
-    f.write("## Categories in the CAIQ : \r\n")
-    f.write("\r\n")
-
 # Output Category summary:
 caiq_categories = {
     'A&A': 'Audit Assurance & Compliance',
@@ -137,6 +134,9 @@ caiq_categories = {
     }
     # TODO: UEM DEFINITION: Unified Endpoint Management (UEM) allows IT to manage, secure, and deploy corporate resources and applications on any device from a single console. UEM “unifies” legacy mobile device management (MDM) by incorporating IoT and other new device technologies.
 if print_category_list == True :
+    f.write("## Categories in the CAIQ : \r\n")
+    f.write("\r\n")
+
     for key, value in caiq_categories.items():
         print_line="1. <a href=\"#"+ key +"-\"><tt>"+ key +"</tt></a> = "+ value
         if bool_output_console == True :
@@ -152,13 +152,14 @@ if print_category_list == True :
 if bool_print_metrics == True :
    # pd=pandas, df=dataframe (table) instead of default encoding="utf-8" :
    df = pd.read_csv(metrics_file_to_open, encoding="ISO-8859-1", sep = ",")
-      # Alternately, into dict: a = pd.read_csv("File1.txt", delimiter=" ", header = None).to_dict()[0]
+       # , names = ['col1', 'col2', 'col3', 'col4'])      na_values=["0"]
+       # Alternately, into dict: a = pd.read_csv("File1.txt", delimiter=" ", header = None).to_dict()[0]
    # print(df)  # display entire dataframe. Alternately: df.head()
    # print(pd.options.display.max_rows) 
    df.set_index("_CCM_ID", inplace = True)
        # See https://pandas.pydata.org/docs/user_guide/indexing.html#indexing
    if bool_output_console == True :
-      print( "*** "+ str(len(df.index)) +" rows (excluding title row) in dataframe "+ metrics_file_to_open )
+      print( "*** In "+ metrics_file_to_open +" are "+ str(len(df.index)) +" rows (excluding title row) \r\n")
          # Alternately, print(pd.options.display.max_rows) 
 
    # TODO: Print list of CCM metrics described at https://cloudsecurityalliance.org/artifacts/metrics-and-measurements-for-the-csa-ccm/ and PDF downloaded from https://cloudsecurityalliance.org/download/artifacts/metrics-and-measurements-for-the-csa-ccm/
@@ -263,16 +264,19 @@ with open(caiq_file_to_open, mode='r') as csv_file:
                 metrics_line=""  # clear from previous.
                 if caiq_ccm_id != prev_caiq_ccm_id :
                     try:
-                        # TODO: If CCM_ID is a Series in dataframe (not unique):
                         #if df.loc[caiq_ccm_id,'_Metric_ID'].shape[0] == 2 :
 #                        print(df.loc[caiq_ccm_id]) 
                         #print( df[df['????'] == caiq_ccm_id])
                         # `print`( "shape"+ df.loc[caiq_ccm_id,'_CCM_ID'].shape[0] )
                         print("ccm="+ caiq_ccm_id +" shape="+ str(df.loc[caiq_ccm_id].shape[0]) )
+                        # print("*** Column names are {" + .join(mrow) )
 
+                           # TODO: This recognizes either 2 or 1 metric lines per CCM_ID key (not 3 rows per key)
                         if df.loc[caiq_ccm_id].shape[0] == 2 :
                             for index, mrow in df.loc[caiq_ccm_id].iterrows() :
-                                metrics_line='<a name="'+ mrow['_Metric_ID'] +'"></a>'+ mrow['_Metric_ID'] +" CCM METRIC SLO: "+ str(mrow['_SLO']) +" <strong>" + mrow['_Metric_Title'] +"</strong> = " + mrow['_Metric_Desc']
+                                metrics_line='<a name="'+ mrow['_Metric_ID'] +'"></a>'+ mrow['_Metric_ID'] +" CCM METRIC SLO: "+ mrow['_SLO'] +" <strong>" + mrow['_Metric_Title'] +"</strong> = " + mrow['_Metric_Desc']
+                                # +" ("+ mrow['_Note1'] +")"
+                                
                                 if bool_output_console == True :
                                     print("\r\n"+line_prefix+metrics_line +"\r\n")
                                 if bool_output_file == True :
@@ -281,8 +285,9 @@ with open(caiq_file_to_open, mode='r') as csv_file:
                                     else:
                                         f.write('\r\n\r\n'+line_prefix+'<table border="1" cellpadding="4" cellspacing="0"><tr valign="top"><td>'+ metrics_line +'</td></tr></table>\r\n')
                                 metric_rows_printed += 1
-                        else:  # 1
-                                metrics_line='<a name="'+ df.loc[caiq_ccm_id,'_Metric_ID'] +'"></a>'+ df.loc[caiq_ccm_id,'_Metric_ID'] +" CCM METRIC SLO: "+ str(df.loc[caiq_ccm_id,'_SLO']) +" <strong>" + df.loc[caiq_ccm_id,'_Metric_Title'] +"</strong> = " + df.loc[caiq_ccm_id,'_Metric_Desc']
+                        else:  # QUESTION: Why is ccm=AIS-06 shape=6 ?
+                                metrics_line='<a name="'+ df.loc[caiq_ccm_id,'_Metric_ID'] +'"></a>'+ df.loc[caiq_ccm_id,'_Metric_ID'] +" CCM METRIC SLO: "+ df.loc[caiq_ccm_id,'_SLO'] +" <strong>" + df.loc[caiq_ccm_id,'_Metric_Title'] +"</strong> = " + df.loc[caiq_ccm_id,'_Metric_Desc'] 
+                                #+" (" + df.loc[caiq_ccm_id,'_Note1'] +")"
 
                                 if bool_output_console == True :
                                     print("\r\n"+line_prefix+metrics_line +"\r\n")
