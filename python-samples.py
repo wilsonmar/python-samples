@@ -24,7 +24,9 @@
    language governing permissions and limitations under the License.
 """
 
-#### SECTION 01. Set Default Global Variables:
+#### SECTION 01. Set metadata about this program
+
+# See https://wilsonmar.github.io/python-samples/#PgmMetadata
 
 __repository__ = "https://github.com/wilsonmar/azure-quickly"
 __author__ = "Wilson Mar"
@@ -36,6 +38,8 @@ __last_commit__ = "0.3.2 major update date calcs"
 
 
 #### SECTION 02. Import libraries (in alphabetical order)
+
+# See https://wilsonmar.github.io/python-samples/#Imports
 
 # The first of several external dependencies, and will error if not installed:
 # (preferrably within a conda enviornment):
@@ -124,6 +128,8 @@ import webbrowser
 
 #### SECTION 03: Capture pgm start date/time 
 
+# See https://wilsonmar.github.io/python-samples/#StartingTime
+
 # Obtain pgm start to obtain run duration at end:
 pgm_start_timestamp = time.monotonic()  # for wall-clock time (includes any sleep).
 pgm_start_epoch_timestamp = time.time()  # TODO: Display Z (UTC/GMT) instead of local time
@@ -131,194 +137,11 @@ pgm_start_local_timestamp = time.localtime()
     # See https://www.geeksforgeeks.org/get-current-time-in-different-timezone-using-python/
 
 
-#### SECTION 04: Default Feature flag settings (in order of code):
+#### SECTION 04: Define utilities for printing (in color with emojis)
 
-run_mode = "dev"   # vs. "prod"
-clear_cli = True   # Clear Console so output always appears at top of screen.
-
-show_print_samples = True
-show_fail = True       # Always show
-show_error = True      # Always show
-show_warning = True    # -wx  Don't display warning
-show_todo = True       # -td  Display TODO item for developer
-show_info = True       # -qq  Display app's informational status and results for end-users
-show_heading = True    # -q  Don't display step headings before attempting actions
-show_verbose = True    # -v  Display technical program run conditions
-show_trace = True     # -vv Display responses from API calls for debugging code
-show_secrets = True       # Never show
-
-show_pgm_init = True   # Display pgm init date/time and env info
-
-verify_manually = True
-
-# 6. Obtain run control data from .env file in the user's $HOME folder
-#    to obtain the desired cloud region, zip code, and other variable specs.
-use_env_file = False  # until load is fixed.
-show_env = True
-remove_env_line = False
-
-# 6. Define Localization (to translate text to the specified locale)
-localize_text = False
-
-# 7. Display run conditions: datetime, OS, Python version, etc. = show_pgminfo
-show_pgminfo = True
-
-   # Load Country SQLite in-memory database for date-time formats = load_country_db
-load_country_db = False
-
-# 8. Define utilities for managing local data storage folders and files
-use_pytz_datetime = True
-show_dates = True
-
-show_logging = True
-
-show_aws_init = True
-# Vault defaults if parameters are not provided:
-VAULT_URL_PORT='http://127.0.0.1:8200'
-VAULT_TOKEN='dev-only-token'
-VAULT_USER='default_user'
-
-login_to_azure = True
-
-# 9. Generate various calculations for hashing, encryption, etc.
-
-# 9.1. Generate Hash (UUID/GUID) from a file    = gen_hash
-gen_hash = False
-# 9.2. Generate a random salt                   = gen_salt
-gen_salt = False
-# 9.3. Generate a random percent of 100         = gen_1_in_100
-gen_1_in_100 = False
-# 9.4. Convert between Roman numerals & decimal = process_romans
-process_romans = False
-# 9.5. Generate JWT (Json Web Token)            = gen_jwt
-gen_jwt = False
-# 9.6. Generate Lotto America Numbers           = gen_lotto
-gen_lotto = False
-# 9.7. Make a decision                          = magic_8ball
-gen_magic_8ball = False
-
-# 10. Retrieve client IP address                  = get_ipaddr
-get_ipaddr = False
-# 11. Lookup geolocation info from IP Address     = lookup_ipaddr
-lookup_ipaddr = False
-
-# 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
-lookup_zipinfo = False
-# 13. Retrieve Weather info using API             = show_weather
-show_weather = False
-email_weather = False
-
-##  14. Retrieve secrets from local OS Keyring  = use_keyring
-use_keyring = False
-
-# 14. Retrieve secrets from Azure Key Vault  = use_azure
-login_to_azure = False
-use_azure = False
-use_azure_redis = False
-list_azure_resc = False
-
-# 14.1 Generate a fibonacci number recursion    = gen_fibonacci
-# (write and read to Azure Redis)
-gen_fibonacci = False
-
-# 9.9 Make change using Dynamic Programming     = make_change
-make_change = False
-
-# 9.10 "Knapsack"
-fill_knapsack = False
-
-# 15. Retrieve secrets from AWS KMS         = use_aws
-# https://cloudacademy.com/course/get-started-with-aws-cloudhsm/what-is-cloudhsm/
-use_aws = False
-
-# 16. Retrieve secrets from GCP Secret Manager = use_gcp
-use_gcp = False
-
-# 17. Retrieve secrets from Hashicorp Vault = use_hvac
-use_hvac = False
-refresh_vault_certs = False
-
-# 18. Create/Reuse container folder for img app to use
-
-# 18.1 Get proof on Blockchain  = add_blockchain
-add_blockchain = True
-
-# 19. Download img application files           = download_imgs
-download_imgs = False     # feature flag
-img_set = "small_ico"      # or others
-img_file_name = None
-
-cleanup_img_files = False
-remove_img_dir_at_beg = False
-remove_img_dir_at_end = False    # to clean up folder
-remove_img_file_at_beg = False
-remove_img_file_at_end = False   # to clean up file in folder
-
-# 20. Manipulate image (OpenCV OCR extract)    = process_img
-process_img = False
-
-img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
-
-# 21. Send message to Slack                    = send_slack_msgs  (TODO:)
-send_slack = False
-
-# 22. Send email thru Gmail         = email_via_gmail
-email_via_gmail = False
-verify_email = False
-email_file_path = ""
-
-# 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
-# (use MD5 Hash)
-view_gravatar = False
-
-# 24. Calculte BMI using units of measure  = categorize_bmi
-# (Metric vs English conversoin based on country code)
-categorize_bmi = False
-email_weather = False
-
-# 97. Play text to sound:
-gen_sound_for_text = False
-remove_sound_file_generated = False
-
-# 98. Remove (clean-up) folder/files created   = cleanup_img_files
-cleanup_img_files = False
-# 99. Display run time stats at end of program = display_run_stats
-display_run_stats = False
-
-
-
-#### SECTION 05. Parse arguments that control program operation
-
-# https://towardsdatascience.com/a-simple-guide-to-command-line-arguments-with-argparse-6824c30ab1c3
-# Assumes: pip install argparse
-# import argparse
-parser = argparse.ArgumentParser(
-    description="A Python3 console (CLI) program to call APIs storing secrets.")
-# -h (for help) is by default.
-parser.add_argument(
-    '-v',
-    '--verbose',
-    action='store_true',
-    help='Verbose messages')
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_true',
-    help='Quiet headers/footers')
-
-# Based on https://docs.python.org/3/library/argparse.html
-args = parser.parse_args()
-# print_verbose("args.v={args.v}="+args.v={args.v})
-
-
-#### SECTION 06. Define utilities for printing (in color with emojis)
+# See https://wilsonmar.github.io/python-samples/#PrintColors
 
 # QUESTION: How to pull in text_in containing {}.
-
-if clear_cli:
-    import os
-    # QUESTION: What's the output variable?
-    lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 class bcolors:  # ANSI escape sequences:
     BOLD = '\033[1m'       # Begin bold text
@@ -338,6 +161,21 @@ class bcolors:  # ANSI escape sequences:
     CWHITE = '\033[37m'
 
     RESET = '\033[0m'      # switch back to default color
+
+## Initial logic controls:
+clear_cli = True   # Clear Console so output always appears at top of screen.
+show_print_samples = True
+show_fail = True       # Always show
+show_error = True      # Always show
+show_warning = True    # -wx  Don't display warning
+show_todo = True       # -td  Display TODO item for developer
+show_info = True       # -qq  Display app's informational status and results for end-users
+show_heading = True    # -q  Don't display step headings before attempting actions
+show_verbose = True    # -v  Display technical program run conditions
+show_trace = True      # -vv Display responses from API calls for debugging code
+show_secrets = True       # Never show
+
+use_env_file = True
 
 def print_separator():
     """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. """
@@ -384,6 +222,14 @@ def print_secret(secret_in):
        secret_out = secret_in[0:1] + "."*(secret_len-1)
     print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_out}', bcolors.RESET)
 
+
+# First display commands:
+
+if clear_cli:
+    import os
+    # QUESTION: What's the output variable?
+    lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
 if show_print_samples:
     print_heading("show_print_samples")
     print_fail("sample fail")
@@ -395,10 +241,12 @@ if show_print_samples:
     print_secret("1234567890123456789")
 
 # From here on:
-print_heading("show during construction")
+print_heading("show during initialization")
 
 
-#### SECTION 07. Utilities for managing data storage folders and files
+#### SECTION 05. Utilities for managing data storage folders and files
+
+# See https://wilsonmar.github.io/python-samples/#FileMgmt
 
 def dir_remove(dir_path):
     if os.path.exists(dir_path):
@@ -443,8 +291,7 @@ def file_creation_date(path_to_file, my_os_platform):
     WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
     """
     if path_to_file is None:
-        if show_trace:
-            print_trace("path_to_file="+path_to_file)
+        print_trace("path_to_file="+path_to_file)
     print_trace("platform.system="+platform.system())
     if platform.system() == 'Windows':
         return os.path.getctime(path_to_file)
@@ -464,7 +311,9 @@ def file_remove(file_path):
 # TODO: Create, navigate to, and remove local working folders:
 
 
-#### SECTION 08. Get pgm run env data:
+#### SECTION 06. Get pgm run env data
+
+# See https://wilsonmar.github.io/python-samples/#run_env
 
 def os_platform():
     platform_system = platform.system()
@@ -491,28 +340,29 @@ def macos_version_name(release_in):
     # Apple has a way of forcing users to upgrade, so this is used as an
     # example of coding.
     # FIXME: https://github.com/nexB/scancode-plugins/blob/main/etc/scripts/homebrew.py
+    # See https://support.apple.com/en-us/HT201260 and https://www.wikiwand.com/en/MacOS_version_history
     MACOS_VERSIONS = {
-        '22.7': ['Next2024', 2024, '22'],
-        '22.6': ['Next2023', 2023, '22'],
-        '22.5': ['After Monterey', 2022, '22'],
-        '21.1': ['Monterey', 2021, '21'],
-        '11.1': ['Big Sur', 2020, '20'],
-        '19.6': ['Catalina', 2019, '19'],
-        '10.14': ['Mojave', 2018, '18'],
-        '10.13': ['High Sierra', 2017, '17'],
-        '10.12': ['Sierra', 2016, '16'],
-        '10.11': ['El Capitan', 2015, '15'],
-        '10.10': ['Yosemite', 2014, '14'],
-        '10.0': ['Mavericks', 2013, '13'],
-        '10.8': ['Mountain Lion', 2012, '12'],
-        '10.7': ['Lion', 2011, '11'],
-        '10.6': ['Snow Leopard', 2008, '10'],
-        '10.5': ['Leopard', 2007, '10.5'],
-        '10.4': ['Tiger', 2005, '10.4'],
-        '10.3': ['Panther', 2004, '10.3'],
-        '10.2': ['Jaguar', 2003, '10.2'],
-        '10.1': ['Puma', 2002, '10.1'],
-        '10.0': ['Cheetah', 2001, '10.0'],
+        '22.7': ['Next2024', 2024, '24'],
+        '22.6': ['Next2023', 2023, '23'],
+        '22.5': ['macOS Ventura', 2022, '13'],
+        '12.1': ['macOS Monterey', 2021, '21'],
+        '11.1': ['macOS Big Sur', 2020, '20'],
+        '10.15': ['macOS Catalina', 2019, '19'],
+        '10.14': ['macOS Mojave', 2018, '18'],
+        '10.13': ['macOS High Sierra', 2017, '17'],
+        '10.12': ['macOS Sierra', 2016, '16'],
+        '10.11': ['OS X El Capitan', 2015, '15'],
+        '10.10': ['OS X Yosemite', 2014, '14'],
+        '10.9': ['OS X Mavericks', 2013, '10.9'],
+        '10.8': ['OS X Mountain Lion', 2012, '10.8'],
+        '10.7': ['OS X Lion', 2011, '10.7'],
+        '10.6': ['Mac OS X Snow Leopard', 2008, '10.6'],
+        '10.5': ['Mac OS X Leopard', 2007, '10.5'],
+        '10.4': ['Mac OS X Tiger', 2005, '10.4'],
+        '10.3': ['Mac OS X Panther', 2004, '10.3'],
+        '10.2': ['Mac OS X Jaguar', 2003, '10.2'],
+        '10.1': ['Mac OS X Puma', 2002, '10.1'],
+        '10.0': ['Mac OS X Cheetah', 2001, '10.0'],
     }
     # WRONG: On macOS Monterey, platform.mac_ver()[0]) returns "10.16", which is Big Sur and thus wrong.
     # See https://eclecticlight.co/2020/08/13/macos-version-numbering-isnt-so-simple/
@@ -608,7 +458,7 @@ this_pgm_last_modified_epoch=os.path.getmtime(this_pgm_os_path)
 print_trace("this_pgm_last_modified_epoch="+str(this_pgm_last_modified_epoch))
 
 this_pgm_last_modified_datetime = _datetime.datetime.fromtimestamp(this_pgm_last_modified_epoch)  
-print_trace("this_pgm_last_modified_datetime="+str(this_pgm_last_modified_datetime)+" (UTC/GMT)")
+print_trace("this_pgm_last_modified_datetime="+str(this_pgm_last_modified_datetime)+" (local time)")
     # Default like: 2021-11-20 07:59:44.412845  (with space between date & time)
 
 python_ver=platform.python_version()
@@ -654,7 +504,9 @@ print_trace("__name__="+__name__)
     # left-to-right order of fields are re-arranged from the function's output.
 
 
-#### SECTION 09.  Obtain run control data from .env file in the user's $HOME folder
+#### SECTION 07. Obtain run control data from .env file (in the user's $HOME folder)
+
+# See https://wilsonmar.github.io/python-samples/#envFile
 
 def open_env_file(env_file) -> str:
     """
@@ -787,14 +639,587 @@ if True:  # always execute
             # Swedish dates are like 2014-11-14 instead of 11/14/2014.
             # https://www.wikiwand.com/en/Date_format_by_country shows only 7 Order style formats
             # See https://wilsonmar.github.io/python-coding/#DurationCalcs
-        if load_country_db:
-            country_info_dict=get_data_from_country_db(my_country)
-            if country_info_dict:  # TODO:
-                print_info(country_info_dict)  # "D/M/Y" 
+#        if load_country_db:
+#            country_info_dict=get_data_from_country_db(my_country)
+#            if country_info_dict:  # TODO:
+#                print_info(country_info_dict)  # "D/M/Y" 
     print_trace("my_date_format="+my_date_format)
         
 
-#### SECTION 10. Manage sqliteDB countryDB reference DB
+#### SECTION 08: Load .env values or hard-coded default values (in order of code)
+
+# See https://wilsonmar.github.io/python-samples/#envLoad
+
+# See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
+
+    verify_manually = get_from_env_file('verify_manually')
+    if not verify_manually:
+        verify_manually = False
+    print_trace("verify_manually="+str(verify_manually))
+
+
+# 6. Obtain run control data from .env file in the user's $HOME folder
+#    to obtain the desired cloud region, zip code, and other variable specs.
+
+    show_env = get_from_env_file('show_env')
+    if not show_env:
+        show_env = True
+    print_trace("show_env="+str(show_env))
+
+    remove_env_line = get_from_env_file('remove_env_line')
+    if not remove_env_line:
+        remove_env_line = True
+    print_trace("remove_env_line="+str(remove_env_line))
+
+    localize_text = get_from_env_file('localize_text')
+    if not localize_text:
+        localize_text = True
+    print_trace("localize_text="+str(localize_text))
+
+# 7. Display run conditions: datetime, OS, Python version, etc. = show_pgminfo
+    show_pgminfo = get_from_env_file('show_pgminfo')
+    if not show_pgminfo:
+        show_pgminfo = True
+    print_trace("show_pgminfo="+str(show_pgminfo))
+
+
+# 8. Define utilities for managing local data storage folders and files
+
+    use_pytz_datetime = get_from_env_file('use_pytz_datetime')
+    if not use_pytz_datetime:
+        use_pytz_datetime = True
+    print_trace("use_pytz_datetime="+str(use_pytz_datetime))
+
+    show_dates = get_from_env_file('show_dates')
+    if not show_dates:
+        show_dates = True
+    print_trace("show_dates="+str(show_dates))
+
+    show_logging = get_from_env_file('show_logging')
+    if not show_logging:
+        show_logging = True
+    print_trace("show_logging="+str(show_logging))
+
+    show_aws_init = get_from_env_file('show_aws_init')
+    if not show_aws_init:
+        show_aws_init = True
+    print_trace("show_aws_init="+str(show_aws_init))
+
+# Vault defaults if parameters are not provided:
+    VAULT_URL_PORT='http://127.0.0.1:8200'
+    VAULT_TOKEN='dev-only-token'
+    VAULT_USER='default_user'
+
+# 9. Generate various calculations for hashing, encryption, etc.
+
+# 9.1. Generate Hash (UUID/GUID) from a file    = gen_hash
+    gen_hash = get_from_env_file('gen_hash')
+    if not gen_hash:
+        gen_hash = False
+    print_trace("gen_hash="+str(gen_hash))
+
+# 9.2. Generate a random salt                   = gen_salt
+    gen_salt = get_from_env_file('gen_salt')
+    if not gen_salt:
+        gen_salt = False
+    print_trace("gen_salt="+str(gen_salt))
+
+# 9.3. Generate a random percent of 100         = gen_1_in_100
+    gen_1_in_100 = get_from_env_file('gen_1_in_100')
+    if not gen_1_in_100:
+        gen_1_in_100 = False
+    print_trace("gen_1_in_100="+str(gen_1_in_100))
+
+# 9.4. Convert between Roman numerals & decimal = process_romans
+    process_romans = get_from_env_file('process_romans')
+    if not process_romans:
+        process_romans = False
+    print_trace("process_romans="+str(process_romans))
+
+# 9.5. Generate JWT (Json Web Token)            = gen_jwt
+    gen_jwt = get_from_env_file('gen_jwt')
+    if not gen_jwt:
+        gen_jwt = False
+    print_trace("gen_jwt="+str(gen_jwt))
+
+# 9.6. Generate Lotto America Numbers           = gen_lotto
+    gen_lotto = get_from_env_file('gen_lotto')
+    if not gen_lotto:
+        gen_lotto = False
+    print_trace("gen_lotto="+str(gen_lotto))
+
+# 9.7. Make a decision                          = magic_8ball
+    gen_magic_8ball = get_from_env_file('gen_magic_8ball')
+    if not gen_magic_8ball:
+        gen_magic_8ball = False
+    print_trace("gen_magic_8ball="+str(gen_magic_8ball))
+
+# 10. Retrieve client IP address                  = get_ipaddr
+    get_ipaddr = get_from_env_file('get_ipaddr')
+    if not get_ipaddr:
+        get_ipaddr = False
+    print_trace("get_ipaddr="+str(get_ipaddr))
+
+# 11. Lookup geolocation info from IP Address     = lookup_ipaddr
+    lookup_ipaddr = get_from_env_file('lookup_ipaddr')
+    if not lookup_ipaddr:
+        lookup_ipaddr = False
+    print_trace("lookup_ipaddr="+str(lookup_ipaddr))
+
+# 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
+    lookup_zipinfo = get_from_env_file('lookup_zipinfo')
+    if not lookup_zipinfo:
+        lookup_zipinfo = False
+    print_trace("lookup_zipinfo="+str(lookup_zipinfo))
+
+# 13. Retrieve Weather info using API             = show_weather
+    show_weather = get_from_env_file('show_weather')
+    if not show_weather:
+        show_weather = False
+    print_trace("show_weather="+str(show_weather))
+
+    email_weather = get_from_env_file('email_weather')
+    if not email_weather:
+        email_weather = False
+    print_trace("email_weather="+str(email_weather))
+
+##  14. Retrieve secrets from local OS Keyring  = use_keyring
+    use_keyring = get_from_env_file('use_keyring')
+    if not use_keyring:
+        use_keyring = False
+    print_trace("use_keyring="+str(use_keyring))
+
+# 14. Retrieve secrets from Azure Key Vault  = use_azure
+    use_azure = get_from_env_file('use_azure')
+    if not use_azure:
+        use_azure = False
+    print_trace("use_azure="+str(use_azure))
+
+    login_to_azure = get_from_env_file('login_to_azure')
+    if not login_to_azure:
+        login_to_azure = False
+    print_trace("login_to_azure="+str(login_to_azure))
+
+    use_azure_redis = get_from_env_file('use_azure_redis')
+    if not use_azure_redis:
+        use_azure_redis = False
+    print_trace("use_azure_redis="+str(use_azure_redis))
+
+    list_azure_resc = get_from_env_file('list_azure_resc')
+    if not list_azure_resc:
+        list_azure_resc = False
+    print_trace("list_azure_resc="+str(list_azure_resc))
+
+# 14.1 Generate a fibonacci number recursion    = gen_fibonacci
+# (write and read to Azure Redis)
+    gen_fibonacci = get_from_env_file('gen_fibonacci')
+    if not gen_fibonacci:
+        gen_fibonacci = False
+    print_trace("gen_fibonacci="+str(gen_fibonacci))
+
+# 9.9 Make change using Dynamic Programming     = make_change
+    make_change = get_from_env_file('make_change')
+    if not make_change:
+        make_change = False
+    print_trace("make_change="+str(make_change))
+
+# 9.10 "Knapsack"
+    fill_knapsack = get_from_env_file('fill_knapsack')
+    if not fill_knapsack:
+        fill_knapsack = False
+    print_trace("fill_knapsack="+str(fill_knapsack))
+
+# 15. Retrieve secrets from AWS KMS         = use_aws
+# https://cloudacademy.com/course/get-started-with-aws-cloudhsm/what-is-cloudhsm/
+    use_aws = get_from_env_file('use_aws')
+    if not use_aws:
+        use_aws = False
+    print_trace("use_aws="+str(use_aws))
+
+# 16. Retrieve secrets from GCP Secret Manager = use_gcp
+    use_gcp = get_from_env_file('use_gcp')
+    if not use_gcp:
+        use_gcp = False
+    print_trace("use_gcp="+str(use_gcp))
+
+# 17. Retrieve secrets from Hashicorp Vault = use_hvac
+    use_hvac = get_from_env_file('use_hvac')
+    if not use_hvac:
+        use_hvac = False
+    print_trace("use_hvac="+str(use_hvac))
+
+    refresh_vault_certs = get_from_env_file('refresh_vault_certs')
+    if not refresh_vault_certs:
+        refresh_vault_certs = False
+    print_trace("refresh_vault_certs="+str(refresh_vault_certs))
+
+# 18. Create/Reuse container folder for img app to use
+
+# 18.1 Get proof on Blockchain  = add_blockchain
+    add_blockchain = get_from_env_file('add_blockchain')
+    if not add_blockchain:
+        add_blockchain = False
+    print_trace("add_blockchain="+str(add_blockchain))
+
+# 19. Download img application files           = download_imgs
+    download_imgs = get_from_env_file('download_imgs')
+    if not download_imgs:
+        download_imgs = False
+    print_trace("download_imgs="+str(download_imgs))
+
+    img_set = get_from_env_file('img_set')
+    if not img_set:
+        img_set = False
+    print_trace("img_set="+str(img_set))
+
+    img_file_name = get_from_env_file('img_file_name')
+    if not img_file_name:
+        img_file_name = "???"
+    print_trace("img_file_name="+img_file_name)
+
+    remove_img_dir_at_beg = get_from_env_file('remove_img_dir_at_beg')
+    if not remove_img_dir_at_beg:
+        remove_img_dir_at_beg = False
+    print_trace("remove_img_dir_at_beg="+str(remove_img_dir_at_beg))
+
+    # to clean up folder
+    remove_img_dir_at_end = get_from_env_file('remove_img_dir_at_end')
+    if not remove_img_dir_at_end:
+        remove_img_dir_at_end = False
+    print_trace("remove_img_dir_at_end="+str(remove_img_dir_at_end))
+
+    remove_img_file_at_beg = get_from_env_file('remove_img_file_at_beg')
+    if not remove_img_file_at_beg:
+        remove_img_file_at_beg = False
+    print_trace("remove_img_file_at_beg="+str(remove_img_file_at_beg))
+
+    # to clean up file in folder
+    remove_img_file_at_end = get_from_env_file('remove_img_file_at_end')
+    if not remove_img_file_at_end:
+        remove_img_file_at_end = False
+    print_trace("remove_img_file_at_end="+str(remove_img_file_at_end))
+
+# 20. Manipulate image (OpenCV OCR extract)    = process_img
+    process_img = get_from_env_file('process_img')
+    if not process_img:
+        process_img = False
+    print_trace("process_img="+str(process_img))
+
+    img_file_naming_method = get_from_env_file('img_file_naming_method')
+    if not img_file_naming_method:
+        img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
+    print_trace("img_file_naming_method="+img_file_naming_method)
+
+# 21. Send message to Slack                    = send_slack_msgs  (TODO:)
+    send_slack = get_from_env_file('send_slack')
+    if not send_slack:
+        send_slack = False
+    print_trace("send_slack="+str(send_slack))
+
+# 22. Send email thru Gmail         = email_via_gmail
+    email_via_gmail = get_from_env_file('email_via_gmail')
+    if not email_via_gmail:
+        email_via_gmail = False
+    print_trace("email_via_gmail="+str(email_via_gmail))
+
+    verify_email = get_from_env_file('verify_email')
+    if not verify_email:
+        verify_email = False
+    print_trace("verify_email="+str(verify_email))
+
+    email_file_path = get_from_env_file('email_file_path')
+    if not email_file_path:
+        email_file_path = ""
+    print_trace("email_file_path="+str(email_file_path))
+
+# 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
+# (use MD5 Hash)
+    view_gravatar = get_from_env_file('view_gravatar')
+    if not view_gravatar:
+        view_gravatar = False
+    print_trace("view_gravatar="+str(view_gravatar))
+
+# 24. Calculte BMI using units of measure  = categorize_bmi
+# (Metric vs English conversoin based on country code)
+    categorize_bmi = get_from_env_file('categorize_bmi')
+    if not categorize_bmi:
+        categorize_bmi = False
+    print_trace("categorize_bmi="+str(categorize_bmi))
+
+    email_weather = get_from_env_file('email_weather')
+    if not email_weather:
+        email_weather = False
+    print_trace("email_weather="+str(email_weather))
+
+# 97. Play text to sound:
+    gen_sound_for_text = get_from_env_file('gen_sound_for_text')
+    if not gen_sound_for_text:
+        gen_sound_for_text = False
+    print_trace("gen_sound_for_text="+str(gen_sound_for_text))
+
+    remove_sound_file_generated = get_from_env_file('remove_sound_file_generated')
+    if not remove_sound_file_generated:
+        remove_sound_file_generated = False
+    print_trace("remove_sound_file_generated="+str(remove_sound_file_generated))
+
+# 98. Remove (clean-up) folder/files created   = cleanup_img_files
+    cleanup_img_files = get_from_env_file('cleanup_img_files')
+    if not cleanup_img_files:
+        cleanup_img_files = False
+    print_trace("cleanup_img_files="+str(cleanup_img_files))
+
+# 99. Display run time stats at end of program = display_run_stats
+    display_run_stats = get_from_env_file('display_run_stats')
+    if not display_run_stats:
+        display_run_stats = False
+    print_trace("display_run_stats="+str(display_run_stats))
+
+
+#### SECTION 09. Parse arguments controlling program operation
+
+# See https://wilsonmar.github.io/python-samples/#ParseArguments
+
+# https://towardsdatascience.com/a-simple-guide-to-command-line-arguments-with-argparse-6824c30ab1c3
+# Assumes: pip install argparse
+# import argparse
+parser = argparse.ArgumentParser(
+    description="A Python3 console (CLI) program to call APIs storing secrets.")
+# -h (for help) is by default.
+parser.add_argument(
+    '-v',
+    '--verbose',
+    action='store_true',
+    help='Verbose messages')
+parser.add_argument(
+    '-q',
+    '--quiet',
+    action='store_true',
+    help='Quiet headers/footers')
+
+# Based on https://docs.python.org/3/library/argparse.html
+args = parser.parse_args()
+# print_verbose("args.v={args.v}="+args.v={args.v})
+
+
+
+
+
+#### SECTION 11. Localize/translate text to the specified locale
+
+# See https://wilsonmar.github.io/python-samples/#Localize
+
+# internationalization according to localization setting:
+def format_epoch_datetime(date_in):
+    return (time.strftime(my_date_format, time.localtime(date_in)))
+
+# internationalization according to localization setting:
+def format_number(number):
+    return ("{:,}".format(number))
+
+# Use user's default settings by setting as blank:
+locale.setlocale(locale.LC_ALL, '')
+# Use current setting:
+locale.setlocale(locale.LC_ALL, None)
+
+# TODO: if value from parsing command parameters, override value from env:
+if my_locale: # locale_from_env:  # not empty:
+    my_locale = locale_from_env
+else:  # fall back # from operating system:
+    my_locale = locale.getlocale()
+
+if not my_locale:
+    my_locale = "en_US"  # hard-coded default such as "en_US"
+
+try:
+    locale.setlocale(locale.LC_TIME, my_locale)
+except BaseException:
+    print_fail("Exception in setting OS LOCALE "+my_locale)
+
+# for lang in locale.locale_alias.values():  # print all locales with "UTF-8"
+#    print_trace("lang="+lang)
+
+# Preparations for translation:
+    # pip install textblob  # translates text using API calls to Google Translate.
+    # python -m textblob.download_corpora
+
+
+def localize_blob(byte_array_in):
+    if not localize_text:
+        return byte_array_in
+
+    if type(byte_array_in) is not str:
+        print_trace("byte_array_in="+byte_array_in)
+        return byte_array_in
+    else:
+        blob = TextBlob(byte_array_in)
+    try:
+        translated = blob.translate(to=my_locale)  # such as 'de_DE'
+    except BaseException:
+        translated = byte_array_in
+    return translated
+    # https://textblob.readthedocs.io/en/dev/ can also perform natural language processing (NLP) tasks such as
+    # part-of-speech tagging, noun phrase extraction, sentiment analysis,
+    # classification, translation, and more.
+
+
+    # TODO: PROTIP: Provide hint that data type is a time object:
+def creation_date(path_to_file):
+    print_trace("path_to_file type="+type(path_to_file))
+    """
+    Requires import platform, import os, from stat import *
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
+
+
+def localized_day_greeting():
+    from datetime import datetime
+    current_hour = datetime.now().hour
+    if current_hour < 12:
+        part_of_day = localize_blob('Good morning!')
+    elif 12 <= current_hour < 17:
+        part_of_day = localize_blob('Good afternoon!')
+    else:
+        part_of_day = localize_blob('Good evening!')
+    return part_of_day
+
+
+def verify_yes_no_manually(question, default='no'):
+    # Adapted from https://gist.github.com/garrettdreyfus/8153571
+    if not verify_manually:  # global
+        return default
+    else:
+        if default is None:
+            prompt = " [y/n] "
+        elif default == 'yes':
+            prompt = " [Y/n] "
+        elif default == 'no':
+            prompt = " [y/N] "
+        else:
+            raise ValueError(
+                f'*** {localize_blob("Unknown setting")} {localize_blob("default")} \"{default}\" ')
+        while True:  # Keep asking:
+            try:
+                resp = input(question + prompt).strip().lower()
+                if default is not None and resp == '':
+                    return default == 'yes'
+                else:
+                    return distutils.util.strtobool(
+                        resp)  # QUESTION: what is this?
+            except ValueError:
+                print_error(localize_blob("Please respond")+'"yes" or "y" or "no" or "n"')
+
+
+if localize_text:
+
+    #if env_locale != my_locale[0] : # 'en_US'
+    #   print_error("env_locale not = "+my_locale[0])
+    #print_warning("global_env_path LOCALE "+env_locale+" "+localize_blob("overrides")+" OS LOCALE "+my_locale)
+
+    # NOTE: print_trace(f'Date: {locale.atof("32,824.23")} ')
+    # File "/Users/wilsonmar/miniconda3/envs/py3k/lib/python3.8/locale.py", line 326, in atof
+    # return func(delocalize(string))
+    # ValueError: could not convert string to float: '32.824.23'
+
+    if my_encoding_from_env:  # not empty:
+       my_encoding = my_encoding_from_env
+    else:  # fall back to hard-coded default:
+       my_encoding = "utf-8"  # default: or "cp860" or "latin" or "ascii"
+
+
+"""if show_trace == True:
+    # Output all locales:
+    # See https://docs.python.org/3/library/locale.html#locale.localeconv
+    for key, value in locale.localeconv().items():
+        print_trace("%s: %s" % (key, value))
+"""
+
+if show_dates:  # TODO: Move this to the end of the program source code!
+    print_heading("show_dates using localized format:")
+    my_local_time = time.localtime()
+    
+    print_trace("pgm_start_timestamp="+str(pgm_start_timestamp))
+    print_trace("pgm_start_epoch_timestamp="+str(pgm_start_epoch_timestamp))  # like 1685264269.421101
+    time_val = time.localtime(pgm_start_epoch_timestamp)
+    print_trace("pgm_start_epoch_timestruct=" + str( time_val ) )
+
+    if my_date_format == "":  # variable contains a value:
+        iso_format = '%A %Y-%b-%d %I:%M:%S %p'
+        print_warning("Using default date format="+iso_format)
+        my_date_format = iso_format
+
+    # Local time with specified timezone name and offset:
+    pgm_start_epoch_time = _datetime.datetime.fromtimestamp(pgm_start_epoch_timestamp)  
+    dt = _datetime.datetime.utcfromtimestamp(pgm_start_epoch_timestamp)
+    pgm_start_epoch_time=dt.strftime(my_date_format)  # Z = UTC with no time zone
+    print_trace("pgm_start_epoch_time="+str(pgm_start_epoch_time))
+    
+    current_local_time = time.strftime(my_date_format, my_local_time)
+    # See https://www.youtube.com/watch?v=r1Iv4d6CO2Q&list=PL98qAXLA6afuh50qD2MdAj3ofYjZR_Phn&t=50s
+    print_trace("current_local_time=  "+current_local_time)  
+    print_trace("my_local_time="+str(my_local_time))
+    # Example: Friday 10 Dec 2021 11:59:25 PM MST -0600
+    
+    #username_greeting = localized_day_greeting()  # +" by pwuid_name: "+ pwuid_name
+    #print_verbose(my_locale+" TZ="+str( my_tz_name ) +" "+ username_greeting)
+    
+    #    dt = _datetime.datetime.utcfromtimestamp(pgm_start_epoch_timestamp)
+    #    # NOTE: ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
+    #    iso_format = '%A %Y-%b-%d %I:%M:%S %p Z(UTC/GMT)'
+    #    current_local_time=dt.strftime(iso_format)  # Z = UTC with no time zone
+    #    print_trace("current_local_time="+current_local_time)  
+        
+    if use_pytz_datetime:
+        # import pytz
+        start_UTC_time = pytz.utc   # get the standard UTC time
+        datetime_utc = datetime.now(start_UTC_time)
+        print_trace("pgm_start_time_pytz= "+datetime_utc.strftime(my_date_format))
+
+        # Example of hard-coded time zone: 
+        # IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
+        IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
+        datetime_utc = datetime.now(IST)   # from above
+        print_trace("current time at IST= "+datetime_utc.strftime(my_date_format)+" ("+str(IST)+") India")
+        # print_trace(str(datetime_utc.strftime(my_date_format))+" India")
+
+    """
+    # Get a UTC tzinfo object – by calling tz.tzutc():
+    # Based on: from dateutil import tz
+    tz.tzutc()
+    # Get offset 0 by calling the utcoffset() method with a UTC datetime object:
+
+    #from datetime import timezone
+    #import datetime
+    dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
+    #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
+    # use tzinfo class to convert datetime to UTC:
+    utc_time = dt.replace(tzinfo=timezone.utc)
+    print_trace("utc_time="+utc_time)
+    # Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
+    utc_timestamp = utc_time.timestamp()
+    print_verbose("Epoch utc_timestamp now: "+ str(utc_timestamp))
+    # Can't print+trace(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
+
+    import datetime
+    print_trace("tz.tzutc now: "+ str(tz.tzutc().utcoffset(datetime.datetime.utcnow())) )
+    # datetime.timedelta(0)
+    """
+
+
+#### SECTION 12. Manage sqliteDB countryDB reference DB
+
+# See https://wilsonmar.github.io/python-samples/#SQLLite
 
 # CAUTION: Avoid printing api_key value and other secrets to console or logs.
 
@@ -913,232 +1338,23 @@ def get_data_from_country_db(country_id):
         finally:
             if conn:
                 conn.close()
-                print_trace("SQLite database "+ sqlite3_db_name+" connection closed.")
+                print_verbose("SQLite database "+ sqlite3_db_name+" connection closed.")
         
         locale_dict = dict()
         locale_dict['en_US'] = 'D/M/Y'  # HARD-CODING FOR DEBUGGING
         return locale_dict   # {'en_US': 'D/M/Y'}
 
 
-#### SECTION 11. Localization (to translate text to the specified locale)
-
-# internationalization according to localization setting:
-def format_epoch_datetime(date_in):
-    return (time.strftime(my_date_format, time.localtime(date_in)))
-
-# internationalization according to localization setting:
-def format_number(number):
-    return ("{:,}".format(number))
-
-# Use user's default settings by setting as blank:
-locale.setlocale(locale.LC_ALL, '')
-# Use current setting:
-locale.setlocale(locale.LC_ALL, None)
-
-# TODO: if value from parsing command parameters, override value from env:
-if my_locale: # locale_from_env:  # not empty:
-    my_locale = locale_from_env
-else:  # fall back # from operating system:
-    my_locale = locale.getlocale()
-
-if not my_locale:
-    my_locale = "en_US"  # hard-coded default such as "en_US"
-
-try:
-    locale.setlocale(locale.LC_TIME, my_locale)
-except BaseException:
-    print_fail("Exception in setting OS LOCALE "+my_locale)
-
-# for lang in locale.locale_alias.values():  # print all locales with "UTF-8"
-#    print_trace("lang="+lang)
-
-# Preparations for translation:
-    # pip install textblob  # translates text using API calls to Google Translate.
-    # python -m textblob.download_corpora
-
-
-def localize_blob(byte_array_in):
-    if not localize_text:
-        return byte_array_in
-
-    if type(byte_array_in) is not str:
-        print_trace("byte_array_in="+byte_array_in)
-        return byte_array_in
-    else:
-        blob = TextBlob(byte_array_in)
-    try:
-        translated = blob.translate(to=my_locale)  # such as 'de_DE'
-    except BaseException:
-        translated = byte_array_in
-    return translated
-    # https://textblob.readthedocs.io/en/dev/ can also perform natural language processing (NLP) tasks such as
-    # part-of-speech tagging, noun phrase extraction, sentiment analysis,
-    # classification, translation, and more.
-
-
-    # TODO: PROTIP: Provide hint that data type is a time object:
-def creation_date(path_to_file):
-    print_trace("path_to_file type="+type(path_to_file))
-    """
-    Requires import platform, import os, from stat import *
-    Try to get the date that a file was created, falling back to when it was
-    last modified if that isn't possible.
-    See http://stackoverflow.com/a/39501288/1709587 for explanation.
-    """
-    if platform.system() == 'Windows':
-        return os.path.getctime(path_to_file)
-    else:
-        stat = os.stat(path_to_file)
-        try:
-            return stat.st_birthtime
-        except AttributeError:
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            return stat.st_mtime
-
-
-def localized_day_greeting():
-    from datetime import datetime
-    current_hour = datetime.now().hour
-    if current_hour < 12:
-        part_of_day = localize_blob('Good morning!')
-    elif 12 <= current_hour < 17:
-        part_of_day = localize_blob('Good afternoon!')
-    else:
-        part_of_day = localize_blob('Good evening!')
-    return part_of_day
-
-
-def verify_yes_no_manually(question, default='no'):
-    # Adapted from https://gist.github.com/garrettdreyfus/8153571
-    if not verify_manually:  # global
-        return default
-    else:
-        if default is None:
-            prompt = " [y/n] "
-        elif default == 'yes':
-            prompt = " [Y/n] "
-        elif default == 'no':
-            prompt = " [y/N] "
-        else:
-            raise ValueError(
-                f'*** {localize_blob("Unknown setting")} {localize_blob("default")} \"{default}\" ')
-        while True:  # Keep asking:
-            try:
-                resp = input(question + prompt).strip().lower()
-                if default is not None and resp == '':
-                    return default == 'yes'
-                else:
-                    return distutils.util.strtobool(
-                        resp)  # QUESTION: what is this?
-            except ValueError:
-                print_error(localize_blob("Please respond")+'"yes" or "y" or "no" or "n"')
-
-
-if localize_text:
-
-    # if env_locale != my_locale[0] : # 'en_US'
-    #   print_error("env_locale not = "+my_locale[0])
-    print_warning("global_env_path LOCALE "+env_locale+" "+localize_blob("overrides")+" OS LOCALE "+my_locale)
-
-    # NOTE: print_trace(f'Date: {locale.atof("32,824.23")} ')
-    # File "/Users/wilsonmar/miniconda3/envs/py3k/lib/python3.8/locale.py", line 326, in atof
-    # return func(delocalize(string))
-    # ValueError: could not convert string to float: '32.824.23'
-
-    if my_encoding_from_env:  # not empty:
-       my_encoding = my_encoding_from_env
-    else:  # fall back to hard-coded default:
-       my_encoding = "utf-8"  # default: or "cp860" or "latin" or "ascii"
-
-
-"""if show_trace == True:
-    # Output all locales:
-    # See https://docs.python.org/3/library/locale.html#locale.localeconv
-    for key, value in locale.localeconv().items():
-        print_trace("%s: %s" % (key, value))
-"""
-
-if show_dates:  # TODO: Move this to the end of the program source code!
-    print_heading("show_dates using localized format:")
-    my_local_time = time.localtime()
-    
-    print_trace("pgm_start_timestamp="+str(pgm_start_timestamp))
-    print_trace("pgm_start_epoch_timestamp="+str(pgm_start_epoch_timestamp))  # like 1685264269.421101
-    time_val = time.localtime(pgm_start_epoch_timestamp)
-    print_trace("pgm_start_epoch_timestruct=" + str( time_val ) )
-
-    if my_date_format == "":  # variable contains a value:
-        iso_format = '%A %Y-%b-%d %I:%M:%S %p'
-        print_warning("Using default date format="+iso_format)
-        my_date_format = iso_format
-
-    # Local time with specified timezone name and offset:
-    pgm_start_epoch_time = _datetime.datetime.fromtimestamp(pgm_start_epoch_timestamp)  
-    dt = _datetime.datetime.utcfromtimestamp(pgm_start_epoch_timestamp)
-    pgm_start_epoch_time=dt.strftime(my_date_format)  # Z = UTC with no time zone
-    print_trace("pgm_start_epoch_time="+str(pgm_start_epoch_time))
-    
-    current_local_time = time.strftime(my_date_format, my_local_time)
-    # See https://www.youtube.com/watch?v=r1Iv4d6CO2Q&list=PL98qAXLA6afuh50qD2MdAj3ofYjZR_Phn&t=50s
-    print_trace("current_local_time=  "+current_local_time)  
-    print_trace("my_local_time="+str(my_local_time))
-    # Example: Friday 10 Dec 2021 11:59:25 PM MST -0600
-    
-    username_greeting = localized_day_greeting()  # +" by username: "+ global_username
-    print_verbose(my_locale+" TZ="+str( my_tz_name ) +" "+ username_greeting)
-    
-    #    dt = _datetime.datetime.utcfromtimestamp(pgm_start_epoch_timestamp)
-    #    # NOTE: ISO 8601 and RFC 3339 '%Y-%m-%d %H:%M:%S' or '%Y-%m-%dT%H:%M:%S'
-    #    iso_format = '%A %Y-%b-%d %I:%M:%S %p Z(UTC/GMT)'
-    #    current_local_time=dt.strftime(iso_format)  # Z = UTC with no time zone
-    #    print_trace("current_local_time="+current_local_time)  
-        
-    if use_pytz_datetime:
-        # import pytz
-        start_UTC_time = pytz.utc   # get the standard UTC time
-        datetime_utc = datetime.now(start_UTC_time)
-        print_trace("pgm_start_time_pytz= "+datetime_utc.strftime(my_date_format))
-
-        # Example of hard-coded time zone: 
-        # IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
-        IST = pytz.timezone('Asia/Kolkata')  # Specify a location in India:
-        datetime_utc = datetime.now(IST)   # from above
-        print_trace("current time at IST= "+datetime_utc.strftime(my_date_format)+" ("+str(IST)+") India")
-        # print_trace(str(datetime_utc.strftime(my_date_format))+" India")
-
-    """
-    # Get a UTC tzinfo object – by calling tz.tzutc():
-    # Based on: from dateutil import tz
-    tz.tzutc()
-    # Get offset 0 by calling the utcoffset() method with a UTC datetime object:
-
-    #from datetime import timezone
-    #import datetime
-    dt = _datetime.datetime.now(timezone.utc)  # returns number of seconds since the epoch.
-    #dt = datetime.datetime.now()  # returns number of seconds since the epoch.
-    # use tzinfo class to convert datetime to UTC:
-    utc_time = dt.replace(tzinfo=timezone.utc)
-    print_trace("utc_time="+utc_time)
-    # Use the timestamp() to convert the datetime object, in UTC, to get the UTC timestamp:
-    utc_timestamp = utc_time.timestamp()
-    print_verbose("Epoch utc_timestamp now: "+ str(utc_timestamp))
-    # Can't print+trace(utc_timestamp.strftime(my_date_format))  # AttributeError: 'float' object has no attribute 'strftime'
-
-    import datetime
-    print_trace("tz.tzutc now: "+ str(tz.tzutc().utcoffset(datetime.datetime.utcnow())) )
-    # datetime.timedelta(0)
-    """
-
-
 #### SECTION 12. Generate Hash (UUID/GUID) from a file    = gen_hash
+
+# See https://wilsonmar.github.io/python-samples/#gen_hash
 
 def gen_hash_text(gen_hash_method, byte_array_in):
     # A hash is a fixed length one way string from input data. Change of even one bit would change the hash.
     # A hash cannot be converted back to the input data (unlike encryption).
     # import hashlib  # https://docs.python.org/3/library/hashlib.html
     # From among hashlib.algorithms_available
-    if gen_hash_method == "SHA1":
+    if gen_hash_method == "SHA1":      # spec removed by FIPS 180-4
         m = hashlib.sha1()
     elif gen_hash_method == "SHA224":
         m = hashlib.sha224()
@@ -1146,8 +1362,10 @@ def gen_hash_text(gen_hash_method, byte_array_in):
         m = hashlib.sha256()
     elif gen_hash_method == "SHA384":
         m = hashlib.sha384()
-    elif gen_hash_method == "SHA512":  # (defined in FIPS 180-2)
+    elif gen_hash_method == "SHA512":  # (defined in archived FIPS 180-2)
         m = hashlib.sha512()
+    print_todo("Use SHA3 to gen hash")
+    # See https://csrc.nist.gov/Topics/Security-and-Privacy/cryptography/secure-hashing
     # See https://www.wikiwand.com/en/Cryptographic_hash_function#/Cryptographic_hash_algorithms
     # SHA224, 224 bits (28 bytes); SHA-256, 32 bytes; SHA-384, 48 bytes; and
     # SHA-512, 64 bytes.
@@ -1236,7 +1454,7 @@ class TestGenHash(unittest.TestCase):
 
 
 
-#### SECTION 12. Setup logging
+#### SECTION 13. Setup logging
 
 if show_logging:
    print_heading("show_logging")
@@ -2288,9 +2506,9 @@ if remove_env_line:
     api_key_name="OPENWEATHERMAP_API_KEY"
     current_time = time.time()
     current_datetime = _datetime.datetime.fromtimestamp(current_time)  # Default: 2021-11-20 07:59:44.412845
-    text_msg="# " + api_key_name +" removed " + str(current_datetime) +" by "+ global_username
-    rm_env_line( api_key_name , text_msg )
-    print_verbose(text_msg)
+    #text_msg="# " + api_key_name +" removed " + str(current_datetime) +" by "+ global_username
+    #rm_env_line( api_key_name , text_msg )
+    #print_verbose(text_msg)
 
 if use_keyring:
     print_heading("use_keyring")
