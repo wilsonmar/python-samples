@@ -348,7 +348,7 @@ uritemplate==4.1.1
 urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1632350318291/work
 wcwidth==0.2.5
 websocket-client==1.2.1
-Werkzeug==2.0.2
+Werkzeug==2.2.3
 wrapt==1.13.3
 yarl==1.7.2
 zipp==3.6.0
