@@ -58,7 +58,7 @@ dynaconf @ file:///home/conda/feedstock_root/build_artifacts/dynaconf_1629557260
 entrypoints==0.4
 filelock==3.12.0
 flake8==4.0.1
-Flask==2.0.2
+Flask==2.2.5
 fonttools==4.39.4
 frozenlist==1.2.0
 fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1633178196444/work
