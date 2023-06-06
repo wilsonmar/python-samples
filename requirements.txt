@@ -133,7 +133,7 @@ pandas==1.3.3
 passlib==1.7.4
 pbr==5.8.0
 pep8==1.7.1
-Pillow==9.1.0
+Pillow==9.3.0
 pip-tools @ file:///home/conda/feedstock_root/build_artifacts/pip-tools_1609352639226/work
 platformdirs==2.4.0
 playsound==1.3.0
