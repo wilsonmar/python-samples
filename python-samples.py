@@ -6,19 +6,6 @@
    This is sample code to provide a feature-rich base for new Python 3.9+ programs run from CLI.
    It implements advice at https://www.linkedin.com/pulse/how-shine-coding-challenges-wilson-mar-/
    
-   Examples also include feature flags, and various ways of calling APIs.
-   Use this code to avoid wasting time "reinventing the wheel" and getting various coding working together,
-   especially important due to the heightened security needed in today's world of ransomware.
-
-   Includes built-in testing. Flask API.
-
-   Security features here include calls to various cloud secret key managers and file encryption,
-   all in one program so data can be passed between different clouds.
-   Here we use a minimum of 3rd-party library dependencies (to avoid transitive vulnerabilities).
-
-   NO  Text Internationalization (English only)
-   NOT Using Azure Secrets API https://developer.hashicorp.com/vault/api-docs/secret/azure
-
    This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
    OF ANY KIND, either express or implied. See the License for the specific
    language governing permissions and limitations under the License.
@@ -33,8 +20,11 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "0.3.2 major update date calcs"
-
+__last_commit__ = "0.3.3 fix localization, renumber sections"
+# argparse
+# localization results to weather
+# fix zip code
+# Add 3 retries to url
 
 #### SECTION 02. Import libraries (in alphabetical order)
 
@@ -172,6 +162,7 @@ from subprocess import PIPE, run
 import sys        # for sys.argv[0], sys.exit(), sys.version
 #from sys import platform
 
+# import textblob
 # from textblob import TextBlob
 
 # Internal to Python:
@@ -1065,39 +1056,8 @@ if True:  # always execute
 		print_trace("display_run_stats="+str(display_run_stats)+" from default!")
 
 
-#### SECTION 11. Flask sample:
 
-def display_flask():
-
-	if use_flask:
-		print_heading("display_flask")
-		
-		from flask import Flask, jsonify
-		app = Flask(__name__)
-		songs = [
-			{
-				"title": "Rockstar",
-				"artist": "Dababy",
-				"genre": "rap",
-			},
-			{
-				"title": "Say So",
-				"artist": "Doja Cat",
-				"genre": "Hiphop",
-			},
-			{
-				"title": "Panini",
-				"artist": "Lil Nas X",
-				"genre": "Hiphop"
-			}
-		]
-		@app.route('/songs')
-
-		def home():
-			return jsonify(songs)
-
-
-#### SECTION 12. Manage sqliteDB countryDB reference DB
+#### SECTION 11. Manage sqliteDB countryDB reference DB
 
 # See https://wilsonmar.github.io/python-samples/#SQLLite
 
@@ -1225,7 +1185,8 @@ def get_data_from_country_db(country_id):
 		return locale_dict   # {'en_US': 'D/M/Y'}
 
 
-#### SECTION 13. Localize/translate text to the specified locale
+
+#### SECTION 12. Localize/translate text to the specified locale
 
 # See https://wilsonmar.github.io/python-samples/#Localize
 
@@ -1272,6 +1233,8 @@ def localize_blob(byte_array_in):
 		print_trace("byte_array_in="+byte_array_in)
 		return byte_array_in
 	else:
+		# https://textblob.readthedocs.io/en/dev/
+		from textblob import TextBlob
 		blob = TextBlob(byte_array_in)
 	try:
 		translated = blob.translate(to=my_locale)  # such as 'de_DE'
@@ -1438,6 +1401,39 @@ if show_dates:  # TODO: Move this to the end of the program source code!
 	"""
 
 
+#### SECTION 13. Flask API :
+
+def display_flask():
+
+	if use_flask:
+		print_heading("display_flask")
+		
+		from flask import Flask, jsonify
+		app = Flask(__name__)
+		songs = [
+			{
+				"title": "Rockstar",
+				"artist": "Dababy",
+				"genre": "rap",
+			},
+			{
+				"title": "Say So",
+				"artist": "Doja Cat",
+				"genre": "Hiphop",
+			},
+			{
+				"title": "Panini",
+				"artist": "Lil Nas X",
+				"genre": "Hiphop"
+			}
+		]
+		@app.route('/songs')
+
+		def home():
+			return jsonify(songs)
+
+
+
 #### SECTION 14. Generate Hash (UUID/GUID) from a file    = gen_hash
 
 # See https://wilsonmar.github.io/python-samples/#gen_hash
@@ -1550,7 +1546,8 @@ class TestGenHash(unittest.TestCase):
 # https://github.com/ericelliott/cuid
 
 
-#### SECTION 12.1 Sequential UUIDs
+
+#### SECTION 15. Sequential UUIDs
 
 # https://github.com/tvondra/sequential-uuids
 # Make UUIDs more sequential by using some sequential value as a prefix. 
@@ -1560,12 +1557,12 @@ class TestGenHash(unittest.TestCase):
 # the cache hit ratio quickly deteriorates.
 
 
-#### SECTION 13. Create URL Shortener
+#### SECTION 16. Create URL Shortener
 
 # https://www.freecodecamp.org/learn/back-end-development-and-apis/back-end-development-and-apis-projects/url-shortener-microservice
 # 
 
-#### SECTION 14. Setup logging
+#### SECTION 17. Setup logging
 
 if show_logging:
    print_heading("show_logging")
@@ -1577,7 +1574,7 @@ if show_logging:
 
 
 
-#### SECTION 9.2 Generate a random Salt
+#### SECTION 18. Generate a random Salt
 
 DEFAULT_ENTROPY = 32  # bytes in string to return, by default
 
@@ -1606,12 +1603,12 @@ if gen_salt:
 	print_trace(f'[cryptogen.random() for i in range(3)]  # random floats in [0., 1.)')
 	y = [cryptogen.random() for i in range(3)]  # random floats in [0., 1.)
 	# [0.2710009745425236, 0.016722063038868695, 0.8207742461236148]
-	print_trace(f'    {y}')
+	print_info(f'    {y}')
 
 	#print_trace(f'*** {salt_size} salt={password_salt} ')
 
 
-#### SECTION 9.3 Generate random percent of 100:
+#### SECTION 19. Generate random percent of 100:
 
 if gen_1_in_100:
 	print_heading("gen_1_in_100 - 5 Random numbers between 1 and 100:")
@@ -1625,10 +1622,9 @@ if gen_1_in_100:
 		# https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b311-random
 
 
-#### SECTION 9.4 Convert Roman to Decimal for use of case
+#### SECTION 20. Convert Roman to Decimal for use of case
 
-# From
-# https://www.oreilly.com/library/view/python-cookbook/0596001673/ch03s24.html
+# From https://www.oreilly.com/library/view/python-cookbook/0596001673/ch03s24.html
 def int_to_roman(input):
 	# Convert a input year to a Roman numeral
 
@@ -1749,7 +1745,7 @@ if process_romans:
 	# https://www.calculatorsoup.com/calculators/conversions/roman-numeral-converter.php
 
 
-#### SECTION 9.5 Generate JSON Web Token          = gen_jwt
+#### SECTION 21. Generate JSON Web Token          = gen_jwt
 
 if gen_jwt:
 	print_heading("gen_jwt")
@@ -1758,7 +1754,7 @@ if gen_jwt:
 	jwt_payload = "my payload"
 	encoded_jwt = jwt.encode({jwt_some: jwt_payload},
 							 "secret", algorithm="HS256")
-	print_trace(f'encoded_jwt={encoded_jwt} ')
+	print_info(f'encoded_jwt={encoded_jwt} ')
 	# A
 	# eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzb21lIjoicGF5bG9hZCJ9.Joh1R2dYzkRvDkqv3sygm5YyK8Gi4ShZqbhK2gxcs2U
 	response = jwt.decode(encoded_jwt, "secret", algorithms=["HS256"])
@@ -1766,7 +1762,7 @@ if gen_jwt:
 	print_trace(f'response={response} ')
 
 
-#### SECTION 9.6 Generate Lotto using random range    = gen_lotto_num
+#### SECTION 22. Generate Lotto using random range    = gen_lotto_num
 
 def gen_lotto_num():
 	lotto_numbers = ""
@@ -1776,14 +1772,11 @@ def gen_lotto_num():
 	lotto_numbers = lotto_numbers + str(random.randint(1, 11))
 	return lotto_numbers
 
-	# set_val={"1","2","3","4","5"}
-	# str_val = " ".join(set_val)  #
-	# https://appdividend.com/2020/12/29/how-to-convert-python-set-to-string/
-
 
 class TestGenLotto(unittest.TestCase):
 	def test_gen_lotto_num(self):
 
+        # https://www.calottery.com/draw-games/superlotto-plus#section-content-2-3
 		if gen_lotto:
 			print_heading("gen_lotto")
 
@@ -1793,10 +1786,9 @@ class TestGenLotto(unittest.TestCase):
 			# Based on https://www.lottoamerica.com/numbers/montana
 			print_info(lotto_numbers)  # such as "17 45 40 34 15 4" (6 numbers)
 
-	# https://www.calottery.com/draw-games/superlotto-plus#section-content-2-3
 
 
-#### SECTION 9.7 Generate Lotto using random range    = gen_magic_8ball
+#### SECTION 23. Generate Lotto using random range    = gen_magic_8ball
 
 
 def do_gen_magic_8ball():
@@ -1865,7 +1857,7 @@ class TestGen8Ball(unittest.TestCase):
 
 
 
-#### SECTION 9.8 Generate Fibonacci to compare recursion vs memoization locally and in Redis:
+#### SECTION 24. Generate Fibonacci to compare recursion vs memoization locally and in Redis:
 
 # alternative:
 # https://github.com/samgh/DynamicProgrammingEbook/blob/master/python/Fibonacci.py
@@ -2060,7 +2052,7 @@ class TestFibonacci(unittest.TestCase):
 
 	
 
-#### SECTION  9.9 Make change using Dynamic Programming     = make_change
+#### SECTION 25. Make change using Dynamic Programming     = make_change
 
 # See https://wilsonmar.github.io/python-samples#make_change
 # alternative:
@@ -2131,7 +2123,7 @@ class TestMakeChange(unittest.TestCase):
 			self.assertEqual(change_back, [20, 10, 1, 1, 1, 1])
 
 
-#### SECTION  9.10 Fill knapsack  = fill_knapsack
+#### SECTION 26. Fill knapsack  = fill_knapsack
 
 class TestFillKnapsack(unittest.TestCase):
 	def test_fill_knapsack(self):
@@ -2159,7 +2151,7 @@ class TestFillKnapsack(unittest.TestCase):
 															2, 3)], 8, 20)]
 
 
-#### SECTION 10. Retrieve client IP address    = get_ipaddr
+#### SECTION 27. Retrieve client IP address    = get_ipaddr
 
 my_ip_address=""  # Global
 
@@ -2242,6 +2234,7 @@ if get_ipaddr:
 		# PROTIP: Close connection immediately to reduce man-in-the-middle attacks:
 		#s = requests.session()
 		#s.config['keep_alive'] = False
+		# TODO: Add 3 retries to url
 		request = requests.get(url, allow_redirects=False, headers={'Connection':'close'})
 		# print_trace("request.text="+request.text)
 		# <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
@@ -2284,7 +2277,7 @@ if lookup_ipaddr:
 
 
 
-#### SECTION 12. Obtain Zip Code to retrieve Weather info, etc
+#### SECTION 28. Obtain Zip Code to retrieve Weather info, etc
 
 
 def obtain_zip_code():
@@ -2367,7 +2360,7 @@ class TestLookupZipinfo(unittest.TestCase):
 				exit(1)
 
 
-#### SECTION 13. Retrieve Weather info using API
+#### SECTION 29. Retrieve Weather info using API
 
 def compass_text_from_degrees(degrees):
 	# adapted from https://www.campbellsci.com/blog/convert-wind-directions
@@ -2440,7 +2433,7 @@ if show_weather:
 		response = requests.get(weather_url, allow_redirects=False)
 	except ConnectionError:
 		print_fail(f'Connection error \"{response}\".')
-
+    
 	# convert json format data into json method of response object:
 	# python format data
 	x = response.json()
@@ -2448,12 +2441,15 @@ if show_weather:
 		# On-line JSON formatter: https://jsonformatter.curiousconcept.com/
 
 	# x contains list of nested dictionaries.
-	# x "cod" contains the HTTP response code - "404":
+	# x item "cod" contains the HTTP response code - "404":
+	# x item "main" ???
 	if x["cod"] == "404":
-		print_trace(f'{x["cod"]} - U.S. Zip Code {bcolors.FAIL}\"{my_zip_code}\" Not Found!')
+		print_fail(f'{x["cod"]} - U.S. Zip Code \"{my_zip_code}\" Not Found!')
+		# exit
 	else:
 		# store the value of "main" key in variable y:
-		y = x["main"]   # FIXME: KeyError: 'main'
+		print_todo("FIXME: zipcode KeyError: 'main'")
+		y = x["main"]
 		coord = x["coord"]
 		system = x["sys"]
 		text_weather_location = system["country"] + " " + my_zip_code + ": " + x["name"] + " " + localize_blob(
@@ -2638,7 +2634,7 @@ if use_keyring:
 
 
 
-#### SECTION 13. Login to Vault using Python hvac library
+#### SECTION 30. Login to Vault using Python hvac library
 
 if login_to_azure:
    print_fail("QUESTION: Chris?")
@@ -2646,7 +2642,7 @@ if login_to_azure:
    # Python equivalent of "az login" CLI command.
 
 
-#### SECTION 14: Obtain Azure Subscription from Vault 
+#### SECTION 31. Obtain Azure Subscription from Vault 
 
 def azure_login():
 	"""
@@ -2670,7 +2666,7 @@ if use_azure:
 	print_fail("QUESTION: Chris?")
 
 
-#### SECTION 15: Login to Azure
+#### SECTION 32. Login to Azure
 
    # https://www.youtube.com/watch?v=unbzStG3IVY
    # In preview June, 2022.
@@ -2737,7 +2733,7 @@ if login_to_azure:
 
 
 
-#### SECTION 16: In Azure, list resources for specific SubscriptionID
+#### SECTION 33. In Azure, list resources for specific SubscriptionID
 
 def az_cli (args_str):
 	args = args_str.split()
@@ -2759,7 +2755,7 @@ if list_azure_resc:
 
 
 
-#### SECTION 14. Retrieve secrets from Azure Key Vault
+#### SECTION 34. Retrieve secrets from Azure Key Vault
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_azure
 
@@ -2878,7 +2874,7 @@ if use_azure:
 		# IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
 
 
-#### SECTION 15. Retrieve secrets from AWS KMS
+#### SECTION 35. Retrieve secrets from AWS KMS
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_aws
 
@@ -3081,7 +3077,7 @@ if use_aws:
 
 
 
-#### SECTION 16. Login and use GCP   = use_gcp
+#### SECTION 36. Login and use GCP   = use_gcp
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_gcp
                       # https://wilsonmar.github.io/gcp
@@ -3292,7 +3288,8 @@ if use_gcp:
 		list_gcp_secrets(gcp_project_id_in)
 
 
-#### SECTION 17: Log into AWS using Pythong Boto3 library
+
+#### SECTION 37: Log into AWS using Pythong Boto3 library
  
 if use_aws:
 	aws_boto3_version = boto3.__version__
@@ -3300,7 +3297,7 @@ if use_aws:
 
 
 
-#### SECTION 17. Retrieve secrets from Hashicorp Vault
+#### SECTION 38. Retrieve secrets from Hashicorp Vault
 
 # Commentary on this at
 # https://wilsonmar.github.io/python-samples#HashicorpVault
@@ -3366,10 +3363,10 @@ if use_hvac:
 		# {u'lease_id': u'', u'warnings': None, u'wrap_info': None, u'auth': None, u'lease_duration': 3600, u'request_id': u'c383e53e-43da-d491-6c20-b0f5f7e4a33a', u'data': {u'type': u'pythons', u'lease': u'1h'}, u'renewable': False}
 
 
-#### SECTION 18: Write secret to HashiCorp Vault per https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
+#### SECTION 39: Write secret to HashiCorp Vault per https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
 
 
-#### SECTION 19: Refresh certs crated by HashiCorp Vault
+#### SECTION 40: Refresh certs crated by HashiCorp Vault
 
 if refresh_vault_certs:
 	# Authentication
@@ -3397,7 +3394,7 @@ if refresh_vault_certs:
 
 
 
-#### SECTION 18. Create/Reuse folder for img app to put files:
+#### SECTION 41. Create/Reuse folder for img app to put files:
 
 img_directory = "Images"   # FIXME
 
@@ -3480,7 +3477,7 @@ if download_imgs:
 		# print_fail(f'{localize_blob("Present Working Directory")}: \"{os.getcwd()}\" ')
 
 
-#### SECTION 19. Download img application files  = download_imgs
+#### SECTION 42. Download img application files  = download_imgs
 
 # Commentary on this at
 # https://wilsonmar.github.io/python-samples#download_imgs
@@ -3563,7 +3560,7 @@ if download_imgs:
 		# no exit()
 
 
-#### SECTION 20. Manipulate image (OpenCV OCR extract)    = process_img
+#### SECTION 43. Manipulate image (OpenCV OCR extract)    = process_img
 
 """
 # if process_img:
@@ -3592,7 +3589,7 @@ with Image(blob = image_binary) as img:
 """
 
 
-#### SECTION 21. Send message to Slack = send_slack_msgs
+#### SECTION 44. Send message to Slack = send_slack_msgs
 
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
@@ -3657,7 +3654,7 @@ class TestSendSlack(unittest.TestCase):
 			# {'ok': False, 'error': 'invalid_blocks_format'}
 
 
-#### SECTION 22. Send email thru Gmail         = email_via_gmail
+#### SECTION 45. Send email thru Gmail         = email_via_gmail
 
 # Inspired by
 # https://www.101daysofdevops.com/courses/101-days-of-devops/lessons/day-14/
@@ -3745,7 +3742,7 @@ class TestSendEmail(unittest.TestCase):
 				# Loop to get next for 
 
 
-#### SECTION 23. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
+#### SECTION 46. Calculate Hash and View Gravatar on Web Browser   = view_gravatar
 
 
 def get_gravatar_url(email, size, default, rating):
@@ -3794,7 +3791,7 @@ class TestViewGravatar(unittest.TestCase):
 
 
 
-#### SECTION 24. Generate BMI  = categorize_bmi
+#### SECTION 47. Generate BMI  = categorize_bmi
 
 print_todo("Bring work code out of TestGemBMI class")
 # NOTE: There is some controversy about the value of the BMI calculation.
@@ -3903,7 +3900,7 @@ class TestGemBMI(unittest.TestCase):
 			# print_trace(f'Ideal weight at BMI 21.7 = {ideal_pounds} pounds.')
 
 
-#### SECTION 97. Play text to sound:
+#### SECTION 48. Play text to sound:
 
 # See https://cloud.google.com/text-to-speech/docs/quickstart-protocol
 
@@ -3946,7 +3943,7 @@ if gen_sound_for_text:
 		os.remove(speech_file_name)
 
 
-#### SECTION 98. Remove (clean-up) folder/files created   = cleanup_files
+#### SECTION 49. Remove (clean-up) folder/files created   = cleanup_files
 
 if cleanup_img_files:
 	# Remove files and folders to conserve disk space and avoid extraneous
