@@ -48,7 +48,7 @@ deep-merge==0.0.4
 deepdiff==5.6.0
 Deprecated==1.2.13
 detect-secrets==1.1.0
-dnslib==0.9.16
+dnslib==0.9.17
 dnspython==2.1.0
 docker==5.0.0
 dockerfile-parse==1.2.0
