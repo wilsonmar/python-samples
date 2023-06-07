@@ -150,7 +150,7 @@ pyaes==1.6.1
 pyarrow==11.0.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
-pycares==4.1.2
+pycares==4.2.0
 pycodestyle==2.8.0
 pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1593275161868/work
 pyflakes==2.4.0
