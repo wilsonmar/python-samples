@@ -25,6 +25,7 @@ __last_commit__ = "0.3.3 fix localization, renumber sections"
 # localization results to weather
 # fix zip code
 # Add 3 retries to url
+# azure
 
 #### SECTION 02. Import libraries (in alphabetical order)
 
@@ -193,7 +194,7 @@ pgm_start_perf_counter = time.perf_counter() # the most accurate difference betw
 #### SECTION 04: Default command-line arguments parameters to shown initial menu for verbosity settings:
 
 ## Initial logic controls:
-clear_cli = True   # Clear Console so output always appears at top of screen.
+clear_cli = True       # -clear Console so output always appears at top of screen.
 show_print_samples = True
 show_fail = True       # Always show
 show_error = True      # Always show
@@ -203,11 +204,13 @@ show_info = True       # -qq  Display app's informational status and results for
 show_heading = True    # -q  Don't display step headings before attempting actions
 show_verbose = True    # -v  Display technical program run conditions
 show_trace = True      # -vv Display responses from API calls for debugging code
-show_secrets = True       # Never show
 
-use_env_file = True
+show_secrets = True    # Never show
 
-use_flask = True
+use_env_file = True    # -env
+use_flask = True       # -flask
+
+vault_url_port = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
 
 # Vault defaults if parameters are not provided:
 VAULT_URL_PORT='http://127.0.0.1:8200'
