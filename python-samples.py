@@ -20,14 +20,16 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "python-samples.py 0.3.4 print_warning on default"
+__last_commit__ = "python-samples.py 0.3.5 add main loop"
 # fix y = x["main"] error
 # argparse by Kermit
 # fix call of get_ipaddr etc without request
 # localization results to weather
 # fix zip code
 # Add 3 retries to url
-# azure
+# gcp_login, gcp_resc_list
+# FIXME: import azure , azure_login, azure_resc_list
+# aws_login, aws_resc_list
 
 # SECTION 02. Import libraries (in alphabetical order)
 
@@ -123,7 +125,7 @@ import hvac     # Hashicorp Vault Python lib
    # HashiCorp Vault Python Client v23.1.2 from https://pypi.org/project/hvac/
 import json
 import jwt
-# import keyring   # used by use_keyring
+import keyring   # used by use_keyring
 # import keyring.util.platform_ as keyring_platform
 import locale  # https://phrase.com/blog/posts/beginners-guide-to-locale-in-python/
 import logging    # see https://realpython.com/python-logging/
@@ -212,17 +214,10 @@ show_heading = True    # -q  Don't display step headings before attempting actio
 show_verbose = True    # -v  Display technical program run conditions
 show_trace = True      # -vv Display responses from API calls for debugging code
 
-show_secrets = True    # Never show
+show_secrets = False   # Never show
 
 use_env_file = True    # -env
 use_flask = True       # -flask
-
-vault_url_port = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
-
-# Vault defaults if parameters are not provided:
-VAULT_URL_PORT = 'http://127.0.0.1:8200'
-VAULT_TOKEN = 'dev-only-token'
-VAULT_USER = 'default_user'
 
 
 # SECTION 05. Show Menu and Parse arguments controlling program operation
@@ -283,54 +278,60 @@ def print_separator():
 
 
 def print_heading(text_in):
-    if show_heading:
+    if show_heading == True:
         print('\n***', bcolors.HEADING+bcolors.UNDERLINE,
               f'{text_in}', bcolors.RESET)
 
 
 def print_fail(text_in):  # when program should stop
-    if show_fail:
+    if show_fail == True:
         print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
 
 
 def print_error(text_in):  # when a programming error is evident
-    if show_fail:
+    if show_fail == True:
         print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
 
 
 def print_warning(text_in):
-    if show_warning:
+    if show_warning == True:
         print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
 
 
 def print_todo(text_in):
-    if show_todo:
+    if show_todo == True:
         print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
 
 
 def print_info(text_in):
-    if show_info:
+    if show_info == True:
         print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
 
 
 def print_verbose(text_in):
-    if show_verbose:
+    if show_verbose == True:
         print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
 
 
 def print_trace(text_in):  # displayed as each object is created in pgm:
-    if show_trace:
+    if show_trace == True:
         print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
 
 
 def print_secret(secret_in):
-    """ Outputs only the first few characters (like Git) plus dots replacing the rest """
-    secret_len = 32  # same length regardless of secret length to reduce ability to guess:
-    if len(secret_in) >= 20:  # slice
-       secret_out = secret_in[0:4] + "."*(secret_len-4)
+    """ Outputs only the first few characters (like Git) with dots replacing the rest 
+    """
+    # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
+    if show_secrets:  # program parameter
+        print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
     else:
-       secret_out = secret_in[0:1] + "."*(secret_len-1)
-    print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_out}', bcolors.RESET)
+        # same length regardless of secret length to reduce ability to guess:
+        secret_len = 32  
+        if len(secret_in) >= 20:  # slice
+            secret_out = secret_in[0:4] + "."*(secret_len-4)
+        else:
+            secret_out = secret_in[0:4] + "."*(secret_len-1)
+            print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_out}', bcolors.RESET)
 
 
 # First display commands:
@@ -532,10 +533,10 @@ print_trace("pwuid_shell="+pwuid_shell)
 # This handles situation when user is in su mode.
    # See https://docs.python.org/3/library/pwd.html
 pwuid_gid = pwd.getpwuid(os.getuid()).pw_gid         # Group number datatype
-print_trace("pwuid_gid="+str(pwuid_gid)+" (group ID number)")
+print_trace("pwuid_gid="+str(pwuid_gid)+" (process group ID number)")
 
 pwuid_uid = pwd.getpwuid(os.getuid()).pw_uid
-print_trace("pwuid_uid="+str(pwuid_uid)+" (user ID number)")
+print_trace("pwuid_uid="+str(pwuid_uid)+" (process user ID number)")
 
 pwuid_name = pwd.getpwuid(os.getuid()).pw_name
 print_trace("pwuid_name="+pwuid_name)
@@ -664,7 +665,6 @@ def open_env_file(env_file) -> str:
     # locale is global and affects other applications.
     return True
 
-
 def get_from_env_file(key_in) -> str:
     """
     Use pip python-dotenv to return a variable from OS environment or .env file.
@@ -682,6 +682,29 @@ def get_from_env_file(key_in) -> str:
         # TODO: If key_in name contains "secret", print it as a secret:
         print_trace(key_in + "=" + env_var + " from .env")
         return env_var
+
+# PROTIP: Return a float data type from function:
+def get_float_from_env_file(key_in) -> float:
+    env_var = os.environ.get(key_in)  # using pip python-dotenv
+    if not env_var:  # yes, defined=True, use it:
+        print_warning(key_in + " not found in OS nor .env file " + env_file)
+        return None
+    else:
+        # os.environ[key_in] = env_var
+        # TODO: If key_in name contains "secret", print it as a secret:
+        print_trace(key_in + "=" + env_var + " from .env")
+        return float(env_var)
+
+def get_int_from_env_file(key_in) -> int:
+    env_var = os.environ.get(key_in)  # using pip python-dotenv
+    if not env_var:  # yes, defined=True, use it:
+        print_warning(key_in + " not found in OS nor .env file " + env_file)
+        return None
+    else:
+        # os.environ[key_in] = env_var
+        # TODO: If key_in name contains "secret", print it as a secret:
+        print_trace(key_in + "=" + env_var + " from .env")
+        return int(env_var)
 
 
 if True:  # always execute
@@ -743,8 +766,8 @@ if True:  # always execute
         my_latitude = "34.123"
         print_warning("my_latitude="+my_latitude+" from default!")
 
-    my_curency = get_from_env_file('MY_CURRENCY')
-    if not my_curency:
+    my_currency = get_from_env_file('MY_CURRENCY')
+    if not my_currency:
         my_currency = "USD"
         print_warning("my_currency="+my_currency+" from default!")
 
@@ -816,13 +839,40 @@ if True:  # always execute
 
     show_logging = get_from_env_file('show_logging')
     if not show_logging:
-        show_logging = True
+        show_logging = False
         print_warning("show_logging="+str(show_logging)+" from default!")
 
     show_aws_init = get_from_env_file('show_aws_init')
     if not show_aws_init:
         show_aws_init = True
         print_warning("show_aws_init="+str(show_aws_init)+" from default!")
+
+    main_loop_runs_requested_str = get_from_env_file('main_loop_runs_requested')
+    if not main_loop_runs_requested_str:
+        # PROTIP: Define a big float data type at creation so it can contain a large number:
+        main_loop_runs_requested=1
+        print_warning("main_loop_runs_requested="+str(main_loop_runs_requested)+" "+str(type(main_loop_runs_requested))+" from default!")
+    else:
+        main_loop_runs_requested=int(main_loop_runs_requested_str)
+        print_warning("data type="+str(type(main_loop_runs_requested)))
+
+    main_loop_pause_seconds = get_float_from_env_file('main_loop_pause_seconds')
+    if not main_loop_pause_seconds:
+        # PROTIP: Define a big float data type at creation so it can contain a large number:
+        main_loop_pause_seconds=float(0)   # NOT float(999)  # float(5.5)
+    print_warning("main_loop_pause_seconds="+str(main_loop_pause_seconds)+" "+str(type(main_loop_pause_seconds))+" from default!")
+
+# HashiCorp Vault:
+
+    use_hvac = get_from_env_file('use_hvac')
+    if not use_hvac:
+        use_hvac = False
+        print_warning("NOT use_hvac="+str(use_hvac)+" from default!")
+
+    refresh_vault_certs = get_from_env_file('refresh_vault_certs')
+    if not refresh_vault_certs:
+        refresh_vault_certs = False
+        print_warning("refresh_vault_certs="+str(refresh_vault_certs)+" from default!")
 
 # 9. Generate various calculations for hashing, encryption, etc.
 
@@ -832,25 +882,21 @@ if True:  # always execute
         gen_hash = False
         print_warning("gen_hash="+str(gen_hash)+" from default!")
 
-# 9.2. Generate a random salt                   = gen_salt
     gen_salt = get_from_env_file('gen_salt')
     if not gen_salt:
         gen_salt = False
         print_warning("gen_salt="+str(gen_salt)+" from default!")
 
-# 9.3. Generate a random percent of 100         = gen_1_in_100
     gen_1_in_100 = get_from_env_file('gen_1_in_100')
     if not gen_1_in_100:
         gen_1_in_100 = False
         print_warning("gen_1_in_100="+str(gen_1_in_100)+" from default!")
 
-# 9.4. Convert between Roman numerals & decimal = process_romans
     process_romans = get_from_env_file('process_romans')
     if not process_romans:
         process_romans = False
         print_warning("process_romans="+str(process_romans)+" from default!")
 
-# 9.5. Generate JWT (Json Web Token)            = gen_jwt
     gen_jwt = get_from_env_file('gen_jwt')
     if not gen_jwt:
         gen_jwt = False
@@ -868,25 +914,21 @@ if True:  # always execute
         gen_magic_8ball = False
         print_warning("gen_magic_8ball="+str(gen_magic_8ball)+" from default!")
 
-# 10. Retrieve client IP address                  = get_ipaddr
     get_ipaddr = get_from_env_file('get_ipaddr')
     if not get_ipaddr:
         get_ipaddr = False
         print_warning("get_ipaddr="+str(get_ipaddr)+" from default!")
 
-# 11. Lookup geolocation info from IP Address     = lookup_ipaddr
-    lookup_ipaddr = get_from_env_file('lookup_ipaddr')
-    if not lookup_ipaddr:
-        lookup_ipaddr = False
-        print_warning("lookup_ipaddr="+str(lookup_ipaddr)+" from default!")
+    geodata_from_ipaddr = get_from_env_file('geodata_from_ipaddr')
+    if not geodata_from_ipaddr:
+        geodata_from_ipaddr = False
+        print_warning("geodata_from_ipaddr="+str(geodata_from_ipaddr)+" from default!")
 
-# 12. Obtain Zip Code to retrieve Weather info    = lookup_zipinfo
-    lookup_zipinfo = get_from_env_file('lookup_zipinfo')
-    if not lookup_zipinfo:
-        lookup_zipinfo = False
-        print_warning("lookup_zipinfo="+str(lookup_zipinfo)+" from default!")
+    geodata_from_zipinfo = get_from_env_file('geodata_from_zipinfo')
+    if not geodata_from_zipinfo:
+        geodata_from_zipinfo = False
+        print_warning("geodata_from_zipinfo="+str(geodata_from_zipinfo)+" from default!")
 
-# 13. Retrieve Weather info using API             = show_weather
     show_weather = get_from_env_file('show_weather')
     if not show_weather:
         show_weather = False
@@ -897,13 +939,11 @@ if True:  # always execute
         email_weather = False
         print_warning("email_weather="+str(email_weather)+" from default!")
 
-# 14. Retrieve secrets from local OS Keyring  = use_keyring
     use_keyring = get_from_env_file('use_keyring')
     if not use_keyring:
         use_keyring = False
         print_warning("use_keyring="+str(use_keyring)+" from default!")
 
-# 14. Retrieve secrets from Azure Key Vault  = use_azure
     use_azure = get_from_env_file('use_azure')
     if not use_azure:
         use_azure = False
@@ -950,22 +990,10 @@ if True:  # always execute
         use_aws = False
         print_warning("use_aws="+str(use_aws)+" from default!")
 
-# 16. Retrieve secrets from GCP Secret Manager = use_gcp
     use_gcp = get_from_env_file('use_gcp')
     if not use_gcp:
         use_gcp = False
         print_warning("use_gcp="+str(use_gcp)+" from default!")
-
-# 17. Retrieve secrets from Hashicorp Vault = use_hvac
-    use_hvac = get_from_env_file('use_hvac')
-    if not use_hvac:
-        use_hvac = False
-        print_warning("use_hvac="+str(use_hvac)+" from default!")
-
-    refresh_vault_certs = get_from_env_file('refresh_vault_certs')
-    if not refresh_vault_certs:
-        refresh_vault_certs = False
-        print_warning("refresh_vault_certs="+str(refresh_vault_certs)+" from default!")
 
 # 18. Create/Reuse container folder for img app to use
 
@@ -1027,8 +1055,18 @@ if True:  # always execute
     img_file_naming_method = get_from_env_file('img_file_naming_method')
     if not img_file_naming_method:
         img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
-        print_warning("img_file_naming_method=" +
-                    img_file_naming_method+" from default!")
+        print_warning("img_file_naming_method="+img_file_naming_method+" from default!")
+
+
+    send_fax = get_from_env_file('send_fax')
+    if not send_fax:
+        send_fax = False
+        print_warning("send_fax="+str(send_fax)+" from default!")
+
+    send_sms = get_from_env_file('send_sms')
+    if not send_sms:
+        send_sms = False
+        print_warning("send_sms="+str(send_sms)+" from default!")
 
 # 21. Send message to Slack                    = send_slack_msgs  (TODO:)
     send_slack = get_from_env_file('send_slack')
@@ -1089,7 +1127,6 @@ if True:  # always execute
         cleanup_img_files = False
         print_warning("cleanup_img_files="+str(cleanup_img_files)+" from default!")
 
-# Clean-up README.md files in GitHub with imgs in Cloudinary   = update_md_files
     update_md_files = get_from_env_file('update_md_files')
     if not update_md_files:
         update_md_files = False
@@ -1620,13 +1657,13 @@ class TestGenHash(unittest.TestCase):
 #
 
 # SECTION 17. Setup logging
-if show_logging:
-   print_heading("show_logging")
 
+def show_logging():
     # Confirm manually: https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBlade
     # https://azure.github.io/azure-sdk/releases/latest/mgmt/python.html
    logger = logging.getLogger(__name__)
    print_info("logger="+str(logger))
+   return False  # for now
 
 
 # SECTION 18. Generate a random Salt
@@ -1639,11 +1676,8 @@ def token_urlsafe(nbytes=None):
     # 'Drmhze6EPcv0fN_81Bj-nA'
     return base64.urlsafe_b64encode(tok).rstrip(b'=').decode('ascii')
 
-
-if gen_salt:
+def gen_salt():
     # “full entropy” (i.e. 128-bit uniformly random value)
-    print_heading("gen_salt")
-
     # Based on https://github.com/python/cpython/blob/3.6/Lib/secrets.py
     #     tok=token_urlsafe(16)
     # tok=token_bytes(nbytes=None)
@@ -1656,34 +1690,31 @@ if gen_salt:
     # [2, 2, 2, 2, 1, 2, 1, 2, 1, 0, 0, 1, 1, 0, 0, 2, 0, 0, 0, 0]
     print_trace(f'    {x}')
 
-    print_trace(
-        f'[cryptogen.random() for i in range(3)]  # random floats in [0., 1.)')
+    # print_trace(f'[cryptogen.random() for i in range(3)]  # random floats in [0., 1.)')
     y = [cryptogen.random() for i in range(3)]  # random floats in [0., 1.)
     # [0.2710009745425236, 0.016722063038868695, 0.8207742461236148]
-    print_info(f'    {y}')
-
     # print_trace(f'*** {salt_size} salt={password_salt} ')
+    print_info(f'    {y}')
+    return y
 
 
 # SECTION 19. Generate random percent of 100:
 
-if gen_1_in_100:
-    print_heading("gen_1_in_100 - 5 Random numbers between 1 and 100:")
+def gen_1_in_100(range_in):
+    print_trace("gen_1_in_100 with "+range(5))
+    # see https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b311-random
 
     # TODO: Convert this into a function:
     import random
-    print_trace(range(5))
-    for x in range(5):
+    for x in range(range_in):
         # between 1 and 100 (1 less than 101)
-        print_verbose(random.randint(1, 101))
-        # see
-        # https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b311-random
-
-
+        print_info(random.randint(1, 101))
+    
 # SECTION 20. Convert Roman to Decimal for use of case
 
 # From https://www.oreilly.com/library/view/python-cookbook/0596001673/ch03s24.html
 def int_to_roman(input):
+    print_trace("process_romans: int_to_roman")
     # Convert a input year to a Roman numeral
 
     if isinstance(input, str):
@@ -1718,6 +1749,7 @@ def int_to_roman(input):
 
 
 def roman_to_int(roman_str_in):
+    print_trace("process_romans: roman_to_int")
     # Convert a Roman numeral to an integer
 
     if not isinstance(roman_str_in, type("")):
@@ -1743,35 +1775,15 @@ def roman_to_int(roman_str_in):
     if int_to_roman(sum) == roman_str_in:
         return sum
 
-
-if process_romans:
-    print_heading("process_romans")
-
+def get_cur_yyyy():
     date_object = _datetime.datetime.now()
     current_year = date_object.strftime('%Y')
-
-    # Get roman numerals from today's year:
-    mylist = [current_year, "xx"]
-    my_number = mylist[0]
-    my_roman = int_to_roman(my_number)   # my_roman = "MMXXIII" = 2023
-    print_trace("current_year="+current_year)
-
-    my_roman_num = current_year
-    ob1 = int_to_roman(my_roman_num)
-    print_info(f'process_romans: int_to_roman: {my_number} ==> {my_roman} ')
-
-    ob1 = roman_to_int(my_roman)
-    # my_number = ob1.romanToInt(my_roman)
-    print_info(f'process_romans: roman_to_int: {my_roman} => {my_number} ')
-
-    # Verify online at
-    # https://www.calculatorsoup.com/calculators/conversions/roman-numeral-converter.php
+    return current_year
 
 
 # SECTION 21. Generate JSON Web Token          = gen_jwt
 
-if gen_jwt:
-    print_heading("gen_jwt")
+def gen_jwt():
     # import jwt
     jwt_some = "something"
     jwt_payload = "my payload"
@@ -1783,6 +1795,7 @@ if gen_jwt:
     response = jwt.decode(encoded_jwt, "secret", algorithms=["HS256"])
     # {'some': 'payload'}
     print_trace(f'response={response} ')
+    return response
 
 
 # SECTION 22. Generate Lotto using random range    = gen_lotto_num
@@ -1825,44 +1838,44 @@ def do_gen_magic_8ball():
         if question == "":
             sys.exit()
         elif int(answer) == 1:
-            print(localize_blob("1. It is certain"))
+            print_info(localize_blob("1. It is certain"))
         elif int(answer) == 2:
-            print(localize_blob("2. Outlook good"))
+            print_info(localize_blob("2. Outlook good"))
         elif int(answer) == 3:
-            print(localize_blob("3. You may rely on it"))
+            print_info(localize_blob("3. You may rely on it"))
         elif int(answer) == 4:
-            print(localize_blob("4. Ask again later"))
+            print_info(localize_blob("4. Ask again later"))
         elif int(answer) == 5:
-            print(localize_blob("5. Concentrate and ask again"))
+            print_info(localize_blob("5. Concentrate and ask again"))
         elif int(answer) == 6:
-            print(localize_blob("6. Reply hazy, try again"))
+            print_info(localize_blob("6. Reply hazy, try again"))
         elif int(answer) == 7:
-            print(localize_blob("7. My reply is no"))
+            print_info(localize_blob("7. My reply is no"))
         elif int(answer) == 8:
-            print(localize_blob("8. My sources say no"))
+            print_info(localize_blob("8. My sources say no"))
         elif int(answer) == _:
             print_fail("magic_8ball programming error.")
 
     """ Based on extraction of python_ver variable like 3.10 (major, minor):
         match str(answer):  # Wait until Python 3.10+ to use this
         case 1:
-            print(localize_blob("It is certain"))
+            print_info(localize_blob("It is certain"))
         case 2:
-            print(localize_blob("Outlook good"))
+            print_info(localize_blob("Outlook good"))
         case 3:
-            print(localize_blob("You may rely on it"))
+            print_info(localize_blob("You may rely on it"))
         case 4:
-            print(localize_blob("Ask again later"))
+            print_info(localize_blob("Ask again later"))
         case 5:
-            print(localize_blob("Concentrate and ask again"))
+            print_info(localize_blob("Concentrate and ask again"))
         case 6:
-            print(localize_blob("Reply hazy, try again"))
+            print_info(localize_blob("Reply hazy, try again"))
         case 7:
-            print(localize_blob("My reply is no"))
+            print_info(localize_blob("My reply is no"))
         case 8:
-            print(localize_blob("My sources say no"))
+            print_info(localize_blob("My sources say no"))
         case _:
-            print("magic_8ball programming error.")
+            print_info("magic_8ball programming error.")
         # Loop
     """
 
@@ -2052,10 +2065,11 @@ class TestFibonacci(unittest.TestCase):
 
             # For my next trick, replace local array with array from Redis:
             if use_azure_redis:
-                redis_fibonacci = Fibonacci.fibonacci_redis_rw(n)
-                if redis_fibonacci:
-                    fibonacci_memoized_cache = redis_fibonacci
-                print_trace(Fibonacci.fibonacci_memoized_cache)
+                if use_azure:  # is logged in
+                    redis_fibonacci = Fibonacci.fibonacci_redis_rw(n)
+                    if redis_fibonacci:
+                        fibonacci_memoized_cache = redis_fibonacci
+                    print_trace(Fibonacci.fibonacci_memoized_cache)
 
             # Having the array in Redis/Kafka cache service enables several instances of
             # this program to run at the same time.
@@ -2171,11 +2185,91 @@ class TestFillKnapsack(unittest.TestCase):
                                                             2, 3)], 8, 20)]
 
 
-# SECTION 27. Retrieve client IP address    = get_ipaddr
-
-my_ip_address = ""  # Global
-
 # class TestShowIpAddr(unittest.TestCase):
+
+def get_ipaddr():
+    # IP Address is used for geolocation (zip & lat/long) for weather info.
+    # List of geolocation APIs: https://www.formget.com/ip-to-zip-code/
+    # Fastest is https://ipfind.com/ offering Developers - Free, 100 requests/day
+
+    # First, let's see if there is an override from .env:
+    my_ip_address = get_from_env_file('MY_IP_ADDRESS')
+    if my_ip_address and len(my_ip_address) > 0:
+        print_info("IP Address from .env file: " + my_ip_address)
+
+    if not my_ip_address:
+        # NOTE: This is like curl ipinfo.io (which provides additional info associated with ip address)
+        from requests.auth import HTTPDigestAuth
+        # print_warning("IP Address is blank in .env file.")
+        # Lookup the ip address on the internet:
+        url = "http://checkip.dyndns.org"
+            # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
+            # Alternative: https://api.ipify.org/?format=json
+
+        # PROTIP: Close connection immediately to reduce man-in-the-middle attacks:
+        # s = requests.session()
+        # s.config['keep_alive'] = False
+        # TODO: Add 3 retries to url
+        request = requests.get(url, allow_redirects=False,
+                               headers={'Connection': 'close'})
+        # print_trace("request.text="+request.text)
+        # <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
+        clean = request.text.split(': ', 1)[1]  # split 1once, index [1]
+        # [0] for first item.
+        my_ip_address = clean.split('</body></html>', 1)[0]
+        print_info("My external IP Address: " + my_ip_address + " from " + url)
+
+    if not my_ip_address:
+        import socket  # https://docs.python.org/3/library/socket.html
+        print_verbose("IP address from socket.gethostname: " +
+                    socket.gethostbyname(socket.gethostname()))  # 192.168.0.118
+            # 127.0.0.1
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # FIXME: Close socket
+        # s.close(fd)
+        my_ip_address=s.getsockname()[0]
+        print_verbose("IP address from getsockname (default route): "+my_ip_address)
+
+    """
+    # https://www.delftstack.com/howto/python/get-ip-address-python/
+    from netifaces import interfaces, ifaddresses, AF_INET
+    for ifaceName in interfaces():
+        addresses = [i['addr'] for i in ifaddresses(
+            ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
+        print_trace(' '.join(addresses))
+    sys.exit()  # DEBUGGING
+    """
+    # either way:
+    return my_ip_address
+
+
+# Lookup geolocation info from IP Address
+def geodata_from_ipaddr(my_ip_address):
+    print_trace("geodata_from_ipaddr from ip: " + my_ip_address)
+    if not my_ip_address:
+       print_error("ip address not provided in call to geodata_from_ipaddr!")
+       return None
+    
+    ip_base = find_ip_geodata(my_ip_address)
+    if not ip_base:
+        print_fail("ip_base not found: " + str(ip_base))
+        return None
+    else:
+        print_trace("ip_base found: " + str(ip_base))
+        # Replace global defaults:
+        # FIXME: TypeError: 'NoneType' object is not subscriptable
+        if ip_base["country_code"]:
+            my_country = ip_base["country_code"]
+        if ip_base["longitude"]:
+            my_longitude = ip_base["longitude"]
+        if ip_base["latitude"]:
+            my_latitude = ip_base["latitude"]
+        if ip_base["timezone"]:
+            my_timezone = ip_base["timezone"]
+        if ip_base["currency"]:
+            my_currency = ip_base["currency"]
+
+        # TODO: my_country = ip_base["country_code"]
 
 
 def find_ip_geodata(my_ip_address):
@@ -2189,6 +2283,7 @@ def find_ip_geodata(my_ip_address):
         # remove key from memory so others can't peak at it.
         del os.environ["IPFIND_API_KEY"]
         print_verbose(f'Please remove secret \"IPFIND_API_KEY\" from .env file.')
+
     print_todo("Verify ipfind_api_key in find_ip_geodata")
 
     # Alternative: https://httpbin.org/ip returns JSON { "origin": "98.97.111.222" }
@@ -2218,88 +2313,6 @@ def find_ip_geodata(my_ip_address):
     except Exception:
         print_fail(f'{url} {localize_blob("not operational")}')
         return None
-
-
-# def test_get_ipaddr(self):
-if get_ipaddr:
-    print_heading("get_ipaddr")
-
-    import socket  # https://docs.python.org/3/library/socket.html
-    print_verbose("IP address from socket.gethostname: " +
-                  socket.gethostbyname(socket.gethostname()))  # 192.168.0.118
-        # 127.0.0.1
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    my_ipaddr = s.getsockname()[0]
-    # FIXME: Close socket
-    # s.close(fd)
-    print_verbose("IP address from getsockname (default route): " +
-                  s.getsockname()[0])
-
-    """
-    # https://www.delftstack.com/howto/python/get-ip-address-python/
-    from netifaces import interfaces, ifaddresses, AF_INET
-    for ifaceName in interfaces():
-        addresses = [i['addr'] for i in ifaddresses(
-            ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
-        print_trace(' '.join(addresses))
-    sys.exit()  # DEBUGGING
-    """
-
-    my_ipaddr_from_env = get_from_env_file('MY_IP_ADDRESS')
-    if my_ipaddr_from_env and len(my_ipaddr_from_env) > 0:
-        my_ip_address = my_ipaddr_from_env
-    else:
-        from requests.auth import HTTPDigestAuth
-        # print_warning("IP Address is blank in .env file.")
-        # Lookup the ip address on the internet:
-        url = "http://checkip.dyndns.org"
-            # Alternative: https://ip-fast.com/api/ip/ is fast and not wrapped in HTML.
-            # Alternative: https://api.ipify.org/?format=json
-
-        # PROTIP: Close connection immediately to reduce man-in-the-middle attacks:
-        # s = requests.session()
-        # s.config['keep_alive'] = False
-        # TODO: Add 3 retries to url
-        request = requests.get(url, allow_redirects=False,
-                               headers={'Connection': 'close'})
-        # print_trace("request.text="+request.text)
-        # <html><head><title>Current IP Check</title></head><body>Current IP Address: 98.97.94.96</body></html>
-        clean = request.text.split(': ', 1)[1]  # split 1once, index [1]
-        # [0] for first item.
-        my_ip_address = clean.split('</body></html>', 1)[0]
-        print_info("My external IP Address: " + my_ip_address + " from " + url)
-
-    # NOTE: This is like curl ipinfo.io (which provides additional info associated with ip address)
-    # IP Address is used for geolocation (zip & lat/long) for weather info.
-    # List of geolocation APIs: https://www.formget.com/ip-to-zip-code/
-    # Fastest is https://ipfind.com/ offering Developers - Free, 100
-    # requests/day
-
-
-# Lookup geolocation info from IP Address
-if lookup_ipaddr:
-    print_heading("lookup_ipaddr")
-    print_trace("lookup_ipaddr for ip: " + my_ip_address)
-
-    ip_base = find_ip_geodata(my_ip_address)
-    if not ip_base:
-        print_fail("ip_base not found: " + str(ip_base))
-    else:
-        print_verbose("ip_base found: " + str(ip_base))
-        # Replace global defaults:
-        # FIXME: TypeError: 'NoneType' object is not subscriptable
-        if ip_base["country_code"]:
-            my_country = ip_base["country_code"]
-        if ip_base["longitude"]:
-            my_longitude = ip_base["longitude"]
-        if ip_base["latitude"]:
-            my_latitude = ip_base["latitude"]
-        if ip_base["timezone"]:
-            my_timezone = ip_base["timezone"]
-        if ip_base["currency"]:
-            my_currency = ip_base["currency"]
-
-        # TODO: my_country = ip_base["country_code"]
 
 
 # SECTION 28. Obtain Zip Code to retrieve Weather info, etc
@@ -2354,15 +2367,15 @@ def obtain_zip_code():
 
 
 class TestLookupZipinfo(unittest.TestCase):
-    def test_lookup_zipinfo(self):
+    def test_geodata_from_zipinfo(self):
 
-        if lookup_zipinfo:
-            print_heading("lookup_zipinfo")
+        if geodata_from_zipinfo:
+            print_heading("geodata_from_zipinfo")
 
             zip_code = obtain_zip_code()
             zippopotam_url = "https://api.zippopotam.us/us/" + zip_code
             # TODO: Do ICMP ping on api.zippopotam.us
-            print_trace(f'lookup_zipinfo: zippopotam_url={zippopotam_url}')
+            print_trace(f'geodata_from_zipinfo: zippopotam_url={zippopotam_url}')
             try:
                 response = requests.get(zippopotam_url, allow_redirects=False)
                 x = response.json()
@@ -2371,7 +2384,7 @@ class TestLookupZipinfo(unittest.TestCase):
                 # "places": [{"place name": "Joliet", "longitude": "-108.9922", "state": "Montana", "state abbreviation": "MT", "latitude": "45.4941"}]}
                 y = x["places"]
                 print_info(
-                    f'lookup_zipinfo: {zip_code} = {y[0]["place name"]}, {y[0]["state abbreviation"]} ({y[0]["state"]}), {x["country abbreviation"]} ({x["country"]})')
+                    f'geodata_from_zipinfo: {zip_code} = {y[0]["place name"]}, {y[0]["state abbreviation"]} ({y[0]["state"]}), {x["country abbreviation"]} ({x["country"]})')
                 print_info(
                     f'{localize_blob("Longitude:")} {y[0]["longitude"]} {localize_blob("Latitude:")} {y[0]["latitude"]}')
                     # TODO: loop through zip_codes
@@ -2387,6 +2400,8 @@ class TestLookupZipinfo(unittest.TestCase):
 
 
 # SECTION 29. Retrieve Weather info using API
+
+# TODO: degrees_from_compass_text(compass_text)
 
 def compass_text_from_degrees(degrees):
     # adapted from https://www.campbellsci.com/blog/convert-wind-directions
@@ -2414,45 +2429,44 @@ def compass_text_from_degrees(degrees):
     index = int(round(remainder / 22.5, 0) + 1)   # (17 values)
     return compass_sector[index]
 
-
-if show_weather:
-    print_heading("show_weather")
+def get_weather_info(zip_code_in):
+    print_heading("show_weather for US zip code "+zip_code_in)
 
     # Commentary on this at
     # https://wilsonmar.github.io/python-samples#show_weather
-
-    # See https://openweathermap.org/current for
-    base_url = "http://api.openweathermap.org/data/2.5/weather?"
-    # TODO: Ping host to verify reachability
-
     # Adapted from https://www.geeksforgeeks.org/python-find-current-weather-of-any-city-using-openweathermap-api/
     # From https://home.openweathermap.org/users/sign_up
     # then https://home.openweathermap.org/users/sign_in
 
     # Retrieve from .env file (when vault doesn't work):
     # CAUTION: subprocess.Popen used to block command from sending sensitive variable value to Terminal:
-    # openweathermap_api_key = get_from_env_file('OPENWEATHERMAP_API_KEY')
-       # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
-    # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
     def hide_output(command):
         result = run(command, stdout=PIPE, stderr=PIPE,
                      universal_newlines=True, shell=True)
         return result.stdout
-    openweathermap_api_key = hide_output(
-        ["get_from_env_file", "OPENWEATHERMAP_API_KEY"])
+    # openweathermap_api_key = hide_output(["get_from_env_file", "OPENWEATHERMAP_API_KEY"])
+    
+    openweathermap_api_key = get_from_env_file('OPENWEATHERMAP_API_KEY')
+    if not openweathermap_api_key:
+       print_warning("OPENWEATHERMAP_API_KEY has no default! Processing skilled")
+       return
+    # else:
 
-    # remove OPENWEATHERMAP_API_KEY value from memory:
+    # After retrieval, remove OPENWEATHERMAP_API_KEY value from memory:
     del os.environ["OPENWEATHERMAP_API_KEY"]
-    print_todo(
-        'Please store \"OPENWEATHERMAP_API_KEY\" in a remote Vault instead of .env file.')
+    print_todo("Please store \"OPENWEATHERMAP_API_KEY\" in a remote Vault instead of .env file.")
+    
+    # See https://openweathermap.org/current for
+    base_url = "http://api.openweathermap.org/data/2.5/weather"
 
-    # TODO: Verify openweathermap_api_key
+    # TODO: Ping host to verify reachability
 
-    my_zip_code = obtain_zip_code()
     # api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
     # weather_url = base_url + "appid=" + api_key + "&q=" + city_name
-    weather_url = base_url + "appid=" + openweathermap_api_key + "&zip=" + my_zip_code
+    weather_url = base_url + "?appid=" + openweathermap_api_key + "&zip=" + zip_code_in
     print_verbose(f'weather_url={weather_url}.')
+
+    # TODO: Verify openweathermap_api_key
 
     # TODO: Format request encoding to remove spaces, etc.
 
@@ -2473,124 +2487,139 @@ if show_weather:
     # x item "main" ???
     if x["cod"] == "404":
         print_fail(f'{x["cod"]} - U.S. Zip Code \"{my_zip_code}\" Not Found!')
-        # exit
-    else:
-        # store the value of "main" key in variable y:
-        print_todo("FIXME: zipcode KeyError: 'main'")
-        y = x["main"]
-        coord = x["coord"]
-        system = x["sys"]
-        text_weather_location = system["country"] + " " + my_zip_code + ": " + x["name"] + " " + localize_blob(
-            "Longitude") + ": " + str(coord["lon"]) + " " + localize_blob("Latitude") + ": " + str(coord["lat"])
-        # no  +","+ my_us_state
-        print_info("text_weather_location="+text_weather_location)
+        return  # break out of function.
+
+    # store the value of "main" key in variable y:
+    print_todo("FIXME: zipcode KeyError: 'main'")
+    y = x["main"]
+    coord = x["coord"]
+    system = x["sys"]
+    text_weather_location = system["country"] + " " + my_zip_code + ": " + x["name"] + " " + localize_blob(
+        "Longitude") + ": " + str(coord["lon"]) + " " + localize_blob("Latitude") + ": " + str(coord["lat"])
+    # no  +","+ my_us_state
+    print_info("text_weather_location="+text_weather_location)
 # f'*** {localize_blob("Longitude")}: {coord["lon"]}
 # {localize_blob("Latitude")}: {coord["lat"]} {localize_blob("in")}
 # {system["country"]} {x["name"]} {my_zip_code} ')
 
-        # store the value of "weather" key in variable z:
-        z = x["weather"]
-        # store the value corresponding to the "description" key at
+    # store the value of "weather" key in variable z:
+    z = x["weather"]
+    # store the value corresponding to the "description" key at
 
-        # store the value corresponding to the "temp" key of y:
-        current_temp_kelvin = y["temp"]
-        # Text to float conversion: celsius = (temp - 32) * 5/9
-        current_temp_fahrenheit = (
-            float(current_temp_kelvin) * 1.8) - float(459.67)
-        current_temp_celsius = (float(current_temp_kelvin)) - float(273.15)
+    # store the value corresponding to the "temp" key of y:
+    current_temp_kelvin = y["temp"]
+    # Text to float conversion: celsius = (temp - 32) * 5/9
+    current_temp_fahrenheit = (
+        float(current_temp_kelvin) * 1.8) - float(459.67)
+    current_temp_celsius = (float(current_temp_kelvin)) - float(273.15)
 
-        sunrise = time.strftime(
-            my_date_format, time.localtime(
-                system["sunrise"]))
-        sunset = time.strftime(
-            my_date_format, time.localtime(
-                system["sunset"]))
-        min_fahrenheit = (float(y["temp_min"]) * 1.8) - float(459.67)
-        max_fahrenheit = (float(y["temp_max"]) * 1.8) - float(459.67)
-        min_celsius = (float(y["temp_min"])) - float(273.15)
-        max_celsius = (float(y["temp_max"])) - float(273.15)
-        if show_info:
-            text_weather_min = localize_blob("Minimum temperature") + ": " + "{:.2f}".format(
-                min_celsius) + "°C (" + "{:.2f}".format(min_fahrenheit) + "°F) " + localize_blob("Sunrise") + ": " + sunrise
-            # print_info(f'{localize_blob("Minimum temperature")}: {"{:.2f}".format(min_celsius)}°C ({"{:.2f}".format(min_fahrenheit)}°F), {localize_blob("Sunrise")}: {sunrise} ')
-            print_info(text_weather_min)
+    sunrise = time.strftime(
+        my_date_format, time.localtime(
+            system["sunrise"]))
+    sunset = time.strftime(
+        my_date_format, time.localtime(
+            system["sunset"]))
+    min_fahrenheit = (float(y["temp_min"]) * 1.8) - float(459.67)
+    max_fahrenheit = (float(y["temp_max"]) * 1.8) - float(459.67)
+    min_celsius = (float(y["temp_min"])) - float(273.15)
+    max_celsius = (float(y["temp_max"])) - float(273.15)
 
-            text_weather_cur = localize_blob("Currently") + ": " + "{:.2f}".format(current_temp_celsius) + "°C (" + "{:.2f}".format(current_temp_fahrenheit) + "°F) " \
-                + str(y["humidity"]) + "% " + localize_blob("humidity") + ", " + localize_blob(z[0]["description"]) + ", " + \
-                localize_blob("visibility") + ": " + str(x["visibility"]) + " feet"
-            # f'***{bcolors.INFO} {localize_blob("Currently")}:
-            # {"{:.2f}".format(current_temp_celsius)}°C
-            # ({"{:.2f}".format(current_temp_fahrenheit)}°F), {y["humidity"]}%
-            # {localize_blob("humidity")},
-            # {localize_blob(z[0]["description"])},
-            # {localize_blob("visibility")}: {x["visibility"]}
-            # feet???')
-            print_info(text_weather_cur)
-            # f'***{bcolors.INFO} {localize_blob("Currently")}:
-            # {"{:.2f}".format(current_temp_celsius)}°C
-            # ({"{:.2f}".format(current_temp_fahrenheit)}°F), {y["humidity"]}%
-            # {localize_blob("humidity")},
-            # {localize_blob(z[0]["description"])},
-            # {localize_blob("visibility")}: {x["visibility"]}
-            # feet???')
+    text_weather_min = localize_blob("Minimum temperature") + ": " + "{:.2f}".format(
+        min_celsius) + "°C (" + "{:.2f}".format(min_fahrenheit) + "°F) " + localize_blob("Sunrise") + ": " + sunrise
+    # print_info(f'{localize_blob("Minimum temperature")}: {"{:.2f}".format(min_celsius)}°C ({"{:.2f}".format(min_fahrenheit)}°F), {localize_blob("Sunrise")}: {sunrise} ')
+    print_info(text_weather_min)
 
-            text_weather_max = localize_blob("Maximum temperature") + ": " + "{:.2f}".format(
-                max_celsius) + "°C (" + "{:.2f}".format(max_fahrenheit) + "°F) " + localize_blob("Sunset") + ": " + sunset
-            # print_info(f'{localize_blob("Maximum temperature")}: {"{:.2f}".format(max_celsius)}°C ({"{:.2f}".format(max_fahrenheit)}°F),  {localize_blob("Sunset")}: {sunset} ')
-            print_info(text_weather_max)
+    text_weather_cur = localize_blob("Currently") + ": " + "{:.2f}".format(current_temp_celsius) + "°C (" + "{:.2f}".format(current_temp_fahrenheit) + "°F) " \
+        + str(y["humidity"]) + "% " + localize_blob("humidity") + ", " + localize_blob(z[0]["description"]) + ", " + \
+        localize_blob("visibility") + ": " + str(x["visibility"]) + " feet"
+    # f'***{bcolors.INFO} {localize_blob("Currently")}:
+    # {"{:.2f}".format(current_temp_celsius)}°C
+    # ({"{:.2f}".format(current_temp_fahrenheit)}°F), {y["humidity"]}%
+    # {localize_blob("humidity")},
+    # {localize_blob(z[0]["description"])},
+    # {localize_blob("visibility")}: {x["visibility"]}
+    # feet???')
+    print_info(text_weather_cur)
+    # f'***{bcolors.INFO} {localize_blob("Currently")}:
+    # {"{:.2f}".format(current_temp_celsius)}°C
+    # ({"{:.2f}".format(current_temp_fahrenheit)}°F), {y["humidity"]}%
+    # {localize_blob("humidity")},
+    # {localize_blob(z[0]["description"])},
+    # {localize_blob("visibility")}: {x["visibility"]}
+    # feet???')
 
-        wind = x["wind"]
-        if show_info:
-            if "gust" not in wind.keys():
-                # if wind["gust"] == None :
-                gust = ""
-            else:
-                gust = localize_blob("Gusts") + ": " + \
-                    str(wind["gust"]) + " mph"
-            text_wind = localize_blob("Wind Speed") + ": " + str(wind["speed"]) + " " + gust + " " + localize_blob(
-                "from direction") + ": " + compass_text_from_degrees(wind["deg"]) + "(" + str(wind["deg"]) + "/360)"
-            print_info(text_wind)
-            # print_info(f'{localize_blob("Wind Speed")}: {wind["speed"]} {gust} {localize_blob("from direction")}: {compass_text_from_degrees(wind["deg"])} ({wind["deg"]}/360)')
-            # FIXME: y["grnd_level"]
-            grnd_level = ""
-            text_pressure = localize_blob("Atmospheric pressure") + ": " + grnd_level + ":" + str(
-                y["pressure"]) + " hPa (hectopascals) or millibars (mb) " + localize_blob("at ground level")
-            print_info("text_pressure="+text_pressure)
-            #    f'*** {localize_blob("Atmospheric pressure")}: {grnd_level} ({y["pressure"]}) hPa (hectopascals) or millibars (mb) {localize_blob("at ground level")}')
-            # at Sea level: {y["sea_level"]} Ground: {y["grnd_level"]} '),
-            # From a low of 1011 hPa in December and January, to a high of about 1016 in mid-summer,
-            # 1013.25 hPa or millibars (mb) is the average pressure at mean sea-level (MSL) globally.
-            # (101.325 kPa; 29.921 inHg; 760.00 mmHg).
-            # In the International Standard Atmosphere (ISA) that is 1 atmosphere (atm).
-            # In the continental US, San Diego CA has the smallest range (994.58 to 1033.86) hPa (29.37 to 30.53 inHg).
-            # The boiling point of water is higher than 100 °C (212 °F) at
-            # higher pressure (on mountains).
+    text_weather_max = localize_blob("Maximum temperature") + ": " + "{:.2f}".format(
+        max_celsius) + "°C (" + "{:.2f}".format(max_fahrenheit) + "°F) " + localize_blob("Sunset") + ": " + sunset
+    # print_info(f'{localize_blob("Maximum temperature")}: {"{:.2f}".format(max_celsius)}°C ({"{:.2f}".format(max_fahrenheit)}°F),  {localize_blob("Sunset")}: {sunset} ')
+    print_info(text_weather_max)
 
-        # TODO: Save readings for historical comparisons.
-        # TODO: Look up previous temp and pressure to compare whether they are rising or falling.
-            # Air pressure rises and falls about 3 hP in daily cycles, regardless of weather.
-            # A drop of 7 hP or more in 24 hours may indicate a tendency: high-pressure system is moving out and/or a low-pressure system is moving in.
-            # Lows have a pressure of around 1,000 hPa/millibars.
-            # Generally, high pressure means fair weather, and low pressure
-            # means rain.
+    wind = x["wind"]
+    if "gust" not in wind.keys():
+        # if wind["gust"] == None :
+        gust = ""
+    else:
+        gust = localize_blob("Gusts") + ": " + \
+            str(wind["gust"]) + " mph"
+    text_wind = localize_blob("Wind Speed") + ": " + str(wind["speed"]) + " " + gust + " " + localize_blob(
+        "from direction") + ": " + compass_text_from_degrees(wind["deg"]) + "(" + str(wind["deg"]) + "/360)"
+    print_info(text_wind)
+    # print_info(f'{localize_blob("Wind Speed")}: {wind["speed"]} {gust} {localize_blob("from direction")}: {compass_text_from_degrees(wind["deg"])} ({wind["deg"]}/360)')
+    # FIXME: y["grnd_level"]
+    grnd_level = ""
+    text_pressure = localize_blob("Atmospheric pressure") + ": " + grnd_level + ":" + str(
+        y["pressure"]) + " hPa (hectopascals) or millibars (mb) " + localize_blob("at ground level")
+    print_info("text_pressure="+text_pressure)
+    #    f'*** {localize_blob("Atmospheric pressure")}: {grnd_level} ({y["pressure"]}) hPa (hectopascals) or millibars (mb) {localize_blob("at ground level")}')
+    # at Sea level: {y["sea_level"]} Ground: {y["grnd_level"]} '),
+    # From a low of 1011 hPa in December and January, to a high of about 1016 in mid-summer,
+    # 1013.25 hPa or millibars (mb) is the average pressure at mean sea-level (MSL) globally.
+    # (101.325 kPa; 29.921 inHg; 760.00 mmHg).
+    # In the International Standard Atmosphere (ISA) that is 1 atmosphere (atm).
+    # In the continental US, San Diego CA has the smallest range (994.58 to 1033.86) hPa (29.37 to 30.53 inHg).
+    # The boiling point of water is higher than 100 °C (212 °F) at
+    # higher pressure (on mountains).
 
-        if email_weather:
-            message = text_weather_location + "\n" + text_weather_min + "\n" + \
-                text_weather_cur + "\n" + text_weather_max + \
-                    "\n" + text_wind + "\n" + text_pressure
-            to_gmail_address = get_from_env_file("TO_EMAIL_ADDRESS")
-            subject_text = "Current weather for " + x["name"]
-            # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
-            # print_trace("Emailed to ...")
+    # TODO: Save readings for historical comparisons.
+
+    # TODO: Look up previous temp and pressure to compare whether they are rising or falling.
+        # Air pressure rises and falls about 3 hP in daily cycles, regardless of weather.
+        # A drop of 7 hP or more in 24 hours may indicate a tendency: high-pressure system is moving out and/or a low-pressure system is moving in.
+        # Lows have a pressure of around 1,000 hPa/millibars.
+        # Generally, high pressure means fair weather, and low pressure
+        # means rain.
+
+    if use_keyring:
+        print_heading("use_keyring")
+
+        # TODO: Replace these hard-coded with real values:
+        key_namespace = "my-app"
+        key_entry = "OPENWEATHERMAP_API_KEY"  # = cred.username
+        key_text = "yackaty yack"
+        print_trace(f'username/key_namespace: \"{key_entry}\" in namespace \"{key_namespace}\" ')
+
+        store_in_keyright(key_namespace, key_entry, key_text)
+        key_text_back = get_text_from_keyring(key_namespace, key_entry)
+        print_trace(key_text_back)
+
+        # TODO: remove_from_keyring(key_namespace_in, key_entry_in)
+
+    if email_weather:
+        message = text_weather_location + "\n" + text_weather_min + "\n" + \
+            text_weather_cur + "\n" + text_weather_max + \
+                "\n" + text_wind + "\n" + text_pressure
+        to_gmail_address = get_from_env_file("TO_EMAIL_ADDRESS")
+        subject_text = "Current weather for " + x["name"]
+        # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
+        # print_trace("Emailed to ...")
 
 
 # SECTION 29. Retrieve secrets from local OS Key Vault  = use_keyring
 
-# Commentary on this at https://wilsonmar.github.io/python-samples#use_keyvault
-
+# Commentary on this at https://wilsonmar.github.io/python-samples#use_keyring
 def store_in_keyright(key_namespace_in, key_entry_in, key_text_in):
-    # pip install -U keyring
-    import keyring
+    # This function is controlled by use_keyring.
+
+    import keyring  # based on: pip install keyring
     import keyring.util.platform_ as keyring_platform
 
     print_trace("Keyring path="+keyring_platform.config_root())
@@ -2638,7 +2667,6 @@ def rm_env_line(api_key_in, replace_str_in):
 
 
 if remove_env_line:
-
     api_key_name = "OPENWEATHERMAP_API_KEY"
     current_time = time.time()
     current_datetime = _datetime.datetime.fromtimestamp(
@@ -2647,34 +2675,36 @@ if remove_env_line:
     # rm_env_line( api_key_name , text_msg )
     # print_verbose(text_msg)
 
-if use_keyring:
-    print_heading("use_keyring")
-
-    # TODO: Replace these hard-coded with real values:
-    key_namespace = "my-app"
-    key_entry = "OPENWEATHERMAP_API_KEY"  # = cred.username
-    key_text = "yackaty yack"
-    print_trace(
-        f'username/key_namespace: \"{key_entry}\" in namespace \"{key_namespace}\" ')
-
-    store_in_keyright(key_namespace, key_entry, key_text)
-    key_text_back = get_text_from_keyring(key_namespace, key_entry)
-    print_trace(key_text_back)
-
-    # TODO: remove_from_keyring(key_namespace_in, key_entry_in)
-
 
 # SECTION 30. Login to Vault using Python hvac library
 
-if login_to_azure:
-   print_fail("QUESTION: Chris?")
-
-   # Python equivalent of "az login" CLI command.
+use_hashicorp_vault = get_from_env_file('use_hashicorp_vault')
+if not use_hashicorp_vault:
+    use_hashicorp_vault = False
+    print_warning("use_hashicorp_vault="+str(use_hashicorp_vault)+" from default!")
 
 
 # SECTION 31. Obtain Azure Subscription from Vault
 
+
+
+# SECTION 32. Login to Azure
+
 def azure_login():
+    # QUESTION Equivalent to: az login --use-device-code
+    # Referenced by login_to_azure parameter.
+    # See https://www.youtube.com/watch?v=unbzStG3IVY
+    # In preview June, 2022.
+    # Azure ML CLI v2 support python, R, Java, Julia, C#
+    # Python SDK v2 build any workflow (simple to complex incrementally)
+
+    AZ_SUBSCRIPTION_ID = get_from_env_file('AZ_SUBSCRIPTION_ID')
+    # AZ_SUBSCRIPTION_ID exmple: "285a9b29-43df-4ebf-85b1-61bbf7929871"
+    if not AZ_SUBSCRIPTION_ID:
+        print_error("AZ_SUBSCRIPTION_ID not defined in .env file. No default!")
+        return False
+    
+    # Python equivalent of "az login" CLI command.
     """
     > az --version
     azure-cli                         2.49.0
@@ -2690,21 +2720,27 @@ def azure_login():
     Python location '/usr/local/Cellar/azure-cli/2.49.0/libexec/bin/python'
     Extensions directory '/Users/wilsonmar/.azure/cliextensions'
     """
+    # For now:
+    print_fail("azure_login")
     return False
 
 
-if use_azure:
-    print_fail("QUESTION: Chris?")
-
-
-# SECTION 32. Login to Azure
-
-   # https://www.youtube.com/watch?v=unbzStG3IVY
-   # In preview June, 2022.
-   # Azure ML CLI v2 support python, R, Java, Julia, C#
-   # Python SDK v2 build any workflow (simple to complex incrementally)
-
 def azure_see():
+    # See https://www.youtube.com/watch?v=YAg6khewJiU
+    # How to use Python SDK for Azure Automation by vrchinnarathod@gmail.com
+    # https://www.linkedin.com/in/rekhu-chinnarathod-58b3a860/
+    # which uses https://github.com/RekhuGopal/PythonHacks/tree/main/AzureAutomationWithPython
+    # https://github.com/RekhuGopal/PythonHacks/blob/main/AzureAutomationWithPython/provision_rg.py
+
+    # Requires: pip install azure.identity # (2021.10.8) Azure Active Directory identity library
+    # 1.13.0 https://docs.microsoft.com/en-us/python/api/overview/azure/identity-readme?view=azure-python
+    # https://pypi.org/project/azure-identity/
+    # from azure.identity import DefaultAzureCredential
+
+    resource_client = ResourceManagementClient(credential, subscription_id)
+    RESOURCE_GROUP_NAME = "PythonAzureExample-Storage-rg"
+    LOCATION = "centralus"
+
     """
     az login --use-device-code
     pip install -r requirements.txt
@@ -2720,48 +2756,26 @@ def azure_see():
     # from azure.identity import AzureCliCredential
     credential = AzureCliCredential()
 
-    # replace with yours.
-    subscription_id = "285a9b29-43df-4ebf-85b1-61bbf7929871"
-    resource_client = ResourceManagementClient(credential, subscription_id)
-    RESOURCE_GROUP_NAME = "PythonAzureExample-Storage-rg"
-    LOCATION = "centralus"
-
     return False
 
+    #    from azure.mgmt.resource import ResourceManagementClient
+    #    from azure.mgmt.storage import StorageManagementClient
 
-if login_to_azure:
-    print_fail("QUESTION: Chris?")
+    # from azure.common.credentials import ServicePrincipalCredentials
 
+    # https://pypi.python.org/pypi/azure-keyvault-secrets
+    # from azure.keyvault.secrets import SecretClient
 
-# See https://www.youtube.com/watch?v=YAg6khewJiU
-   # How to use Python SDK for Azure Automation by vrchinnarathod@gmail.com
-   # https://www.linkedin.com/in/rekhu-chinnarathod-58b3a860/
-   # which uses https://github.com/RekhuGopal/PythonHacks/tree/main/AzureAutomationWithPython
-   # https://github.com/RekhuGopal/PythonHacks/blob/main/AzureAutomationWithPython/provision_rg.py
+    # azure-mgmt-storage
+    # https://pypi.python.org/pypi/azure-mgmt-storage
+    # azure-mgmt-compute
+    # https://pypi.python.org/pypi/azure-mgmt-compute) : Management of Virtual Machines, etc.
 
-# Requires: pip install azure.identity # (2021.10.8) Azure Active Directory identity library
-   # 1.13.0 https://docs.microsoft.com/en-us/python/api/overview/azure/identity-readme?view=azure-python
-   # https://pypi.org/project/azure-identity/
-# from azure.identity import DefaultAzureCredential
+    # from azure.mgmt.resource import ResourceManagementClient
+    # https://pypi.python.org/pypi/azure-mgmt-resource
 
-#    from azure.mgmt.resource import ResourceManagementClient
-#    from azure.mgmt.storage import StorageManagementClient
-
-# from azure.common.credentials import ServicePrincipalCredentials
-
-   # https://pypi.python.org/pypi/azure-keyvault-secrets
-# from azure.keyvault.secrets import SecretClient
-
-# azure-mgmt-storage
-   # https://pypi.python.org/pypi/azure-mgmt-storage
-# azure-mgmt-compute
-   # https://pypi.python.org/pypi/azure-mgmt-compute) : Management of Virtual Machines, etc.
-
-# from azure.mgmt.resource import ResourceManagementClient
-   # https://pypi.python.org/pypi/azure-mgmt-resource
-
-#from azure.storage.blob import BlobServiceClient   #
-   # https://pypi.python.org/pypi/azure-storage-blob
+    #from azure.storage.blob import BlobServiceClient   #
+    # https://pypi.python.org/pypi/azure-storage-blob
 
 
 # SECTION 33. In Azure, list resources for specific SubscriptionID
@@ -2776,14 +2790,6 @@ def az_cli(args_str):
         raise cli.result.error
     return True
 
-
-if list_azure_resc:
-    # See https://www.youtube.com/watch?v=we1pcMRQwD8 by Michael Levan of CBTNuggets.com
-    # See https://stackoverflow.com/questions/51546073/how-to-run-azure-cli-commands-using-python
-    from azure.cli.core import get_default_cli as azcli
-    # Run a CLI az command constructed as a Python struct:
-    # Replace 'Dev2' with your resource:
-    azcli().invoke(['vm', 'list', '-g', 'Dev2'])
 
 
 # SECTION 34. Retrieve secrets from Azure Key Vault
@@ -2833,7 +2839,8 @@ def delete_azure_secret(secretName):
         exit(1)
 
 
-if use_azure:
+def use_azure():
+    print_trace("In use_azure")
 
     # https://azuredevopslabs.com/labs/vstsextend/azurekeyvault/
     # Based on
@@ -2904,11 +2911,16 @@ if use_azure:
     # retrieve_azure_secret("IPFIND_API_KEY")
         # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
 
+    if show_logging == True:
+        print_heading("show_logging")
+        show_logging()
+
 
 # SECTION 35. Retrieve secrets from AWS KMS
 
 # Commentary on this at https://wilsonmar.github.io/python-samples#use_aws
 
+# https://github.com/saginadir/python3-boto3-upload
 # https://www.learnaws.org/2021/02/20/aws-kms-boto3-guide/
 # https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
 # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/secrets-manager.html
@@ -3011,7 +3023,7 @@ def encrypt_aws_file(filename, cmk_id):
 
     data_key_encrypted, data_key_plaintext = create_aws_data_key(cmk_id)
     if data_key_encrypted is None:
-        return
+        return None
 
     # try: Encrypt the data:
     f = Fernet(data_key_plaintext)
@@ -3063,15 +3075,17 @@ def decrypt_aws_file(filename):
 # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html
 
 
-if use_aws:
-    print_heading("use_aws")
+def use_aws():
+    print_heading("In use_aws")
 
     aws_region_from_env = get_from_env_file('AWS_REGION')   # "us-east-1"
-    if az_region_from_env:
-        azure_region = az_region_from_env
+    # PROTIP: Count number of characters in string:
+    if len(s.encode('utf-8')) > 0: 
+        aws_region = aws_region_from_env
     else:
         # "Friends don't let friends use AWS us-east-1 in production"
-        azure_region = "us-east-1"
+        aws_region = "us-east-1"
+        print_warning("aws_region="+aws_region+" from default!")
 
     # Retrieve from .env file:
     aws_cmk_description = get_from_env_file('AWS_CMK_DESCRIPTION')
@@ -3079,8 +3093,7 @@ if use_aws:
         print_fail("AWS_CMK_DESCRIPTION not in .env")
         exit(1)
     else:
-        print_verbose(
-            f'Creating AWS CMK with Description:\"{aws_cmk_description}\" ')
+        print_verbose(f'Creating AWS CMK with Description:\"{aws_cmk_description}\" ')
 
     # https://hands-on.cloud/working-with-kms-in-python-using-boto3/
 
@@ -3132,15 +3145,27 @@ def get_creds():
     auth_req = google.auth.transport.requests.Request()
     creds.refresh(auth_req)  # refresh token
     token_str = (creds.token)  # prints token
-    print(creds.expiry)
+    print_info(creds.expiry)
     return token_str, proj_id
 
+# Global static variables:
+READONLY_SCOPE  = ['https://www.googleapis.com/auth/documents.readonly']
+READWRITE_SCOPE = ['https://www.googleapis.com/auth/documents.readwrite']  # ???
 
-def gcp_doc_title(scopes_in, document_id_in):
+def gcp_doc_info():
+    gcp_doc_id = get_from_env_file('DOCUMENT_ID')
+    if not gcp_doc_id:
+        print_warning("gcp_doc_id has no default!")
+        return None
+    
+    gcp_doc_title(READONLY_SCOPE, gcp_doc_id)
+
+def gcp_doc_title(scope_in, document_id_in):
     """Shows basic usage of the Docs API.
     Prints the title of a sample document.
     From https://github.com/googleworkspace/python-samples/blob/main/docs/quickstart/quickstart.py
     """
+
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -3152,28 +3177,25 @@ def gcp_doc_title(scopes_in, document_id_in):
     from googleapiclient.errors import HttpError
 
     if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        creds = Credentials.from_authorized_user_file('token.json', scope_in)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                'credentials.json', scope_in)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
-
     try:
         service = build('docs', 'v1', credentials=creds)
-
         # Retrieve the documents contents from the Docs service.
-        document = service.documents().get(documentId=DOCUMENT_ID).execute()
-
-        print('The title of the document is: {}'.format(document.get('title')))
+        document = service.documents().get(documentId=document_id_in).execute()
+        print_info("The title of the document is: "+format(document.get('title')) )
     except HttpError as err:
-        print(err)
+        print_error(err)
 
 
 def create_gcp_secret(gcp_project_id_in, secret_id):
@@ -3281,52 +3303,65 @@ def list_gcp_secrets(gcp_project_id_in):
 # TODO: Getting details about a secret, Managing access to secrets,
 # TODO: Updating a secret, Deleting a secret
 
-if use_gcp:
-    # Adapted from
-    # https://codelabs.developers.google.com/codelabs/secret-manager-python#5
+def use_gcp():
+    print_trace("In use_gcp")
+
+    # Adapted from https://codelabs.developers.google.com/codelabs/secret-manager-python#5
     # pip install -U google-cloud-secret-manager
     # from google.cloud import secretmanager  #
     # https://cloud.google.com/secret-manager/docs/reference/libraries
     # CAUTION: On FreeBSD and Mac OS X, putenv() setting environ may cause memory leaks. https://docs.python.org/2/library/os.html#os.environ
 
     gcp_project_id = get_from_env_file('GCP_PROJECT_ID')
+    if not gcp_project_id:
+        print_error("GCP_PROJECT_ID not defined in .env. No default!")
+        return False
 
     # "path_to_json_credentials_file"
     gcp_creds = get_from_env_file('GOOGLE_APPLICATION_CREDENTIALS')
+    if not gcp_creds:
+        print_error("GOOGLE_APPLICATION_CREDENTIALS not defined in .env. No default!")
+        return False
 
+    print_todo("Make my_secret_key and value variables")
     my_secret_key = "secret123a"  # format: [[a-zA-Z_0-9]+]
     my_secret_value = "can't tell you"
-
     result = create_gcp_secret(gcp_project_id, my_secret_key)
-    # Created secret: projects/<PROJECT_NUM>/secrets/my_secret_key
+        # TODO hide RESPONSE: Created secret: projects/<PROJECT_NUM>/secrets/my_secret_key
+    if result:
+        # Each payload value of a secret key is a different version:
+        result = add_gcp_secret_version(gcp_project_id, my_secret_key, my_secret_value)
 
-    # Each payload value of a secret key is a different version:
-    result = add_gcp_secret_version(
-        gcp_project_id, my_secret_key, my_secret_value)
-
-    # Added secret version:
-    result = add_gcp_secret_version(gcp_project_id, my_secret_key, my_secret_key)
+    if result:
+        # Add secret version:
+        result = add_gcp_secret_version(gcp_project_id, my_secret_key, my_secret_key)
         # google.api_core.exceptions.AlreadyExists: 409 Secret [projects/1070308975221/secrets/secret123] already exists.
-    # projects/<PROJECT_NUM>/secrets/my_secret_key/versions/2
+        # projects/<PROJECT_NUM>/secrets/my_secret_key/versions/2
 
-    result = hash_gcp_secret(access_secret_version(my_secret_key))
-    # Example: 83f8a4edb555cde4271029354395c9f4b7d79706ffa90c746e021d11
+    if result:
+        result = hash_gcp_secret(access_secret_version(my_secret_key))
+        # Example: 83f8a4edb555cde4271029354395c9f4b7d79706ffa90c746e021d11
 
-    # Since previous call did not specify a version, the latest value is retrieved:
-    result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=2))
+    if result:
+        # Since previous call did not specify a version, the latest value is retrieved:
+        result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=2))
 
-    # You should see the same output as the last command.
-    # Call the function again, but this time specifying the first version:
-    result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=1))
-    # You should see a different hash this time, indicating a different output:
+    if result:
+        # You should see the same output as the last command.
+        # Call the function again, but this time specifying the first version:
+        result = hash_gcp_secret(access_secret_version(my_secret_key, version_id=1))
+        # You should see a different hash this time, indicating a different output:
 
     if show_verbose:
-        list_gcp_secrets(gcp_project_id_in)
+        list_gcp_secrets(gcp_project_id)
+
+    # return ???
 
 
 # SECTION 37: Log into AWS using Pythong Boto3 library
 
-if use_aws:
+def use_aws():
+    print_trace("in use_aws")
     aws_boto3_version = boto3.__version__
     print_info("aws_boto3_version="+aws_boto3_version)  # example: 1.20.12
 
@@ -3337,10 +3372,6 @@ if use_aws:
 # https://wilsonmar.github.io/python-samples#HashicorpVault
 
 # After Add to python-samples.env
-
-# Global static values (according to Security policies):
-HASHICORP_VAULT_LEASE_DURATION = '1h'
-
 
 def retrieve_secret():
     # Adapted from
@@ -3368,18 +3399,35 @@ def retrieve_secret():
     print_trace("switch_serial="+switch_serial)
 
 
-if use_hvac:
-    # TODO: Make into function
+def work_hvac():
+    print_trace("in work_hvac")
 
-    vault_url = get_from_env_file('VAULT_URL')
-    vault_token = get_from_env_file('VAULT_TOKEN')
+    vault_url_port = get_from_env_file('vault_url_port')
+    if not vault_url_port:
+        vault_url_port = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
+        print_warning("vault_url_port="+vault_url_port+" from default!")
+
+    VAULT_TOKEN = get_from_env_file('VAULT_TOKEN')
+    if not VAULT_TOKEN:
+        VAULT_TOKEN = 'dev-only-token'
+        print_warning("VAULT_TOKEN="+VAULT_TOKEN+" from default!")
+
+    VAULT_USER = get_from_env_file('VAULT_TOKEN')
+    if not VAULT_USER:
+        VAULT_USER = 'default_user'
+        print_warning("VAULT_USER="+VAULT_USER+" from default!")
+
+    HASHICORP_VAULT_LEASE_DURATION = get_from_env_file('HASHICORP_VAULT_LEASE_DURATION')
+    if not HASHICORP_VAULT_LEASE_DURATION:
+        # Global static values (according to Security policies):
+        HASHICORP_VAULT_LEASE_DURATION = '1h'
+        print_warning("HASHICORP_VAULT_LEASE_DURATION="+HASHICORP_VAULT_LEASE_DURATION+" from default!")
 
     hashicorp_vault_secret_path = "secret/snakes"
 
     # import os
     # import hvac  # https://github.com/hvac/hvac = Python client
 
-    client = hvac.Client()
     client = hvac.Client(
         url=os.environ['VAULT_URL'],
         token=os.environ['VAULT_TOKEN'],
@@ -3402,7 +3450,9 @@ if use_hvac:
 
 # SECTION 40: Refresh certs crated by HashiCorp Vault
 
-if refresh_vault_certs:
+def refresh_vault_certs():
+    # if refresh_vault_certs:
+
     # Authentication
     client = hvac.Client(
         url='http://127.0.0.1:8200',
@@ -3430,10 +3480,12 @@ if refresh_vault_certs:
 
 # SECTION 41. Create/Reuse folder for img app to put files:
 
-img_directory = "Images"   # FIXME
-
-if download_imgs:
+if download_imgs == True:
     # Sets :
+    img_directory = get_from_env_file('img_directory')
+    if not img_directory:
+        img_directory = "Images"
+        print_warning("img_directory="+img_directory+" from default!")
 
     if img_set == "small_ico":
         img_url = "http://google.com/favicon.ico"
@@ -3520,7 +3572,7 @@ if download_imgs:
 # Commentary on this at
 # https://wilsonmar.github.io/python-samples#download_imgs
 
-if download_imgs:
+if download_imgs == True:
     print_heading("download_imgs")
 
     # STEP: Get current path of the script being run:
@@ -3628,8 +3680,42 @@ with Image(blob = image_binary) as img:
     print_trace("img.width="+img.width)
 """
 
+# SECTION ??. Send image files via fax        = send_fax
 
-# SECTION 44. Send message to Slack = send_slack_msgs
+# https://www.codeproject.com/Articles/5362374/Fax-REST-API-Quick-Start-Guide
+
+
+# SECTION ??. Send SMS text to mobile devices = send_sms
+
+# External values:
+phone_from="+12683903410"
+phone_to="+91895685641"
+
+def sms_from_pubsub(event, context):
+    """Triggered from a message on a Cloud Pub/Sub topic.
+    Args:
+         event (dict): Event payload.
+         context (google.cloud.functions.Context): Metadata for the event.
+    """
+    #import base64
+    #import os
+    from twilio.rest import Client
+    # twillio.com
+    pubsub_message = base64.b64decode(event['data']).decode('utf-8')
+    print_info(pubsub_message)
+    account_sid = ''
+    auth_token = ''
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+                              body='Message from twillo pubsub : ' +pubsub_message,
+                              from_=phone_from,
+                              to=phone_to
+                                    )
+    print_trace(message.sid)
+    return message.sid
+
+
+# SECTION 44. Send message to Slack           = send_slack_msgs
 
 # TODO: Send Slack message - https://keestalkstech.com/2019/10/simple-python-code-to-send-message-to-slack-channel-without-packages/
 #   https://api.slack.com/methods/chat.postMessage
@@ -3669,7 +3755,7 @@ def post_file_to_slack(
 
 class TestSendSlack(unittest.TestCase):
     def test_send_slack(self):
-        if send_slack:
+        if send_slack == True:
             print_heading("send_slack")
 
             # This is a secret and should not be here
@@ -3702,7 +3788,7 @@ class TestSendSlack(unittest.TestCase):
 # https://www.101daysofdevops.com/courses/101-days-of-devops/lessons/day-14/
 
 def verify_email_address(to_email_address):
-    if verify_email:
+    if verify_email == True:
         # First, get API from https://mailboxlayer.com/product
         verify_email_api = get_from_env_file('MAILBOXLAYER_API')
         del os.environ["MAILBOXLAYER_API"]
@@ -3765,7 +3851,7 @@ def smtplib_sendmail_gmail(to_email_address, subject_in, body_in):
 
 class TestSendEmail(unittest.TestCase):
     def test_email_via_gmail(self):
-        if email_via_gmail:
+        if email_via_gmail == True:
             print_heading("email_via_gmail")
 
             to_gmail_address = get_from_env_file(
@@ -3812,7 +3898,7 @@ def get_gravatar_url(email, size, default, rating):
 class TestViewGravatar(unittest.TestCase):
     def test_view_gravatar(self):
 
-        if view_gravatar:
+        if view_gravatar == True:
             print_heading("view_gravatar")
 
             # TODO: Alternately, obtain from user parameter specification:
@@ -3843,7 +3929,7 @@ print_todo("Bring work code out of TestGemBMI class")
 class TestGemBMI(unittest.TestCase):
     def test_categorize_bmi(self):
 
-        if categorize_bmi:
+        if categorize_bmi == True:
             print_heading("categorize_bmi")
 
             # WARNING: Hard-coded values:
@@ -3947,15 +4033,18 @@ class TestGemBMI(unittest.TestCase):
 
 # See https://cloud.google.com/text-to-speech/docs/quickstart-protocol
 
-if gen_sound_for_text:
-    print_heading("gen_sound_for_text")
-
+def gen_sound_for_text():
+    print_trace("in gen_sound_for_text")
     my_accent = get_from_env_file('MY_ACCENT')
     if not my_accent:
         my_accent = "en"  # or "en" "uk" "fr" (for English with French accent)
+        print_warning("my_accent="+my_accent+" from default!")
+
     text_from_env = get_from_env_file('TEXT_TO_SAY')
     if not text_from_env:
         text_from_env = "hello world!"
+        print_warning("text_from_env="+text_from_env+" from default!")
+
     from gtts import gTTS            # pip install -upgrade gtts
     s = gTTS(text=text_from_env, lang=my_accent)
 
@@ -3982,13 +4071,10 @@ if gen_sound_for_text:
     # playsound(speech_file_name)
 
     # Remove file:
-    if remove_sound_file_generated:
+    if remove_sound_file_generated == True:
         os.remove(speech_file_name)
 
 
-if update_md_files:
-    print_heading("update_md_files")
-    exit()
 # SECTION 49. Open a new Google Sheet online (instead of Excel spread sheet)
 # SECTION 50. Retrieve a GitHub repo
 # SECTION 51. Navigate into a path to the retrieved github repo (folder _posts)
@@ -4004,12 +4090,12 @@ if update_md_files:
 # SECTION 61. Update (add and commit) changed md files (in folder _posts). Push to github.
 # SECTION 62. Remove (clean-up) folder/files created   = cleanup_img_files
 
-if cleanup_img_files:
-    print_heading("cleanup_img_files")
+if cleanup_img_files == True:
+    print_trace("in cleanup_img_files")
     # Remove files and folders to conserve disk space and avoid extraneous
     # files:
 
-    if remove_img_dir_at_end:
+    if remove_img_dir_at_end == True:
         print_heading("remove_img_dir_at_end")
         if verify_manually:  # Since this is dangerous, request manual confirmation:
             Join = input('Delete a folder used by several other programs?\n')
@@ -4018,7 +4104,7 @@ if cleanup_img_files:
         else:
             dir_remove(img_project_path)
 
-    if remove_img_file_at_end:
+    if remove_img_file_at_end == True:
         print_verbose(
         f'{localize_blob("File")} \"{img_file_path}\" {localize_blob("being removed")} ')
         file_remove(img_file_path)
@@ -4032,7 +4118,7 @@ if cleanup_img_files:
 class TestDisplayRunStats(unittest.TestCase):
     def test_display_run_stats(self):
 
-        if display_run_stats:
+        if display_run_stats == True:
             print_heading("display_run_stats")
             # Compare for run duration: time.clock() deprecated in 3.3
             stop_run_time = time.monotonic()
@@ -4050,19 +4136,107 @@ class TestDisplayRunStats(unittest.TestCase):
 
 # Execute a script by itself, and import objects from the script as though it were a regular module:
 if __name__ == "__main__":
-    # If modifying these scopes, delete the file token.json.
-    READONLY_SCOPE = ['https://www.googleapis.com/auth/documents.readonly']
-    # The ID of a sample document in Google Docs:
-    DOCUMENT_ID = '195j9eDD3ccgjQRttHhJPymLJUCOUjs-jmwTrekvdjFE'
-    gcp_doc_title(READONLY_SCOPE,DOCUMENT_ID)
+    print_heading("In main loop with main_loop_runs_requested="+str(main_loop_runs_requested))
+    main_loop_runs_started=int(0)
+    # main_loop_runs_requested was set as program control parameter.
+    while True:  # loop indefinitely (for stress testing), pausing in-between:
+        main_loop_runs_started += 1
+        print_trace("In main loop "+str(main_loop_runs_started))
 
-    exit()
+        if use_hvac == True:
+            print_heading("use_hvac")
+            # work_hvac()
 
-    display_flask()
+        if get_ipaddr == True:
+            print_heading("get_ipaddr")
+            my_ip_address = get_ipaddr()
+            if geodata_from_ipaddr == True:
+                print_heading("country_code_from_ipaddr")
+                geodata_from_ipaddr(my_ip_address)
 
-    # unittest.main()
-    # Automatically invokes all functions within classes which inherits (unittest.TestCase):
-    # Example: class TestMakeChange(unittest.TestCase):
-    # The setup() is run, then all functions starting with "test_".
+        # if geodata_from_ipaddr:
 
+        if use_azure == True:
+            print_heading("use_azure")
+            # require Multi-Factor Authentication (MFA)
+            # is_logged_in=azure_login()  # returns JSON of TenantID, (subscription) id
+                # azure_info()
+                # azure_resc()
+
+            if list_azure_resc == True:
+                # See https://www.youtube.com/watch?v=we1pcMRQwD8 by Michael Levan of CBTNuggets.com
+                # See https://stackoverflow.com/questions/51546073/how-to-run-azure-cli-commands-using-python
+                from azure.cli.core import get_default_cli as azcli
+                # Run a CLI az command constructed as a Python struct:
+                # Replace 'Dev2' with your resource:
+                azcli().invoke(['vm', 'list', '-g', 'Dev2'])
+
+        if use_gcp == True:
+            print_heading("use_gcp")
+            # gcp_doc_title(READONLY_SCOPE,DOCUMENT_ID)
+
+        if use_aws == True:
+            print_heading("use_aws")
+
+        if process_romans == True:
+            print_heading("process_romans")
+            # Verify online at # https://www.calculatorsoup.com/calculators/conversions/roman-numeral-converter.php
+
+            current_year = get_cur_yyyy()
+            # Get roman numerals from today's year:
+            mylist = [current_year, "xx"]
+            my_number = mylist[0]
+            my_roman = int_to_roman(my_number)   # my_roman = "MMXXIII" = 2023
+            print_trace("current_year="+current_year)
+
+            my_roman_num = current_year
+            ob1 = int_to_roman(my_roman_num)
+            print_info(f'process_romans: int_to_roman: {my_number} ==> {my_roman} ')
+
+            ob1 = roman_to_int(my_roman)
+            # my_number = ob1.romanToInt(my_roman)
+            print_info(f'process_romans: roman_to_int: {my_roman} => {my_number} ')
+
+        if show_weather == True:
+            my_zip_code = obtain_zip_code()
+            get_weather_info(my_zip_code)
+
+        if gen_1_in_100 == True:
+            print_heading("gen_1_in_100 - 5 Random numbers between 1 and 100:")
+            gen_1_in_100(5)
+
+        if gen_salt == True:
+            print_heading("gen_salt")
+            gen_salt()
+
+        if gen_jwt == True:
+            print_heading("gen_jwt")
+            gen_jwt()
+
+        if update_md_files == True:
+            print_heading("update_md_files")
+
+        # if flask == True:  display_flask()
+
+        # unittest.main()
+        # Automatically invokes all functions within classes which inherits (unittest.TestCase):
+        # Example: class TestMakeChange(unittest.TestCase):
+        # The setup() is run, then all functions starting with "test_".
+
+        if main_loop_runs_requested >= main_loop_runs_started:  # still more runs to do:
+            if main_loop_pause_seconds>=float(999):
+                x = input("Press Enter to continue or control+C to cancel run.")
+            elif main_loop_pause_seconds>float(0):
+                # PROTIP: Pause set seconds of time delay to do nothing:
+                print_trace("Sleeping "+str(main_loop_pause_seconds)+" seconds.")
+                # import time
+                time.sleep(main_loop_pause_seconds)
+        else:
+            print_trace("Exiting main: Thank you for visiting!")
+            exit()  # out of program# END
+
+        if gen_sound_for_text == True:
+            gen_sound_for_text()
+
+    # while True
 # END
