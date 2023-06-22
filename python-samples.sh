@@ -4,7 +4,7 @@
 # (to avoid ModuleNotFoundError: No module named ... )
 
 THIS_PROGRAM="$0"
-SCRIPT_VERSION="v0.0.08"
+SCRIPT_VERSION="v0.0.12"
 
 # After you obtain a Terminal (console) in your enviornment,
 # cd to folder, copy this line and paste in the terminal (without the # character):
@@ -13,10 +13,10 @@ SCRIPT_VERSION="v0.0.08"
 # SECTION 1. Establish shell file run environment
 # SECTION 2. Install utilities 
 # SECTION 3. Obtain a copy of the repo holding source code and sample files
-# SECTION 4. Create a conda environment
-# SECTION 5. Install pip packages in conda enviornment
+# SECTION 4. Create a virtual environment to isolate package dependency versions
+# SECTION 5. Install pip packages in the enviornment
 # SECTION 6. Install and run scans
-# SECTION 7. Run Python interpreter on app code (api-sample.py)
+# SECTION 7. Run Python interpreter on app code (python-samples.py)
 
 # shellcheck disable=SC2001 # See if you can use ${variable//search/replace} instead.
 # shellcheck disable=SC1090 # Can't follow non-constant source. Use a directive to specify location.
