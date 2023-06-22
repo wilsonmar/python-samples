@@ -827,6 +827,27 @@ def get_float_from_env_file(key_in) -> float:
 def read_env_file():
     print_heading("in read_env_file")
 
+    global main_loop_runs_requested
+    main_loop_runs_requested = get_int_from_env_file('main_loop_runs_requested')
+    if not main_loop_runs_requested:
+        # PROTIP: Define a data type at creation so it can contain a large number?
+        main_loop_runs_requested=int(1)
+        print_warning("main_loop_runs_requested="+str(main_loop_runs_requested)+" "+str(type(main_loop_runs_requested))+" from default!")
+
+    global main_loop_pause_seconds
+    main_loop_pause_seconds = get_float_from_env_file('main_loop_pause_seconds')
+    if not main_loop_pause_seconds:
+        # PROTIP: Define a big float data type at creation so it can contain a large number:
+        main_loop_pause_seconds=float(0)   # NOT float(999)  # float(5.5)
+        print_warning("main_loop_pause_seconds="+str(main_loop_pause_seconds)+" "+str(type(main_loop_pause_seconds))+" from default!")
+
+    global main_loop_run_pct
+    main_loop_run_pct = get_int_from_env_file('main_loop_run_pct')
+    if not main_loop_run_pct:
+        main_loop_run_pct = 100
+        print_warning("main_loop_run_pct="+str(main_loop_run_pct)+" from default!")
+
+
     # NOTE: Country code can also come from IP Address lookup
                    # "US" # For use in whether to use metric
     global my_country
@@ -976,33 +997,6 @@ def read_env_file():
         show_logging = False
         print_warning("show_logging="+str(show_logging)+" from default!")
 
-    global main_loop_runs_requested
-    main_loop_runs_requested = get_int_from_env_file('main_loop_runs_requested')
-    if not main_loop_runs_requested:
-        # PROTIP: Define a data type at creation so it can contain a large number?
-        main_loop_runs_requested=int(1)
-        print_warning("main_loop_runs_requested="+str(main_loop_runs_requested)+" "+str(type(main_loop_runs_requested))+" from default!")
-
-    global main_loop_pause_seconds
-    main_loop_pause_seconds = get_float_from_env_file('main_loop_pause_seconds')
-    if not main_loop_pause_seconds:
-        # PROTIP: Define a big float data type at creation so it can contain a large number:
-        main_loop_pause_seconds=float(0)   # NOT float(999)  # float(5.5)
-        print_warning("main_loop_pause_seconds="+str(main_loop_pause_seconds)+" "+str(type(main_loop_pause_seconds))+" from default!")
-
-
-    # Python library for HashiCorp Vault:
-    global use_vault_hvac
-    use_vault_hvac = get_bool_from_env_file('use_vault_hvac')
-    if not use_vault_hvac:
-        use_vault_hvac = False
-        print_warning("NOT use_vault_hvac="+str(use_vault_hvac)+" from default!")
-
-    global refresh_vault_certs
-    refresh_vault_certs = get_bool_from_env_file('refresh_vault_certs')
-    if not refresh_vault_certs:
-        refresh_vault_certs = False
-        print_warning("refresh_vault_certs="+str(refresh_vault_certs)+" from default!")
 
     global gen_hash
     gen_hash = get_bool_from_env_file('gen_hash')
@@ -1100,11 +1094,20 @@ def read_env_file():
         use_keyring = False
         print_warning("use_keyring="+str(use_keyring)+" from default!")
 
-    global use_hashicorp_vault
-    use_hashicorp_vault = get_bool_from_env_file('use_hashicorp_vault')
-    if not use_hashicorp_vault:
-        use_hashicorp_vault = False
-        print_warning("use_hashicorp_vault="+str(use_hashicorp_vault)+" from default!")
+
+    # Python library for HashiCorp Vault:
+    global use_hvault
+    use_hvault = get_int_from_env_file('use_hvault')
+    if not use_hvault:
+        use_hvault = False
+        print_warning("use_hvault="+str(use_hvault)+" from default!")
+
+    global refresh_vault_certs
+    refresh_vault_certs = get_bool_from_env_file('refresh_vault_certs')
+    if not refresh_vault_certs:
+        refresh_vault_certs = False
+        print_warning("refresh_vault_certs="+str(refresh_vault_certs)+" from default!")
+
 
     global use_azure
     use_azure = get_bool_from_env_file('use_azure')
@@ -3139,6 +3142,8 @@ def create_aws_cmk(description="aws_cmk_description"):  # FIXME
     2. Asymmetric CMKs are where AWS KMS generates a key pair. The private key never leaves AWS KMS unencrypted.
     """
 
+    print_verbose("aws_boto3_version="+str(boto3.__version__))  # example: 1.26.155
+
     kms_client = boto3.client("kms")
     response = kms_client.create_key(Description=aws_cmk_description)
 
@@ -3629,21 +3634,85 @@ def grace_use_gcp():
 
 # SECTION 37: Log into AWS using Pythong Boto3 library
 
-def use_aws():
-    print_trace("in use_aws")
-    aws_boto3_version = boto3.__version__
-    print_info("aws_boto3_version="+aws_boto3_version)  # example: 1.20.12
+# See https://wilsonmar.github.io/python-samples#HashicorpVault
 
 
+def do_use_hvault():
+    if use_hvault == 0:
+        print_trace("do_use_hvault() skipped: use_hvault="+str(use_hvault))
+        return False
+    print_trace("in do_use_hvault()")
+    
+    global VAULT_URL
+    VAULT_URL = get_str_from_env_file('VAULT_URL')
+    if not VAULT_URL:
+        VAULT_URL = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
+        print_warning("VAULT_URL="+VAULT_URL+" from default!")
 
-# SECTION 38. Retrieve secrets from Hashicorp Vault
+    global VAULT_TOKEN
+    VAULT_TOKEN = get_str_from_env_file('VAULT_TOKEN')
+    if not VAULT_TOKEN:
+        VAULT_TOKEN = 'dev-only-token'
+        print_warning("VAULT_TOKEN="+VAULT_TOKEN+" from default!")
 
-# Commentary on this at
-# https://wilsonmar.github.io/python-samples#HashicorpVault
+    global VAULT_USER
+    VAULT_USER = get_str_from_env_file('VAULT_USER')
+    if not VAULT_USER:
+        VAULT_USER = 'default_user'
+        print_warning("VAULT_USER="+VAULT_USER+" from default!")
 
-# After Add to python-samples.env
+    global HVAULT_LEASE_DURATION
+    HVAULT_LEASE_DURATION = get_str_from_env_file('HVAULT_LEASE_DURATION')
+    if not HVAULT_LEASE_DURATION:
+        # Global static values (according to Security policies):
+        HVAULT_LEASE_DURATION = '1h'
+        print_warning("HVAULT_LEASE_DURATION="+HVAULT_LEASE_DURATION+" from default!")
 
-def retrieve_secret():
+    client = auth_hvault()
+    if not client:
+        print_error("client "+client)
+        return False
+    secret = get_hvault_secret()
+    if not secret:
+        print_error("client "+client)
+        return False
+    # hvault_secret_path
+    # write_hvault_secret(hvault_secret_path):
+    return True
+
+def auth_hvault():
+    print_trace("in auth_hvault()")
+
+    # Equiv to vault login -method=userpass username=webapp password=webapp-password
+
+    # Leveraging the Vault Agent Template feature
+    # From https://developer.hashicorp.com/vault/tutorials/vault-agent/agent-read-secrets
+    
+
+    # From https://github.com/jakefurlong/vault/blob/main/read.py
+    # import os    # built-in
+    # import hvac  # https://github.com/hvac/hvac = Python client
+    client = hvac.Client(url=VAULT_URL)
+    if not client.is_authenticated():
+        print_error(f"{VAULT_URL} NOT authenticated as Hashicorp Vault client!")
+        return False
+    return client
+
+def get_hvault_secret():
+    print_trace("in get_hvault_secret()")
+    # Equiv to vault kv get external-apis/socials/twitter
+    # {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
+
+    # import hvac
+    # import json
+    client = hvac.Client(url=VAULT_URL)
+    read_response = client.secrets.kv.v2.read_secret_version(path='hello')
+    print(json.dumps(read_response, indent=4, sort_keys=True))
+    if not read_response:
+        return False
+    return True
+
+def retrieve_hvault_secret():
     # Adapted from
     # https://fakrul.wordpress.com/2020/06/06/python-script-credentials-stored-in-hashicorp-vault/
     client = hvac.Client(VAULT_URL)
@@ -3668,35 +3737,7 @@ def retrieve_secret():
 
     print_trace("switch_serial="+switch_serial)
 
-
-def work_hvac():
-    print_trace("in work_hvac")
-
-    vault_url_port = get_str_from_env_file('vault_url_port')
-    if not vault_url_port:
-        vault_url_port = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
-        print_warning("vault_url_port="+vault_url_port+" from default!")
-
-    VAULT_TOKEN = get_str_from_env_file('VAULT_TOKEN')
-    if not VAULT_TOKEN:
-        VAULT_TOKEN = 'dev-only-token'
-        print_warning("VAULT_TOKEN="+VAULT_TOKEN+" from default!")
-
-    VAULT_USER = get_str_from_env_file('VAULT_TOKEN')
-    if not VAULT_USER:
-        VAULT_USER = 'default_user'
-        print_warning("VAULT_USER="+VAULT_USER+" from default!")
-
-    HASHICORP_VAULT_LEASE_DURATION = get_str_from_env_file('HASHICORP_VAULT_LEASE_DURATION')
-    if not HASHICORP_VAULT_LEASE_DURATION:
-        # Global static values (according to Security policies):
-        HASHICORP_VAULT_LEASE_DURATION = '1h'
-        print_warning("HASHICORP_VAULT_LEASE_DURATION="+HASHICORP_VAULT_LEASE_DURATION+" from default!")
-
-    hashicorp_vault_secret_path = "secret/snakes"
-
-    # import os
-    # import hvac  # https://github.com/hvac/hvac = Python client
+def write_hvault_secret(hvault_secret_path):
 
     client = hvac.Client(
         url=os.environ['VAULT_URL'],
@@ -3706,12 +3747,12 @@ def work_hvac():
     )
 
     client.write(
-        hashicorp_vault_secret_path,
+        hvault_secret_path,
         type='pythons',
-        lease=HASHICORP_VAULT_LEASE_DURATION)
+        lease=HVAULT_LEASE_DURATION)
 
     if client.is_authenticated():
-        print_trace(client.read(hashicorp_vault_secret_path))
+        print_trace(client.read(hvault_secret_path))
         # {u'lease_id': u'', u'warnings': None, u'wrap_info': None, u'auth': None, u'lease_duration': 3600, u'request_id': u'c383e53e-43da-d491-6c20-b0f5f7e4a33a', u'data': {u'type': u'pythons', u'lease': u'1h'}, u'renewable': False}
 
 
@@ -4494,14 +4535,14 @@ if __name__ == "__main__":
         #print_env_vars()
 
         #gen_magic_8ball_str()
-        do_send_slack()  # FIXME: not working
+        # do_send_slack()  # FIXME: not working
 
-        # work_hvac()
+        do_use_hvault()
+        exit()
 
 #       geodata_from_ipaddr(my_ip_address)
 
         login_aws()
-        exit()
 
         if use_azure == True:
             print_heading("use_azure")
@@ -4597,6 +4638,8 @@ if __name__ == "__main__":
                 print_trace("Sleeping "+str(main_loop_pause_seconds)+" seconds.")
                 # import time
                 time.sleep(main_loop_pause_seconds)
+            # TODO: main_loop_run_pct=100 
+            # break
         else:
             print_trace("Exiting main: Thank you for visiting!")
             break  # out of while True
