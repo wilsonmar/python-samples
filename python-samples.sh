@@ -4,9 +4,9 @@
 # (to avoid ModuleNotFoundError: No module named ... )
 
 THIS_PROGRAM="$0"
-SCRIPT_VERSION="v0.0.12"
+SCRIPT_VERSION="v0.0.13"
 
-# After you obtain a Terminal (console) in your enviornment,
+# After you obtain a Terminal (console) in your environment,
 # cd to folder, copy this line and paste in the terminal (without the # character):
    # bash -c "$(curl -fsSL https://raw.githubusercontent.com/wilsonmar/python-samples/master/bash/python-samples.sh)" -v -i
 
@@ -157,8 +157,6 @@ if [ "${RUN_VIRTUALENV}" = true ]; then  # -V  (not the default pipenv)
    """
 
 
-   
-
       h2 "source venv/bin/activate"
       # shellcheck disable=SC1091 # Not following: venv/bin/activate was not specified as input (see shellcheck -x).
       source venv/bin/activate
@@ -225,7 +223,10 @@ if [ "${RUN_PIPENV}" = true ]; then  # -V  (not the default pipenv)
 fi  # RUN_VIRTUALENV
 
 
-# SECTION 5. Install pip packages in conda environment  ###################
+# SECTION 5. Install pip packages environment  ###################
+
+# TODO: If requirements.txt exists, use it::
+# else:
 
 #    Python packages (dependencies) needed by "import" statements in the code
 
@@ -245,7 +246,7 @@ fi  # RUN_VIRTUALENV
        pip install -U boto3  # to access AWS (Amazon Web Services)
        pip install -U hvac   # hvac-0.11.2
        pip install google-cloud-secret-manager  # 2.8.0-py2.py3-none-any.whl (94 kB)
-       # pip install -U pyjwt   # https://github.com/jpadilla/pyjwt & https://pyjwt.readthedocs.io/en/stable/
+       pip install -U pyjwt   # https://github.com/jpadilla/pyjwt & https://pyjwt.readthedocs.io/en/stable/
        pip install -U redis   # redis-4.0.2-py3-none-any.whl (119 kB)
        sudo pip3 install -U pytz   # installed pytz-2021.3
 
@@ -291,3 +292,12 @@ python api-sample.py
 # TODO: Check to see if file already there:
    # If not, copy sample to $HOME and stop
 
+# SECTION 8. Load Vault Client Proxy
+
+
+systemctl webapp-??? & 
+
+# SECTION 9. Run python-samples.py
+
+note "Running ..."
+./python-samples.py

@@ -21,7 +21,7 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "python-samples.py 0.3.10 aws login & 8ball with pct flag"
+__last_commit__ = "python-samples.py 0.3.11 login azire & sh"
 # login aws
 # fix y = x["main"] error
 # click instead of argparse
@@ -29,7 +29,7 @@ __last_commit__ = "python-samples.py 0.3.10 aws login & 8ball with pct flag"
 # localization results to weather
 # fix zip code
 # Add 3 retries to url
-# gcp_login, gcp_resc_list
+# login_gcp, gcp_resc_list
 # FIXME: import azure , azure_login, azure_resc_list
 # aws_login, aws_resc_list
 
@@ -275,14 +275,15 @@ xpt_stop_datetimestamp = datetime.datetime.now()
 
 
 
-# SECTION 04: Default command-line arguments parameters to shown initial menu for verbosity settings:
+# SECTION 04: Command-line arguments (in menu) to override verbosity settings:
 
-# Initial logic controls:
-# -clear Console so output always appears at top of screen.
+## TODO: #import click
+
+# -clear Console before starting so output always appears at top of screen.
 clear_cli = True       # -clear
-use_flask = True       # -flask
 
-show_print_samples = True
+# PROTIP: Global variable referenced within functions:
+# values obtained from .env file can be overriden in program call arguments: 
 show_fail = True       # Always show
 show_error = True      # Always show
 show_warning = True    # -wx  Don't display warning
@@ -293,12 +294,14 @@ show_verbose = True    # -v  Display technical program run conditions
 show_trace = True      # -vv Display responses from API calls for debugging code
 show_secrets = False   # Never show
 
+show_sys_info = True
 show_config = True
 
-use_env_file = True    # -env
-# PROTIP: Global variable referenced within functions:
+use_env_file = True    # -env "python-samples.env"
 global ENV_FILE
 ENV_FILE="python-samples.env"
+
+use_flask = True       # -flask
 
 
 
@@ -323,6 +326,7 @@ def set_cli_parms(count):
         for x in range(count):
             click.echo(f"Hello!")
     # Test by running: ./python-examples.py --help
+
 
 
 # SECTION 06: Define utilities for printing (in color with emojis)
@@ -400,22 +404,9 @@ def print_secret(secret_in):
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_out}', bcolors.RESET)
 
-def print_samples():
-    print_heading("show_print_samples")
-    print_fail("sample fail")
-    print_error("sample error")
-    print_warning("sample warning")
-    print_todo("sample task to do")
-    print_info("sample info")
-    print_verbose("sample verbose")
-    print_trace("sample trace")
-    print_secret("1234567890123456789")
-
-# See https://wilsonmar.github.io/python-samples/#PrintColors
 
 
-
-# SECTION 07. Manage data storage folders and files
+# SECTION 07. Functions to manage data storage folders and files
 
 # See https://wilsonmar.github.io/python-samples/#FileMgmt
 
@@ -426,7 +417,6 @@ def dir_remove(dir_path):
     # Alternative: Path objects from the Python 3.4+ pathlib module also expose these instance methods:
         # pathlib.Path.unlink()  # removes a file or symbolic link.
         # pathlib.Path.rmdir()   # removes an empty directory.
-
 
 def dir_tree(startpath):
     # Thanks to
@@ -440,7 +430,6 @@ def dir_tree(startpath):
             print_trace('{}{}'.format(subindent, f))
 
     # TODO: Hint that this returns list data type:
-
 
 def about_disk_space():
     statvfs = os.statvfs(".")
@@ -486,34 +475,27 @@ def file_remove(file_path):
 # TODO: Create, navigate to, and remove local working folders:
 
 
-# SECTION 08. Get pgm run env data
+# SECTION 08. Obtain program enviornment metadata
 
 # See https://wilsonmar.github.io/python-samples/#run_env
 
 def os_platform():
-    import platform # https://docs.python.org/3/library/platform.html
-    platform_system = platform.system()
+    """Return a friendly name for the operating system
+    """
+    #import platform # https://docs.python.org/3/library/platform.html
+    platform_system = str(platform.system())
        # 'Linux', 'Darwin', 'Java', 'Windows'
-    print_trace("platform_system="+platform_system)
+    print_trace("platform_system="+str(platform_system))
     if platform_system == "Darwin":
         my_platform = "macOS"
     elif platform_system == "linux" or platform_system == "linux2":
         my_platform = "Linux"
-    elif platform_system == "win32":
+    elif platform_system == "win32":  # includes 64-bit
         my_platform = "Windows"
     else:
         print_fail("platform_system="+platform_system+" is unknown!")
-        exit(1)
+        exit(1)  # entire program
     return my_platform
-
-def print_env_vars():
-    """List all environment variables, one line each using pretty print (pprint)
-    """
-    # import os
-    # import pprint
-    environ_vars = os.environ
-    print_heading("User's Environment variable:")
-    pprint.pprint(dict(environ_vars), width = 1)
 
 def macos_version_name(release_in):
     """ Returns the marketing name of macOS versions which are not available
@@ -528,7 +510,7 @@ def macos_version_name(release_in):
     # See https://support.apple.com/en-us/HT201260 and https://www.wikiwand.com/en/MacOS_version_history
     MACOS_VERSIONS = {
         '22.7': ['Next2024', 2024, '24'],
-        '22.6': ['Next2023', 2023, '23'],
+        '22.6': ['macOS Sonoma', 2023, '23'],
         '22.5': ['macOS Ventura', 2022, '13'],
         '12.1': ['macOS Monterey', 2021, '21'],
         '11.1': ['macOS Big Sur', 2020, '20'],
@@ -567,24 +549,35 @@ def macos_version_name(release_in):
     print_trace("macos_platform_release="+macos_platform_release)
     return macos_platform_release
 
-def os_info():
-    print_heading("In os_info")
-    import platform
-    my_os_platform = os_platform()  # defined above.
-    print_trace("my_os_platform="+my_os_platform)
+def sys_info():
+    from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+
+    
+    if not show_sys_info:   # defined among CLI arguments
+        return None
+    print_heading("In sys_info()")
+
+    print_trace("user_home_dir_path="+user_home_dir_path)
+    # the . in .secrets tells Linux that it should be a hidden file.
+
+    import platform # https://docs.python.org/3/library/platform.html
+    platform_system = platform.system()
+       # 'Linux', 'Darwin', 'Java', 'Win32'
+    print_trace("platform_system="+str(platform_system))
 
     # my_os_platform=localize_blob("version")
-    my_os_version = platform.release()  # platform.mac_ver()[0] can be wrong
-    print_trace("my_os_version="+my_os_version)
-    # Alternately:
-    # my_os_version_name = macos_version_name(my_os_version)
-    # print_info("my_os_version_name="+my_os_version_name)
+    print_trace("my_os_version="+str(platform.release()))
+    #           " = "+str(macos_version_name(my_os_version)))
 
     my_os_process = str(os.getpid())
     print_trace("my_os_process="+my_os_process)
 
-        # print_trace("%s %s=%s" % (my_os_platform, localize_blob("version"), platform.mac_ver()[0]),end=" ")
-        # print+trace("%s process ID=%s" % ( my_os_name, os.getpid() ))
+    # print_trace("%s %s=%s" % (my_os_platform, localize_blob("version"), platform.mac_ver()[0]),end=" ")
+    # print+trace("%s process ID=%s" % ( my_os_name, os.getpid() ))
 
         # or socket.gethostname()
     my_platform_node = platform.node()
@@ -620,14 +613,6 @@ def os_info():
     pwuid_dir = pwd.getpwuid(os.getuid()).pw_dir         # like "/Users/johndoe"
     print_trace("pwuid_dir="+pwuid_dir)
     
-    from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-    print_trace("user_home_dir_path="+user_home_dir_path)
-    # the . in .secrets tells Linux that it should be a hidden file.
-
     # Several ways to obtain:
     # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
     # this_pgm_name = sys.argv[0]                     # = ./python-samples.py
@@ -663,14 +648,7 @@ def os_info():
         # 3.8.12, 3.9.16, etc.
     print_trace("python_ver="+python_ver)
 
-
-def no_newlines(in_string):
-    """ Strip new line from in_string
-    """
-    return ''.join(in_string.splitlines())
-
-
-def python_info():
+# python_info():
     python_version = no_newlines(sys.version)
         # 3.9.16 (main, Dec  7 2022, 10:16:11) [Clang 14.0.0 (clang-1400.0.29.202)]
         # 3.8.3 (default, Jul 2 2020, 17:30:36) [MSC v.1916 64 bit (AMD64)]
@@ -705,13 +683,27 @@ def python_info():
         # left-to-right order of fields are re-arranged from the function's output.
 
 
+def print_env_vars():
+    """List all environment variables, one line each using pretty print (pprint)
+    """
+    # import os
+    # import pprint
+    environ_vars = os.environ
+    print_heading("User's Environment variable:")
+    pprint.pprint(dict(environ_vars), width = 1)
+
+def no_newlines(in_string):
+    """ Strip new line from in_string
+    """
+    return ''.join(in_string.splitlines())
+
+
 # SECTION 09. Obtain run control data from .env file (in the user's $HOME folder)
 
 # See https://wilsonmar.github.io/python-samples/#envFile
 
 def open_env_file(env_file) -> str:
-    """
-    Return a Boolean obtained from .env file based on key provided.
+    """Return a Boolean obtained from .env file based on key provided.
     """
     print_trace("env_file="+env_file)
     print_trace("user_home_dir_path="+user_home_dir_path)
@@ -795,21 +787,21 @@ def get_int_from_env_file(key_in) -> int:
     """
     env_var = os.environ.get(key_in)  # using pip python-dotenv
     if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file " + ENV_FILE)
-        return None
+        print_warning(key_in+" not found in OS nor .env file " + ENV_FILE)
+        print_warning(key_in+" set to default False=0 ")
+        env_var=0
+    if str(env_var) == "False":
+        print_trace(key_in + "=False=0 from .env")
+        return 0
+    elif str(env_var) == "True":
+        print_trace(key_in + "=True=100 from .env")
+        return 100
+    elif int(env_var) > 100:
+        print_trace(key_in + "= 100, fix of " + str(env_var) + " from .env")
+        return 100
     else:
-        if str(env_var) == "False":
-            print_trace(key_in + "=False=0 from .env")
-            return 0
-        elif str(env_var) == "True":
-            print_trace(key_in + "=True=100 from .env")
-            return 100
-        elif int(env_var) > 100:
-            print_trace(key_in + "= 100, fix of " + str(env_var) + " from .env")
-            return 100
-        else:
-            print_trace(key_in + "=" + str(env_var) + " from .env")
-            return int(env_var)
+        print_trace(key_in + "=" + str(env_var) + " from .env")
+        return int(env_var)
 
 def get_float_from_env_file(key_in) -> float:
     """Return a floating-point number data type from OS environment or .env file
@@ -825,7 +817,10 @@ def get_float_from_env_file(key_in) -> float:
 
 
 def read_env_file():
-    print_heading("in read_env_file")
+    """Read .env file containing variables and values.
+    See https://wilsonmar.github.io/python-samples/#envLoad
+    """
+    print_heading("In read_env_file()")
 
     global main_loop_runs_requested
     main_loop_runs_requested = get_int_from_env_file('main_loop_runs_requested')
@@ -846,6 +841,7 @@ def read_env_file():
     if not main_loop_run_pct:
         main_loop_run_pct = 100
         print_warning("main_loop_run_pct="+str(main_loop_run_pct)+" from default!")
+
 
 
     # NOTE: Country code can also come from IP Address lookup
@@ -928,11 +924,7 @@ def read_env_file():
         print_warning("my_date_format="+my_date_format+" from default!")
 
 
-# SECTION 10: Load .env values or hard-coded default values (in order of code)
-
-# See https://wilsonmar.github.io/python-samples/#envLoad
-
-# See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
+    # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
 
     global verify_manually
     verify_manually = get_bool_from_env_file('verify_manually')
@@ -940,20 +932,18 @@ def read_env_file():
         verify_manually = False
         print_warning("verify_manually="+str(verify_manually)+" from default!")
 
-# 6. Obtain run control data from .env file in the user's $HOME folder
-#    to obtain the desired cloud region, zip code, and other variable specs.
+    global show_sys_info
+    show_sys_info = get_bool_from_env_file('show_sys_info')
+    if not show_sys_info:
+        show_sys_info = True
+        print_warning("show_sys_info="+str(show_sys_info)+" from default!")
 
-    global show_en
-    show_env = get_bool_from_env_file('show_env')
-    if not show_env:
-        show_env = True
-        print_warning("show_env="+str(show_env)+" from default!")
+    global show_print_samples
+    show_print_samples = get_bool_from_env_file('show_print_samples')
+    if not show_print_samples:
+        show_print_samples = True
+        print_warning("show_print_samples="+str(show_print_samples)+" from default!")
 
-    global show_config
-    show_config = get_bool_from_env_file('show_config')
-    if not show_config:
-        show_config = True
-        print_warning("show_config="+str(show_config)+" from default!")
 
     global use_flask
     use_flask = get_bool_from_env_file('use_flask')
@@ -972,12 +962,6 @@ def read_env_file():
     if not localize_text:
         localize_text = True
         print_warning("localize_text="+str(localize_text)+" from default!")
-
-    global show_pgminfo
-    show_pgminfo = get_bool_from_env_file('show_pgminfo')
-    if not show_pgminfo:
-        show_pgminfo = True
-        print_warning("show_pgminfo="+str(show_pgminfo)+" from default!")
 
     global use_pytz_datetime
     use_pytz_datetime = get_bool_from_env_file('use_pytz_datetime')
@@ -1009,12 +993,6 @@ def read_env_file():
     if not gen_salt:
         gen_salt = False
         print_warning("gen_salt="+str(gen_salt)+" from default!")
-
-    global gen_0_to_100
-    gen_0_to_100 = get_int_from_env_file('gen_0_to_100')
-    if not gen_0_to_100:
-        gen_0_to_100 = 0  # False
-        print_warning("gen_0_to_100="+str(gen_0_to_100)+" from default!")
 
     global process_romans
     process_romans = get_bool_from_env_file('process_romans')
@@ -1099,7 +1077,7 @@ def read_env_file():
     global use_hvault
     use_hvault = get_int_from_env_file('use_hvault')
     if not use_hvault:
-        use_hvault = False
+        use_hvault = 0
         print_warning("use_hvault="+str(use_hvault)+" from default!")
 
     global refresh_vault_certs
@@ -1110,17 +1088,11 @@ def read_env_file():
 
 
     global use_azure
-    use_azure = get_bool_from_env_file('use_azure')
+    use_azure = get_int_from_env_file('use_azure')
     if not use_azure:
-        use_azure = False
+        use_azure = int(0)
         print_warning("use_azure="+str(use_azure)+" from default!")
-
-    global login_to_azure
-    login_to_azure = get_bool_from_env_file('login_to_azure')
-    if not login_to_azure:
-        login_to_azure = False
-        print_warning("login_to_azure="+str(login_to_azure)+" from default!")
-
+    
     global list_azure_resc
     list_azure_resc = get_bool_from_env_file('list_azure_resc')
     if not list_azure_resc:
@@ -1136,9 +1108,9 @@ def read_env_file():
 
 
     global use_aws
-    use_aws = get_bool_from_env_file('use_aws')
+    use_aws = get_int_from_env_file('use_aws')
     if not use_aws:
-        use_aws = False
+        use_aws = 0
         print_warning("use_aws="+str(use_aws)+" from default!")
 
     global show_aws_init
@@ -1152,9 +1124,9 @@ def read_env_file():
     # https://github.com/aws-samples/aws-cdk-examples/tree/master/python
 
     global use_gcp
-    use_gcp = get_bool_from_env_file('use_gcp')
+    use_gcp = get_int_from_env_file('use_gcp')
     if not use_gcp:
-        use_gcp = False
+        use_gcp = 0
         print_warning("use_gcp="+str(use_gcp)+" from default!")
 
     global use_add_blockchain
@@ -1307,6 +1279,31 @@ def read_env_file():
         display_run_stats = False
         print_warning("display_run_stats="+str(display_run_stats)+" from default!")
 
+  
+# read_env_file():
+
+
+
+# SECTION 10. Detect and reconcile conflicts among different setting values:
+
+def print_samples():
+    """Display what different type of output look like.
+    """
+    # See https://wilsonmar.github.io/python-samples/#PrintColors
+    if not show_print_samples:
+        return None
+    print_heading("show_print_samples")
+    print_fail("sample fail")
+    print_error("sample error")
+    print_warning("sample warning")
+    print_todo("sample task to do")
+    print_info("sample info")
+    print_verbose("sample verbose")
+    print_trace("sample trace")
+    print_secret("1234567890123456789")
+    return True
+
+
 
 # SECTION 11. Manage sqliteDB countryDB reference DB
 
@@ -1388,7 +1385,7 @@ def open_sqlite3_db(sqlite3_db_name):
         print_fail("SQLite database " + sqlite3_db_name+" error")
         return None
 
-# TODO: def get_dtformat_from_locale():
+    # TODO: def get_dtformat_from_locale():
 
 
 def get_data_from_country_db(country_id):
@@ -1439,6 +1436,7 @@ def get_data_from_country_db(country_id):
         return locale_dict   # {'en_US': 'D/M/Y'}
 
 
+
 # SECTION 12. Localize/translate text to the specified locale
 
 # See https://wilsonmar.github.io/python-samples/#Localize
@@ -1449,12 +1447,10 @@ def format_epoch_datetime(date_in):
 
 # internationalization according to localization setting:
 
-
 def format_number(number):
     return ("{:,}".format(number))
 
 def set_locale():
-
         # TODO: Because locale package is not found:
         # Use user's default settings by setting as blank:
 #        locale.setlocale(locale.LC_ALL, '')
@@ -1700,32 +1696,33 @@ def display_memory():
 
 def display_flask():
 
-    if use_flask:
-        print_heading("display_flask")
+    if not use_flask:
+        return None
+    print_heading("In display_flask()")
 
-        from flask import Flask, jsonify
-        app = Flask(__name__)
-        songs = [
-            {
-                "title": "Rockstar",
-                "artist": "Dababy",
-                "genre": "rap",
-            },
-            {
-                "title": "Say So",
-                "artist": "Doja Cat",
-                "genre": "Hiphop",
-            },
-            {
-                "title": "Panini",
-                "artist": "Lil Nas X",
-                "genre": "Hiphop"
-            }
-        ]
+    from flask import Flask, jsonify
+    app = Flask(__name__)
+    songs = [
+        {
+            "title": "Rockstar",
+            "artist": "Dababy",
+            "genre": "rap",
+        },
+        {
+            "title": "Say So",
+            "artist": "Doja Cat",
+            "genre": "Hiphop",
+        },
+        {
+            "title": "Panini",
+            "artist": "Lil Nas X",
+            "genre": "Hiphop"
+        }
+    ]
 
-        @app.route('/songs')
-        def home():
-            return jsonify(songs)
+    @app.route('/songs')
+    def home():
+        return jsonify(songs)
 
 
 # SECTION 14. Generate Hash (UUID/GUID) from a file    = gen_hash
@@ -1857,6 +1854,8 @@ class TestGenHash(unittest.TestCase):
 # https://www.freecodecamp.org/learn/back-end-development-and-apis/back-end-development-and-apis-projects/url-shortener-microservice
 #
 
+
+
 # SECTION 17. Setup logging
 
 def show_logging():
@@ -1865,6 +1864,7 @@ def show_logging():
    logger = logging.getLogger(__name__)
    print_info("logger="+str(logger))
    return False  # for now
+
 
 
 # SECTION 18. Generate a random Salt
@@ -1912,6 +1912,28 @@ def gen_0_to_100_int() -> int:
 
 
 # SECTION 20. Convert Roman to Decimal for use of case
+
+def do_process_romans():
+    if not process_romans:
+        return None
+    print_heading("In do_process_romans")
+    # Verify online at # https://www.calculatorsoup.com/calculators/conversions/roman-numeral-converter.php
+
+    current_year = get_cur_yyyy()
+    # Get roman numerals from today's year:
+    mylist = [current_year, "xx"]
+    my_number = mylist[0]
+    my_roman = int_to_roman(my_number)   # my_roman = "MMXXIII" = 2023
+    print_trace("current_year="+current_year)
+
+    my_roman_num = current_year
+    ob1 = int_to_roman(my_roman_num)
+    print_info(f'process_romans: int_to_roman: {my_number} ==> {my_roman} ')
+
+    ob1 = roman_to_int(my_roman)
+    # my_number = ob1.romanToInt(my_roman)
+    print_info(f'process_romans: roman_to_int: {my_roman} => {my_number} ')
+
 
 # From https://www.oreilly.com/library/view/python-cookbook/0596001673/ch03s24.html
 def int_to_roman(input):
@@ -1977,7 +1999,8 @@ def roman_to_int(roman_str_in):
         return sum
 
 def get_cur_yyyy():
-    date_object = _datetime.datetime.now()
+    #date_object = _datetime.datetime.now()
+    date_object = datetime.datetime.now()
     current_year = date_object.strftime('%Y')
     return current_year
 
@@ -2036,35 +2059,34 @@ def gen_magic_8ball_str() -> str:
     # Adapted from https://www.pythonforbeginners.com/code/magic-8-ball-written-in-python
     # import sys
     # import random
-    while True:  # loop until Enter is pressed to quit.
-        # PROTIP: Ensure Python is at least a specific version:
-        if sys.version_info[1] < 10:
-           #raise Exception("Python 3.10+ is needed for case code.")
-           print_todo("Python 3.10+ needed for this code!")
-           return None
-        answer = random.randint(1, 8)  # Random number between 1 and 8
-        match answer:  # Making use of Python 3.10+ to use this:
-            case 1:
-                answer_text=localize_blob("1. It is certain!")
-            case 2:
-                answer_text=localize_blob("2. Outlook good!")
-            case 3:
-                answer_text=localize_blob("3. You may rely on it!")
-            case 4:
-                answer_text=localize_blob("4. Ask again later!")
-            case 5:
-                answer_text=localize_blob("5. Concentrate and ask again!")
-            case 6:
-                answer_text=localize_blob("6. Reply hazy. try again!")
-            case 7:
-                answer_text=localize_blob("7. My reply is no!")
-            case 8:
-                answer_text=localize_blob("8. My sources say no!")
-            case _:
-                print_fail("gen_magic_8ball_str programming error!")
-                return None
-        print_verbose("gen_magic_8ball_str()=\""+answer_text+"\"")
-        return answer_text
+    # PROTIP: Ensure Python is at least a specific version for case code:
+    if sys.version_info[1] < 10:
+        #raise Exception("Python 3.10+ is needed for case code.")
+        print_todo("Python 3.10+ needed for this code!")
+        return None
+    answer = random.randint(1, 8)  # Random number between 1 and 8
+    match answer:  # Making use of Python 3.10+ to use this:
+        case 1:
+            answer_text=localize_blob("1. It is certain!")
+        case 2:
+            answer_text=localize_blob("2. Outlook good!")
+        case 3:
+            answer_text=localize_blob("3. You may rely on it!")
+        case 4:
+            answer_text=localize_blob("4. Ask again later!")
+        case 5:
+            answer_text=localize_blob("5. Concentrate and ask again!")
+        case 6:
+            answer_text=localize_blob("6. Reply hazy. try again!")
+        case 7:
+            answer_text=localize_blob("7. My reply is no!")
+        case 8:
+            answer_text=localize_blob("8. My sources say no!")
+        case _:
+            print_fail("gen_magic_8ball_str programming error!")
+            return None
+    print_verbose("gen_magic_8ball_str()=\""+answer_text+"\"")
+    return answer_text
     
 
 class TestGen8Ball(unittest.TestCase):
@@ -2114,7 +2136,7 @@ class Fibonacci(object):
         12: 233,
         13: 377,
         14: 610}
-# 15: 987, 16: 1597, 17: 2584}
+      # 15: 987, 16: 1597, 17: 2584}
 
     def fibonacci_iterative(n):
         """Calculate value of n-th Fibonacci sequence using iterative approach for O(1) time complexity.
@@ -2616,6 +2638,8 @@ def compass_text_from_degrees(degrees):
     return compass_sector[index]
 
 def get_weather_info(zip_code_in):
+    if not show_weather:
+        return None
     print_heading("show_weather for US zip code "+zip_code_in)
 
     # Commentary on this at
@@ -2774,29 +2798,35 @@ def get_weather_info(zip_code_in):
         # Generally, high pressure means fair weather, and low pressure
         # means rain.
 
-    if use_keyring:
-        print_heading("use_keyring")
+def do_use_keyring():
+    if not use_keyring:
+        return None
+    print_heading("In do_use_keyring()")
 
-        # TODO: Replace these hard-coded with real values:
-        key_namespace = "my-app"
-        key_entry = "OPENWEATHERMAP_API_KEY"  # = cred.username
-        key_text = "yackaty yack"
-        print_trace(f'username/key_namespace: \"{key_entry}\" in namespace \"{key_namespace}\" ')
+    # TODO: Replace these hard-coded with real values:
+    key_namespace = "my-app"
+    key_entry = "OPENWEATHERMAP_API_KEY"  # = cred.username
+    key_text = "yackaty yack"
+    print_trace(f'username/key_namespace: \"{key_entry}\" in namespace \"{key_namespace}\" ')
 
-        store_in_keyright(key_namespace, key_entry, key_text)
-        key_text_back = get_text_from_keyring(key_namespace, key_entry)
-        print_trace(key_text_back)
+    store_in_keyright(key_namespace, key_entry, key_text)
+    key_text_back = get_text_from_keyring(key_namespace, key_entry)
+    print_trace(key_text_back)
 
-        # TODO: remove_from_keyring(key_namespace_in, key_entry_in)
+    # TODO: remove_from_keyring(key_namespace_in, key_entry_in)
 
-    if email_weather:
-        message = text_weather_location + "\n" + text_weather_min + "\n" + \
-            text_weather_cur + "\n" + text_weather_max + \
-                "\n" + text_wind + "\n" + text_pressure
-        to_gmail_address = get_str_from_env_file("TO_EMAIL_ADDRESS")
-        subject_text = "Current weather for " + x["name"]
-        # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
-        # print_trace("Emailed to ...")
+def do_email_weather():
+    if not email_weather:
+        return None
+    print_heading("In do_email_weather()")
+    
+    message = text_weather_location + "\n" + text_weather_min + "\n" + \
+        text_weather_cur + "\n" + text_weather_max + \
+            "\n" + text_wind + "\n" + text_pressure
+    to_gmail_address = get_str_from_env_file("TO_EMAIL_ADDRESS")
+    subject_text = "Current weather for " + x["name"]
+    # FIXME: smtplib_sendmail_gmail(to_gmail_address,subject_text, message )
+    # print_trace("Emailed to ...")
 
 
 
@@ -2856,18 +2886,165 @@ def rm_env_line(api_key_in, replace_str_in):
 
 # SECTION 30. Login to Vault using Python hvac library
 
-def vault_login():
-    print_trace("In vault_login")
+# See https://wilsonmar.github.io/python-samples#HashicorpVault
+
+def do_use_hvault():
+    if use_hvault == 0:
+        print_trace("do_use_hvault() skipped: use_hvault="+str(use_hvault))
+        return False
+    print_trace("in do_use_hvault()")
+    
+    global VAULT_URL
+    VAULT_URL = get_str_from_env_file('VAULT_URL')
+    if not VAULT_URL:
+        VAULT_URL = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
+        print_warning("VAULT_URL="+VAULT_URL+" from default!")
+
+    global VAULT_TOKEN
+    VAULT_TOKEN = get_str_from_env_file('VAULT_TOKEN')
+    if not VAULT_TOKEN:
+        VAULT_TOKEN = 'dev-only-token'
+        print_warning("VAULT_TOKEN="+VAULT_TOKEN+" from default!")
+
+    global VAULT_USER
+    VAULT_USER = get_str_from_env_file('VAULT_USER')
+    if not VAULT_USER:
+        VAULT_USER = 'default_user'
+        print_warning("VAULT_USER="+VAULT_USER+" from default!")
+
+    global HVAULT_LEASE_DURATION
+    HVAULT_LEASE_DURATION = get_str_from_env_file('HVAULT_LEASE_DURATION')
+    if not HVAULT_LEASE_DURATION:
+        # Global static values (according to Security policies):
+        HVAULT_LEASE_DURATION = '1h'
+        print_warning("HVAULT_LEASE_DURATION="+HVAULT_LEASE_DURATION+" from default!")
+
+    client = auth_hvault()
+    if not client:
+        print_error("client "+client)
+        return False
+    secret = get_hvault_secret()
+    if not secret:
+        print_error("client "+client)
+        return False
+    # hvault_secret_path
+    # write_hvault_secret(hvault_secret_path):
+    return True
+
+def auth_hvault():
+    print_trace("in auth_hvault()")
+
+    # Equiv to vault login -method=userpass username=webapp password=webapp-password
+
+    # Leveraging the Vault Agent Template feature
+    # From https://developer.hashicorp.com/vault/tutorials/vault-agent/agent-read-secrets
+    
+
+    # From https://github.com/jakefurlong/vault/blob/main/read.py
+    # import os    # built-in
+    # import hvac  # https://github.com/hvac/hvac = Python client
+    client = hvac.Client(url=VAULT_URL)
+    if not client.is_authenticated():
+        print_error(f"{VAULT_URL} NOT authenticated as Hashicorp Vault client!")
+        return False
+    return client
+
+def get_hvault_secret():
+    print_trace("in get_hvault_secret()")
+    # Equiv to vault kv get external-apis/socials/twitter
+    # {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
+
+    # import hvac
+    # import json
+    client = hvac.Client(url=VAULT_URL)
+    read_response = client.secrets.kv.v2.read_secret_version(path='hello')
+    print(json.dumps(read_response, indent=4, sort_keys=True))
+    if not read_response:
+        return False
+    return True
+
+def retrieve_hvault_secret():
+    # Adapted from
+    # https://fakrul.wordpress.com/2020/06/06/python-script-credentials-stored-in-hashicorp-vault/
+    client = hvac.Client(VAULT_URL)
+    read_response = client.secrets.kv.read_secret_version(path='meraki')
+
+    url = 'https://api.meraki.com/api/v0/organizations/{}/inventory'.format(
+        ORG_ID)
+    MERAKI_API_KEY = 'X-Cisco-Meraki-API-Key'
+    ORG_ID = '123456'  # TODO: Replace this hard coding.
+    MERAKI_API_VALUE = read_response['data']['data']['MERAKI_API_VALUE']
+    response = requests.get(
+        url=url,
+        headers={
+            MERAKI_API_KEY: MERAKI_API_VALUE,
+            'Content-type': 'application/json'})
+
+    switch_list = response.json()
+    switch_serial = []
+    for i in switch_list:
+        if i['model'][:2] in ('MS') and i['networkId'] is not None:
+            switch_serial.append(i['serial'])
+
+    print_trace("switch_serial="+switch_serial)
+
+def write_hvault_secret(hvault_secret_path):
+
+    client = hvac.Client(
+        url=os.environ['VAULT_URL'],
+        token=os.environ['VAULT_TOKEN'],
+        cert=(client_cert_path, client_key_path),
+        verify=server_cert_path
+    )
+
+    client.write(
+        hvault_secret_path,
+        type='pythons',
+        lease=HVAULT_LEASE_DURATION)
+
+    if client.is_authenticated():
+        print_trace(client.read(hvault_secret_path))
+        # {u'lease_id': u'', u'warnings': None, u'wrap_info': None, u'auth': None, u'lease_duration': 3600, u'request_id': u'c383e53e-43da-d491-6c20-b0f5f7e4a33a', u'data': {u'type': u'pythons', u'lease': u'1h'}, u'renewable': False}
 
 
+# Write secret to HashiCorp Vault per https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
 
-# SECTION 31. ???
+
+# SECTION 31: Refresh certs crated by HashiCorp Vault
+
+def do_refresh_vault_certs():
+    if not refresh_vault_certs:
+        return None
+    
+    # Authentication
+    client = hvac.Client(
+        url='http://127.0.0.1:8200',
+        token='dev-only-token',
+    )
+    # Write a secret:
+    create_response = client.secrets.kv.v2.create_or_update_secret(
+        path='my-secret-password',
+        # secret=dict(password='Hashi123'),
+    )
+
+    print_trace('Secret written successfully.')
+
+    # Reading a secret
+    read_response = client.secrets.kv.read_secret_version(
+        path='my-secret-password')
+
+    password = read_response['data']['data']['password']
+
+    if password != 'Hashi123':
+        sys.exit('unexpected password')
+
+    print_trace('Access granted!')
+
 
 
 # SECTION 32. Login to Azure
 
-def azure_login():
-    print_trace("In azure_login")
+def login_azure():
     # This Python program is invoked by python-samples.sh so that it can, 
     # before running this, in a Terminal type: "az login" which pops up in your default browser 
     # for you to Pick an Azure account. 
@@ -2876,19 +3053,26 @@ def azure_login():
     # https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication-overview
     # https://azuredevopslabs.com/labs/vstsextend/azurekeyvault/
     # Based on https://docs.microsoft.com/en-us/azure/key-vault/secrets/quick-create-python
+    threshold = gen_0_to_100_int()
+    global use_azure  # to avoid UnboundLocalError: local variable referenced before assignment
+    if use_azure < threshold:
+        print_warning("login_azure() "+str(use_azure)+" < threshold "+str(threshold)+" so not executed.")
+        return None
+
+    print_trace("In login_azure()")
 
     # Based on CLI: conda install azure-identity   # found!
     from azure.identity import DefaultAzureCredential
     # Instantiate a DefaultAzureCredential object to access Azure SDK client class,
     # such as a BlobServiceClient object used to access Azure Blob Storage.
     credential = DefaultAzureCredential()
-    print_trace("Got creds in azure_login")
+    print_trace("Got creds in login_azure")
     
     AZ_ACCOUNT = get_str_from_env_file('AZ_ACCOUNT')  # from .env file
     if not AZ_ACCOUNT:
         print_fail("No AZ_ACCOUNT in .env!")
-        use_azure=False
-        exit()
+        use_azure=0
+        return None
 
     # Based on CLI: conda install azure-storage-blob
     from azure.storage.blob import BlobServiceClient
@@ -2907,7 +3091,6 @@ def azure_login():
 
 def azure_info():
     # QUESTION Equivalent to: az login --use-device-code
-    # Referenced by login_to_azure parameter.
     # See https://www.youtube.com/watch?v=unbzStG3IVY
     # In preview June, 2022.
     # Azure ML CLI v2 support python, R, Java, Julia, C#
@@ -2936,13 +3119,14 @@ def azure_blob_actions():
     AZ_SUBSCRIPTION_ID = get_str_from_env_file('AZ_SUBSCRIPTION_ID')  # from .env file
     if not AZ_SUBSCRIPTION_ID:
         print_fail("No AZ_SUBSCRIPTION_ID.")
-        use_azure=False
-        # break
+        use_azure=0
+        return None
 
     azure_region = get_str_from_env_file('AZURE_REGION')  # from .env file
     if not azure_region:
         print_fail("No AZURE_REGION.")
-        exit
+        use_azure=0
+        return None
 
     # ON A CLI TERMINAL:
     # pip install -U azure-keyvault-secrets
@@ -3119,6 +3303,7 @@ def delete_azure_secret(secretName):
 # https://docs.aws.amazon.com/kms/latest/developerguide/
 # https://docs.aws.amazon.com/code-samples/latest/catalog/python-kms-encrypt_decrypt_file.py.html
 # https://cloudacademy.com/course/get-started-with-aws-cloudhsm/what-is-cloudhsm/
+# https://learning.oreilly.com/videos/automation-in-aws/9780134818313/">"Automation in AWS with CloudFormation, CLI, and SDKs" by Richard A. Jones
 
 # In the Terminal running this program:
 # Must first install : pip install boto3 -U
@@ -3133,7 +3318,13 @@ def delete_azure_secret(secretName):
     * boto3.resources('kms') represent an object-oriented interface to AWS to provide
     a higher-level abstraction than the raw, low-level calls made by service clients.
 """
+def login_aws():
+    threshold = gen_0_to_100_int()
+    if use_aws < threshold:
+        print_warning("login_aws() "+str(use_aws)+" < threshold "+str(threshold)+" so not executed.")
+        return None
 
+    ## login?
 
 def create_aws_cmk(description="aws_cmk_description"):  # FIXME
     """Creates KMS Customer Master Keys (CMKs).
@@ -3354,8 +3545,7 @@ def get_aws_s3():
     # https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
     # https://developers.google.com/docs/api/quickstart/python
 
-def gcp_login():
-    print_trace("In gcp_login")
+def login_gcp():
     """Get credentials for GCP
     """
     # When running in a local development environment, such as a development workstation, 
@@ -3366,7 +3556,12 @@ def gcp_login():
     # which uses the file path exported into environment variable GOOGLE_APPLICATION_CREDENTIALS,
     # such as ""/Users/johndoe/johndoe-svc-2112140232.json" created on 2021-12-14.
     # See https://medium.com/@lyle-okoth/github-oauth-using-python-and-flask-a385876540af
+    threshold = gen_0_to_100_int()
+    if use_gcp < threshold:
+        print_warning("login_gcp() "+str(use_gcp)+" < threshold "+str(threshold)+" so not executed.")
+        return None
 
+    print_trace("In login_gcp()")
     gcp_creds = get_str_from_env_file('GOOGLE_APPLICATION_CREDENTIALS')
     if not gcp_creds:
         GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
@@ -3389,10 +3584,15 @@ def gcp_login():
     if not GCP_PROJECT_NUM:
         print_warning("GCP_PROJECT_NUM="+GCP_PROJECT_NUM+" has no default!")
 
+def get_gcp_blob():
+    """Get credentials for GCP
+    """
+
     # See https://readthedocs.org/projects/google-auth/downloads/pdf/latest/
     # Based on : pip3 install google.cloud.storage    # in requirements.txt
         #  Downloading google_cloud-0.34.0-py2.py3-none-any.whl (1.8 kB)
-    from google.cloud import storage  
+    
+    # FIXME: from google.cloud import storage  
         # google.cloud-0.34.0 ImportError: cannot import name 'storage' from 'google.cloud' (unknown location)
 
     # creds, GCP_PROJECT_ID = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
@@ -3633,163 +3833,6 @@ def grace_use_gcp():
 
 
 # SECTION 37: Log into AWS using Pythong Boto3 library
-
-# See https://wilsonmar.github.io/python-samples#HashicorpVault
-
-
-def do_use_hvault():
-    if use_hvault == 0:
-        print_trace("do_use_hvault() skipped: use_hvault="+str(use_hvault))
-        return False
-    print_trace("in do_use_hvault()")
-    
-    global VAULT_URL
-    VAULT_URL = get_str_from_env_file('VAULT_URL')
-    if not VAULT_URL:
-        VAULT_URL = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
-        print_warning("VAULT_URL="+VAULT_URL+" from default!")
-
-    global VAULT_TOKEN
-    VAULT_TOKEN = get_str_from_env_file('VAULT_TOKEN')
-    if not VAULT_TOKEN:
-        VAULT_TOKEN = 'dev-only-token'
-        print_warning("VAULT_TOKEN="+VAULT_TOKEN+" from default!")
-
-    global VAULT_USER
-    VAULT_USER = get_str_from_env_file('VAULT_USER')
-    if not VAULT_USER:
-        VAULT_USER = 'default_user'
-        print_warning("VAULT_USER="+VAULT_USER+" from default!")
-
-    global HVAULT_LEASE_DURATION
-    HVAULT_LEASE_DURATION = get_str_from_env_file('HVAULT_LEASE_DURATION')
-    if not HVAULT_LEASE_DURATION:
-        # Global static values (according to Security policies):
-        HVAULT_LEASE_DURATION = '1h'
-        print_warning("HVAULT_LEASE_DURATION="+HVAULT_LEASE_DURATION+" from default!")
-
-    client = auth_hvault()
-    if not client:
-        print_error("client "+client)
-        return False
-    secret = get_hvault_secret()
-    if not secret:
-        print_error("client "+client)
-        return False
-    # hvault_secret_path
-    # write_hvault_secret(hvault_secret_path):
-    return True
-
-def auth_hvault():
-    print_trace("in auth_hvault()")
-
-    # Equiv to vault login -method=userpass username=webapp password=webapp-password
-
-    # Leveraging the Vault Agent Template feature
-    # From https://developer.hashicorp.com/vault/tutorials/vault-agent/agent-read-secrets
-    
-
-    # From https://github.com/jakefurlong/vault/blob/main/read.py
-    # import os    # built-in
-    # import hvac  # https://github.com/hvac/hvac = Python client
-    client = hvac.Client(url=VAULT_URL)
-    if not client.is_authenticated():
-        print_error(f"{VAULT_URL} NOT authenticated as Hashicorp Vault client!")
-        return False
-    return client
-
-def get_hvault_secret():
-    print_trace("in get_hvault_secret()")
-    # Equiv to vault kv get external-apis/socials/twitter
-    # {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
-
-    # import hvac
-    # import json
-    client = hvac.Client(url=VAULT_URL)
-    read_response = client.secrets.kv.v2.read_secret_version(path='hello')
-    print(json.dumps(read_response, indent=4, sort_keys=True))
-    if not read_response:
-        return False
-    return True
-
-def retrieve_hvault_secret():
-    # Adapted from
-    # https://fakrul.wordpress.com/2020/06/06/python-script-credentials-stored-in-hashicorp-vault/
-    client = hvac.Client(VAULT_URL)
-    read_response = client.secrets.kv.read_secret_version(path='meraki')
-
-    url = 'https://api.meraki.com/api/v0/organizations/{}/inventory'.format(
-        ORG_ID)
-    MERAKI_API_KEY = 'X-Cisco-Meraki-API-Key'
-    ORG_ID = '123456'  # TODO: Replace this hard coding.
-    MERAKI_API_VALUE = read_response['data']['data']['MERAKI_API_VALUE']
-    response = requests.get(
-        url=url,
-        headers={
-            MERAKI_API_KEY: MERAKI_API_VALUE,
-            'Content-type': 'application/json'})
-
-    switch_list = response.json()
-    switch_serial = []
-    for i in switch_list:
-        if i['model'][:2] in ('MS') and i['networkId'] is not None:
-            switch_serial.append(i['serial'])
-
-    print_trace("switch_serial="+switch_serial)
-
-def write_hvault_secret(hvault_secret_path):
-
-    client = hvac.Client(
-        url=os.environ['VAULT_URL'],
-        token=os.environ['VAULT_TOKEN'],
-        cert=(client_cert_path, client_key_path),
-        verify=server_cert_path
-    )
-
-    client.write(
-        hvault_secret_path,
-        type='pythons',
-        lease=HVAULT_LEASE_DURATION)
-
-    if client.is_authenticated():
-        print_trace(client.read(hvault_secret_path))
-        # {u'lease_id': u'', u'warnings': None, u'wrap_info': None, u'auth': None, u'lease_duration': 3600, u'request_id': u'c383e53e-43da-d491-6c20-b0f5f7e4a33a', u'data': {u'type': u'pythons', u'lease': u'1h'}, u'renewable': False}
-
-
-
-# SECTION 39: Write secret to HashiCorp Vault per https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
-
-
-
-# SECTION 40: Refresh certs crated by HashiCorp Vault
-
-def refresh_vault_certs():
-    # if refresh_vault_certs:
-
-    # Authentication
-    client = hvac.Client(
-        url='http://127.0.0.1:8200',
-        token='dev-only-token',
-    )
-    # Write a secret:
-    create_response = client.secrets.kv.v2.create_or_update_secret(
-        path='my-secret-password',
-        # secret=dict(password='Hashi123'),
-    )
-
-    print_trace('Secret written successfully.')
-
-    # Reading a secret
-    read_response = client.secrets.kv.read_secret_version(
-        path='my-secret-password')
-
-    password = read_response['data']['data']['password']
-
-    if password != 'Hashi123':
-        sys.exit('unexpected password')
-
-    print_trace('Access granted!')
-
 
 
 # SECTION 41. Create/Reuse folder for img app to put files:
@@ -4059,33 +4102,32 @@ def sms_from_pubsub(event, context):
 #   https://api.slack.com/methods/chat.postMessage
 
 def do_send_slack():
-    if send_slack == 0:
-       return None
     threshold = gen_0_to_100_int()
     if send_slack < threshold:
         print_warning("do_send_slack "+str(send_slack)+" < threshold "+str(threshold)+" so not executed.")
-    else:
-        SLACK_APP1_OAUTH_TOKEN = get_secret_from_env_file('SLACK_APP1_OAUTH_TOKEN')
-        if not SLACK_APP1_OAUTH_TOKEN:
-            print_fail("SLACK_APP1_OAUTH_TOKEN not in .env")
-            return None
+        return None
+    
+    SLACK_APP1_OAUTH_TOKEN = get_secret_from_env_file('SLACK_APP1_OAUTH_TOKEN')
+    if not SLACK_APP1_OAUTH_TOKEN:
+        print_fail("SLACK_APP1_OAUTH_TOKEN not in .env")
+        return None
 
-        SLACK_CHANNEL = get_str_from_env_file('SLACK_CHANNEL')
-        if not SLACK_CHANNEL:
-            print_fail("SLACK_CHANNEL not in .env")
-            return None
+    SLACK_CHANNEL = get_str_from_env_file('SLACK_CHANNEL')
+    if not SLACK_CHANNEL:
+        print_fail("SLACK_CHANNEL not in .env")
+        return None
 
-        slack_text_to_send = get_str_from_env_file('slack_text_to_send')
-        if not slack_text_to_send:
-            print_fail("slack_text_to_send not in .env")
-            return None
+    slack_text_to_send = get_str_from_env_file('slack_text_to_send')
+    if not slack_text_to_send:
+        print_fail("slack_text_to_send not in .env")
+        return None
 
-        # Based on: conda install slackclient 
-        # See https://www.youtube.com/watch?v=DyzNPAuGtcU
-        import slack
-        client = slack.WebClient(SLACK_APP1_OAUTH_TOKEN)
-        client.chat_postMessage(channel=SLACK_CHANNEL,text=slack_text_to_send)
-        print_verbose("\""+slack_text_to_send+"\" sent to channel "+SLACK_CHANNEL)
+    # Based on: conda install slackclient 
+    # See https://www.youtube.com/watch?v=DyzNPAuGtcU
+    import slack
+    client = slack.WebClient(SLACK_APP1_OAUTH_TOKEN)
+    client.chat_postMessage(channel=SLACK_CHANNEL,text=slack_text_to_send)
+    print_verbose("\""+slack_text_to_send+"\" sent to channel "+SLACK_CHANNEL)
 
 
 def post_message_to_slack(text, blocks=None):
@@ -4230,7 +4272,8 @@ class TestSendEmail(unittest.TestCase):
             if True:  # TODO: for loop through email addresses and text in file:
 
                 # Optionally, add datestamp to email body:
-                trans_datetime = str(_datetime.datetime.fromtimestamp(
+                #trans_datetime = str(_datetime.datetime.fromtimestamp(
+                trans_datetime = str(datetime.datetime.fromtimestamp(
                     time.time()))  # Default: 2021-11-20 07:59:44.412845
                 body_text = "Please call me. It's now " + trans_datetime
 
@@ -4517,105 +4560,49 @@ class TestDisplayRunStats(unittest.TestCase):
 
 # Execute a script by itself, and import objects from the script as though it were a regular module:
 if __name__ == "__main__":
-    print_heading("In main: initialization")
-    os_info()
-    if show_print_samples:
-        print_samples
-    #set_cli_parms()
-    if use_env_file:
-        open_env_file(ENV_FILE)
-        read_env_file()
+    sys_info()
+    open_env_file(ENV_FILE)
+    read_env_file()  # calls print_samples()
 
     print_heading("main_loop_runs_requested="+str(main_loop_runs_requested))
     main_loop_runs_started=int(1)
     while True:  # loop indefinitely (for stress testing), pausing in-between:
         print_trace("In main loop "+str(main_loop_runs_started))
+
+        do_use_hvault()  # to get secrets
+
+        #open_env_file(ENV_FILE)
+        #read_env_file()
+        #print_env_vars()
+        #set_cli_parms()
         # display_memory()
         # display_run_stats()
-        #print_env_vars()
-
-        #gen_magic_8ball_str()
-        # do_send_slack()  # FIXME: not working
-
-        do_use_hvault()
-        exit()
+        
+        login_azure()
+            # is_logged_in=azure_login()  # returns JSON of TenantID, (subscription) id
+        
+        do_send_slack()  # FIXME: not working
 
 #       geodata_from_ipaddr(my_ip_address)
 
         login_aws()
 
-        if use_azure == True:
-            print_heading("use_azure")
-            if login_to_azure == True:
-                print_heading("login_to_azure")
-                
-                # azure_login()
-                # is_logged_in=azure_login()  # returns JSON of TenantID, (subscription) id
-                # azure_info()
-                    # azure_resc()
-                # azure_blob_???
-                
-                if list_azure_resc == True:
-                    # See https://www.youtube.com/watch?v=we1pcMRQwD8 by Michael Levan of CBTNuggets.com
-                    # See https://stackoverflow.com/questions/51546073/how-to-run-azure-cli-commands-using-python
-                    from azure.cli.core import get_default_cli as azcli
-                    # Run a CLI az command constructed as a Python struct:
-                    # Replace 'Dev2' with your resource:
-                    azcli().invoke(['vm', 'list', '-g', 'Dev2'])
+#        if list_azure_resc == True:
+            # See https://www.youtube.com/watch?v=we1pcMRQwD8 by Michael Levan of CBTNuggets.com
+            # See https://stackoverflow.com/questions/51546073/how-to-run-azure-cli-commands-using-python
+#            from azure.cli.core import get_default_cli as azcli
+            # Run a CLI az command constructed as a Python struct:
+            # Replace 'Dev2' with your resource:
+#            azcli().invoke(['vm', 'list', '-g', 'Dev2'])
         
-        if use_gcp == True:
-            print_heading("use_gcp")
-            gcp_login()
+        login_gcp()
             # gcp_doc_title(READONLY_SCOPE,DOCUMENT_ID)
-    
-            gcp_buckets_list()
+            # gcp_buckets_list()
 
-        if use_aws == True:
-            print_heading("use_aws")
+        #gen_magic_8ball_str()
 
-        if process_romans == True:
-            print_heading("process_romans")
-            # Verify online at # https://www.calculatorsoup.com/calculators/conversions/roman-numeral-converter.php
-
-            current_year = get_cur_yyyy()
-            # Get roman numerals from today's year:
-            mylist = [current_year, "xx"]
-            my_number = mylist[0]
-            my_roman = int_to_roman(my_number)   # my_roman = "MMXXIII" = 2023
-            print_trace("current_year="+current_year)
-
-            my_roman_num = current_year
-            ob1 = int_to_roman(my_roman_num)
-            print_info(f'process_romans: int_to_roman: {my_number} ==> {my_roman} ')
-
-            ob1 = roman_to_int(my_roman)
-            # my_number = ob1.romanToInt(my_roman)
-            print_info(f'process_romans: roman_to_int: {my_roman} => {my_number} ')
-
-        if show_weather == True:
-            my_zip_code = obtain_zip_code()
-            get_weather_info(my_zip_code)
-
-        if gen_0_to_100 == True:
-            print_heading("gen_0_to_100 - 5 Random numbers between 1 and 100:")
-            gen_0_to_100(5)
-
-        if gen_salt == True:
-            print_heading("gen_salt")
-            gen_salt()
-
-        if gen_jwt == True:
-            print_heading("gen_jwt")
-            gen_jwt()
-
-        if update_md_files == True:
-            print_heading("update_md_files")
-
-        if download_imgs == True:
-            img_download()
-
-        if cleanup_img_files == True:
-           img_files_cleanup()
+        my_zip_code = obtain_zip_code()
+        get_weather_info(my_zip_code)
 
         # if flask:  display_flask()
 
