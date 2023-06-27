@@ -24,7 +24,7 @@ __linkedin__ = "https://linkedin.com/in/WilsonMar"
 __last_commit__ = "python-samples.py 0.3.13 Fix default logic from .env"
 # SECTION 49. scan python to copy files from github to cloudinary
 # login azure & retrieve secrets from hvault & azure resc list
-# login aws
+# login aws with boto3
 # fix y = x["main"] error
 # click instead of argparse
 # fix call of get_ipaddr etc without request
