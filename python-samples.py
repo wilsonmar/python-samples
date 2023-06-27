@@ -21,7 +21,9 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "python-samples.py 0.3.11 login azire & sh"
+__last_commit__ = "python-samples.py 0.3.13 Fix default logic from .env"
+# SECTION 49. scan python to copy files from github to cloudinary
+# login azure & retrieve secrets from hvault & azure resc list
 # login aws
 # fix y = x["main"] error
 # click instead of argparse
@@ -31,7 +33,7 @@ __last_commit__ = "python-samples.py 0.3.11 login azire & sh"
 # Add 3 retries to url
 # login_gcp, gcp_resc_list
 # FIXME: import azure , azure_login, azure_resc_list
-# aws_login, aws_resc_list
+# aws_resc_list
 
 
 # SECTION 02: Capture pgm start date/time
@@ -160,6 +162,7 @@ from dotenv import load_dotenv
 # Based on: conda install python-dotenv   # found!
 
 # Based on: conda install -c conda-forge flask
+# https://wilsonmar.github.io/python-api-flask/
 import flask  
 
 # See https://anaconda.org/search?q=google+cloud
@@ -279,8 +282,18 @@ xpt_stop_datetimestamp = datetime.datetime.now()
 
 ## TODO: #import click
 
+# The .env location can't be read in from .env:
+use_env_file = True    # -env "python-samples.env"
+global ENV_FILE
+ENV_FILE="python-samples.env"
+
 # -clear Console before starting so output always appears at top of screen.
 clear_cli = True       # -clear
+
+show_logging = False
+
+global show_dates_in_logs
+show_dates_in_logs = False
 
 # PROTIP: Global variable referenced within functions:
 # values obtained from .env file can be overriden in program call arguments: 
@@ -295,11 +308,7 @@ show_trace = True      # -vv Display responses from API calls for debugging code
 show_secrets = False   # Never show
 
 show_sys_info = True
-show_config = True
-
-use_env_file = True    # -env "python-samples.env"
-global ENV_FILE
-ENV_FILE="python-samples.env"
+show_config = True   # not used?
 
 use_flask = True       # -flask
 
@@ -309,10 +318,11 @@ use_flask = True       # -flask
 
 # See https://wilsonmar.github.io/python-samples/#ParseArguments
 
-if clear_cli:
-    # import os
-    # QUESTION: What's the output variable?
-    lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+def do_clear_cli():
+    if clear_cli:
+        import os
+        # QUESTION: What's the output variable?
+        lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 def set_cli_parms(count):
     """Present menu and parameters to control program
@@ -359,42 +369,70 @@ def print_separator():
 
 def print_heading(text_in):
     if show_heading:
-        print('\n***', bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('\n***', get_log_datetime(), bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+        else:
+            print('\n***', bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
 
 def print_fail(text_in):  # when program should stop
     if show_fail:
-        print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
 
 def print_error(text_in):  # when a programming error is evident
     if show_fail:
-        print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
 
 def print_warning(text_in):
     if show_warning:
-        print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
 
 def print_todo(text_in):
     if show_todo:
-        print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
 
 def print_info(text_in):
     if show_info:
-        print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
 
 def print_verbose(text_in):
     if show_verbose:
-        print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
 
 def print_trace(text_in):  # displayed as each object is created in pgm:
     if show_trace:
-        print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            print('***',get_log_datetime(), bcolors.TRACE, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
 
 def print_secret(secret_in):
     """ Outputs only the first few characters (like Git) with dots replacing the rest 
     """
     # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
     if show_secrets:  # program parameter
-        print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+        if str(show_dates_in_logs) == "True":
+            now_utc=datetime.now(timezone('UTC'))
+            print('*** ',now_utc,bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
     else:
         # same length regardless of secret length to reduce ability to guess:
         secret_len = 32  
@@ -402,7 +440,10 @@ def print_secret(secret_in):
             secret_out = secret_in[0:4] + "."*(secret_len-4)
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
-            print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_out}', bcolors.RESET)
+            if str(show_dates_in_logs) == "True":
+                print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+            else:
+                print('***', bcolors.CBEIGE, " SECRET: ", f'{secret_out}', bcolors.RESET)
 
 
 
@@ -550,17 +591,11 @@ def macos_version_name(release_in):
     return macos_platform_release
 
 def sys_info():
-    from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-
-    
     if not show_sys_info:   # defined among CLI arguments
         return None
     print_heading("In sys_info()")
 
+    # print_trace("env_file="+env_file)
     print_trace("user_home_dir_path="+user_home_dir_path)
     # the . in .secrets tells Linux that it should be a hidden file.
 
@@ -568,7 +603,7 @@ def sys_info():
     platform_system = platform.system()
        # 'Linux', 'Darwin', 'Java', 'Win32'
     print_trace("platform_system="+str(platform_system))
-
+    
     # my_os_platform=localize_blob("version")
     print_trace("my_os_version="+str(platform.release()))
     #           " = "+str(macos_version_name(my_os_version)))
@@ -576,9 +611,8 @@ def sys_info():
     my_os_process = str(os.getpid())
     print_trace("my_os_process="+my_os_process)
 
-    # print_trace("%s %s=%s" % (my_os_platform, localize_blob("version"), platform.mac_ver()[0]),end=" ")
-    # print+trace("%s process ID=%s" % ( my_os_name, os.getpid() ))
-
+    display_memory()
+   
         # or socket.gethostname()
     my_platform_node = platform.node()
     print_trace("my_platform_node="+my_platform_node)
@@ -590,10 +624,10 @@ def sys_info():
         # Kernel Version 18.7.0: Thu Jan 23 06:52:12 PST 2020;
         # root:xnu-4903.278.25~1/RELEASE_X86_64', machine='x86_64')
 
-    pwuid_shell = pwd.getpwuid(os.getuid()).pw_shell     # like "/bin/zsh"
+    pwuid_shell = pwd.getpwuid(os.getuid()).pw_shell     # like "/bin/zsh" on MacOS
     # preferred over os.getuid())[0]
     # Instead of: conda install psutil   # found
-    import psutil
+    # import psutil
 
     # machine_uid_pw_name = psutil.Process().username()
     print_trace("pwuid_shell="+pwuid_shell)
@@ -673,7 +707,7 @@ def sys_info():
     else:
         print_fail("venv is different from venv_prefix "+venv_prefix)
 
-    print_trace("__name__="+__name__)
+    print_trace("__name__="+__name__)  # = __main__
 
 
     # TODO: Make this function for call before & after run:
@@ -681,16 +715,6 @@ def sys_info():
     #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
     #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
         # left-to-right order of fields are re-arranged from the function's output.
-
-
-def print_env_vars():
-    """List all environment variables, one line each using pretty print (pprint)
-    """
-    # import os
-    # import pprint
-    environ_vars = os.environ
-    print_heading("User's Environment variable:")
-    pprint.pprint(dict(environ_vars), width = 1)
 
 def no_newlines(in_string):
     """ Strip new line from in_string
@@ -705,15 +729,19 @@ def no_newlines(in_string):
 def open_env_file(env_file) -> str:
     """Return a Boolean obtained from .env file based on key provided.
     """
-    print_trace("env_file="+env_file)
-    print_trace("user_home_dir_path="+user_home_dir_path)
+    from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+
     global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
 
     # PROTIP: Check if .env file on global_env_path is readable:
     if not os.path.isfile(global_env_path):
         print_error(global_env_path+" (global_env_path) not found!")
-    else:
-        print_info(global_env_path+" (global_env_path) readable.")
+    #else:
+    #    print_info(global_env_path+" (global_env_path) readable.")
 
     path = pathlib.Path(global_env_path)
     # Based on: pip3 install python-dotenv
@@ -721,6 +749,10 @@ def open_env_file(env_file) -> str:
        # See https://www.python-engineer.com/posts/dotenv-python/
        # See https://pypi.org/project/python-dotenv/
     load_dotenv(global_env_path)  # using load_dotenv
+
+    # Wait until variables for print_trace are retrieved:
+    #print_trace("env_file="+env_file)
+    #print_trace("user_home_dir_path="+user_home_dir_path)
 
 
 #def last_mod_datetime(env_file) -> str:
@@ -745,17 +777,17 @@ def open_env_file(env_file) -> str:
     return True
 
 def get_bool_from_env_file(key_in) -> bool:
-    """Return a value of boolean (True/False) data type from OS environment or .env file
+    """Return a True/False boolean value data type from OS environment or .env file
     (using pip python-dotenv)
     See https://how.wtf/read-environment-variables-from-file-in-python.html
     """
     env_var = os.environ.get(key_in)
-    if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file " + ENV_FILE)
+    if not env_var:
+        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
         return None
     else:
         print_trace(key_in + "=" + str(env_var) + " from .env")
-        return bool(env_var)
+        return env_var   # bool
 
 def get_str_from_env_file(key_in) -> str:
     """Return a value of string data type from OS environment or .env file
@@ -763,10 +795,14 @@ def get_str_from_env_file(key_in) -> str:
     """
     env_var = os.environ.get(key_in)
     if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file " + ENV_FILE)
+        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
         return None
     else:
-        print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
+        # PROTIP: Display only first 15 characters of a potentially secret long string:
+        if len(env_var) > 10:
+            print_trace(key_in + "=\"" + str(env_var[:10]) +" (remainder removed)")
+        else:
+            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
         return str(env_var)
 
 def get_secret_from_env_file(key_in) -> str:
@@ -803,11 +839,13 @@ def get_int_from_env_file(key_in) -> int:
         print_trace(key_in + "=" + str(env_var) + " from .env")
         return int(env_var)
 
+# ffff
 def get_float_from_env_file(key_in) -> float:
     """Return a floating-point number data type from OS environment or .env file
     (using pip python-dotenv)
     """
     env_var = os.environ.get(key_in)  # using pip python-dotenv
+    # print("get_float DEBUGGING : env_var"+str(type(env_var))+"="+str(env_var))
     if not env_var:  # yes, defined=True, use it:
         print_warning(key_in + " not found in OS nor .env file " + ENV_FILE)
         return None
@@ -820,58 +858,136 @@ def read_env_file():
     """Read .env file containing variables and values.
     See https://wilsonmar.github.io/python-samples/#envLoad
     """
-    print_heading("In read_env_file()")
+    # wait to display until vars are read in:
+    # print_heading("In read_env_file()")
+
+    # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
+    global show_dates_in_logs
+    show_dates_in_logs = get_bool_from_env_file('show_dates_in_logs')
+    if show_dates_in_logs == None:
+        show_dates_in_logs = False
+        print_warning("show_dates_in_logs="+str(show_dates_in_logs)+" from default!")
+
+    global show_logging
+    show_logging = get_bool_from_env_file('show_logging')
+    if show_logging == None:
+        show_logging = True
+        print_warning("show_logging="+str(show_logging)+" from default!")
+
+    global show_heading
+    show_heading = get_bool_from_env_file('show_heading')
+    if show_heading == None:
+        show_heading = False
+        print_warning("show_heading="+str(show_heading)+" from default!")
+
+    global show_fail
+    show_fail = get_bool_from_env_file('show_fail')
+    if show_fail == None:
+        show_fail = True
+        print_warning("show_fail="+str(show_fail)+" from default!")
+
+    global show_error
+    show_error = get_bool_from_env_file('show_error')
+    if show_error == None:
+        show_error = True
+        print_warning("show_error="+str(show_error)+" from default!")
+
+    global show_warning
+    show_warning = get_bool_from_env_file('show_warning')
+    if show_warning == None:
+        show_warning = True
+        print_warning("show_warning="+str(show_warning)+" from default!")
+
+    global show_todo
+    show_todo = get_bool_from_env_file('show_todo')
+    if show_todo == None:
+        show_todo = True
+        print_warning("show_todo="+str(show_todo)+" from default!")
+
+    global show_info
+    show_info = get_bool_from_env_file('show_info')
+    if show_info == None:
+        show_info = True
+        print_warning("show_info="+str(show_info)+" from default!")
+
+    global show_verbose
+    show_verbose = get_bool_from_env_file('show_verbose')
+    if show_verbose == None:
+        show_verbose = False
+        print_warning("show_verbose="+str(show_verbose)+" from default!")
+
+    global show_trace
+    show_trace = get_bool_from_env_file('show_trace')
+    if show_trace == None:
+        show_trace = False
+        print_warning("show_trace="+str(show_trace)+" from default!")
+
+    global show_secrets
+    show_secrets = get_bool_from_env_file('show_secrets')
+    if show_secrets == None:
+        show_secrets = False
+        print_warning("show_secrets="+str(show_secrets)+" from default!")
+
+    global show_sys_info
+    show_sys_info = get_bool_from_env_file('show_sys_info')
+    if show_sys_info == None:
+        show_sys_info = True
+        print_warning("show_sys_info="+str(show_sys_info)+" from default!")
+
+    global show_print_samples
+    show_print_samples = get_bool_from_env_file('show_print_samples')
+    if show_print_samples == None:
+        show_print_samples = True
+        print_warning("show_print_samples="+str(show_print_samples)+" from default!")
 
     global main_loop_runs_requested
     main_loop_runs_requested = get_int_from_env_file('main_loop_runs_requested')
-    if not main_loop_runs_requested:
+    if main_loop_runs_requested == None:
         # PROTIP: Define a data type at creation so it can contain a large number?
         main_loop_runs_requested=int(1)
         print_warning("main_loop_runs_requested="+str(main_loop_runs_requested)+" "+str(type(main_loop_runs_requested))+" from default!")
 
     global main_loop_pause_seconds
     main_loop_pause_seconds = get_float_from_env_file('main_loop_pause_seconds')
-    if not main_loop_pause_seconds:
-        # PROTIP: Define a big float data type at creation so it can contain a large number:
-        main_loop_pause_seconds=float(0)   # NOT float(999)  # float(5.5)
+    print("get_float DEBUGGING : main_loop_pause_seconds"+str(type(main_loop_pause_seconds))+"="+str(main_loop_pause_seconds))
+    if main_loop_pause_seconds == None:
+        main_loop_pause_seconds=float(0.0)
         print_warning("main_loop_pause_seconds="+str(main_loop_pause_seconds)+" "+str(type(main_loop_pause_seconds))+" from default!")
-
+    
     global main_loop_run_pct
     main_loop_run_pct = get_int_from_env_file('main_loop_run_pct')
-    if not main_loop_run_pct:
+    if main_loop_run_pct == None:
         main_loop_run_pct = 100
         print_warning("main_loop_run_pct="+str(main_loop_run_pct)+" from default!")
-
-
 
     # NOTE: Country code can also come from IP Address lookup
                    # "US" # For use in whether to use metric
     global my_country
     my_country = get_str_from_env_file('MY_COUNTRY')
-    if not my_country:
+    if my_country == None:
         my_country = "US"
         print_warning("my_country="+str(my_country)+" from default!")
 
     # CAUTION: PROTIP: LOCALE values are different on Windows than Linux/MacOS
     # "ar_EG", "ja_JP", "zh_CN", "zh_TW", "hi" (Hindi), "sv_SE" #sweden/Swedish
-    global locale_from_env
-    locale_from_env = get_str_from_env_file('MY_LOCALE')  # for translation
-    if locale_from_env:
-        my_locale = locale_from_env
-        print_verbose("my_locale="+my_locale+" from system.")
-    else:
+    global my_locale
+    my_locale = get_str_from_env_file('MY_LOCALE')  # for translation
+    if my_locale == None:
+    # TODO:    my_locale = locale_from_env
+    #    print_verbose("my_locale="+my_locale+" from system.")
+    #else:
         my_locale = "en_US"
         print_warning("LOCALE="+my_locale+" from default!")
 
     global my_encoding
     my_encoding = get_str_from_env_file('MY_ENCODING')  # "UTF-8"
-    if not my_encoding:
+    if my_encoding == None:
         my_encoding = "UTF-8"
         print_warning("my_encoding="+my_encoding+" from default!")
 
     global my_tz_name_from_env
     my_tz_name_from_env = get_str_from_env_file('MY_TIMEZONE_NAME')
-    if my_tz_name_from_env:
+    if my_tz_name_from_env == None:
         my_tz_name = my_tz_name_from_env
     else:
         # Get time zone code from local operating system:
@@ -887,31 +1003,31 @@ def read_env_file():
     # "90210"  # use to lookup country, US state, long/lat, etc.
     global my_zip_code
     my_zip_code = get_str_from_env_file('MY_ZIP_CODE')
-    if not my_zip_code:
+    if my_zip_code == None:
         my_zip_code = "90210"   # Beverly Hills, CA, for demo usage.
         print_warning("my_zip_code="+my_zip_code+" from default!")
 
     global my_longitude
     my_longitude = get_str_from_env_file('MY_LONGITUDE')
-    if not my_longitude:
+    if my_longitude == None:
         my_longitude = "104.322"
         print_warning("my_longitude="+my_longitude+" from default!")
 
     global my_latitude
     my_latitude = get_str_from_env_file('MY_LATITUDE')
-    if not my_latitude:
+    if my_latitude == None:
         my_latitude = "34.123"
         print_warning("my_latitude="+my_latitude+" from default!")
 
     global my_currency
     my_currency = get_str_from_env_file('MY_CURRENCY')
-    if not my_currency:
+    if my_currency == None:
         my_currency = "USD"
         print_warning("my_currency="+my_currency+" from default!")
 
     global my_date_format
     my_date_format = get_str_from_env_file('MY_DATE_FORMAT')
-    if not my_date_format:
+    if my_date_format == None:
         my_date_format = "%A %d %b %Y %I:%M:%S %p %Z %z"
         # TODO: Override default date format based on country
             # Swedish dates are like 2014-11-14 instead of 11/14/2014 in the US.
@@ -924,151 +1040,130 @@ def read_env_file():
         print_warning("my_date_format="+my_date_format+" from default!")
 
 
-    # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
-
     global verify_manually
     verify_manually = get_bool_from_env_file('verify_manually')
-    if not verify_manually:
+    if verify_manually == None:
         verify_manually = False
         print_warning("verify_manually="+str(verify_manually)+" from default!")
 
-    global show_sys_info
-    show_sys_info = get_bool_from_env_file('show_sys_info')
-    if not show_sys_info:
-        show_sys_info = True
-        print_warning("show_sys_info="+str(show_sys_info)+" from default!")
-
-    global show_print_samples
-    show_print_samples = get_bool_from_env_file('show_print_samples')
-    if not show_print_samples:
-        show_print_samples = True
-        print_warning("show_print_samples="+str(show_print_samples)+" from default!")
-
-
     global use_flask
     use_flask = get_bool_from_env_file('use_flask')
-    if not use_flask:
+    if use_flask == None:
         use_flask = True
         print_warning("use_flask="+str(use_flask)+" from default!")
 
     global remove_env_line
     remove_env_line = get_bool_from_env_file('remove_env_line')
-    if not remove_env_line:
+    if remove_env_line == None:
         remove_env_line = True
         print_warning("remove_env_line="+str(remove_env_line)+" from default!")
 
     global localize_text
     localize_text = get_bool_from_env_file('localize_text')
-    if not localize_text:
+    if localize_text == None:
         localize_text = True
         print_warning("localize_text="+str(localize_text)+" from default!")
 
     global use_pytz_datetime
     use_pytz_datetime = get_bool_from_env_file('use_pytz_datetime')
-    if not use_pytz_datetime:
+    if use_pytz_datetime == None:
         use_pytz_datetime = True
         print_warning("use_pytz_datetime="+str(use_pytz_datetime)+" from default!")
 
     global show_dates
     show_dates = get_bool_from_env_file('show_dates')
-    if not show_dates:
+    if show_dates == None:
         show_dates = True
         print_warning("show_dates="+str(show_dates)+" from default!")
-
-    global show_logging
-    show_logging = get_bool_from_env_file('show_logging')
-    if not show_logging:
-        show_logging = False
-        print_warning("show_logging="+str(show_logging)+" from default!")
 
 
     global gen_hash
     gen_hash = get_bool_from_env_file('gen_hash')
-    if not gen_hash:
+    if gen_hash == None:
         gen_hash = False
         print_warning("gen_hash="+str(gen_hash)+" from default!")
 
     global gen_salt
     gen_salt = get_bool_from_env_file('gen_salt')
-    if not gen_salt:
+    if gen_salt == None:
         gen_salt = False
         print_warning("gen_salt="+str(gen_salt)+" from default!")
 
     global process_romans
     process_romans = get_bool_from_env_file('process_romans')
-    if not process_romans:
+    if process_romans == None:
         process_romans = False
         print_warning("process_romans="+str(process_romans)+" from default!")
 
     global gen_jwt
     gen_jwt = get_bool_from_env_file('gen_jwt')
-    if not gen_jwt:
+    if gen_jwt == None:
         gen_jwt = False
         print_warning("gen_jwt="+str(gen_jwt)+" from default!")
 
     global gen_lotto
     gen_lotto = get_bool_from_env_file('gen_lotto')
-    if not gen_lotto:
+    if gen_lotto == None:
         gen_lotto = False
         print_warning("gen_lotto="+str(gen_lotto)+" from default!")
 
     global gen_magic_8ball
     gen_magic_8ball = get_bool_from_env_file('gen_magic_8ball')
-    if not gen_magic_8ball:
+    if gen_magic_8ball == None:
         gen_magic_8ball = False
         print_warning("gen_magic_8ball="+str(gen_magic_8ball)+" from default!")
 
     global gen_fibonacci
     gen_fibonacci = get_bool_from_env_file('gen_fibonacci')
-    if not gen_fibonacci:
+    if gen_fibonacci == None:
         gen_fibonacci = False
         print_warning("gen_fibonacci="+str(gen_fibonacci)+" from default!")
 
     global make_change
     make_change = get_bool_from_env_file('make_change')
-    if not make_change:
+    if make_change == None:
         make_change = False
         print_warning("make_change="+str(make_change)+" from default!")
 
     global fill_knapsack
     fill_knapsack = get_bool_from_env_file('fill_knapsack')
-    if not fill_knapsack:
+    if fill_knapsack == None:
         fill_knapsack = False
         print_warning("fill_knapsack="+str(fill_knapsack)+" from default!")
 
     global get_ipaddr
     get_ipaddr = get_bool_from_env_file('get_ipaddr')
-    if not get_ipaddr:
+    if get_ipaddr == None:
         get_ipaddr = False
         print_warning("get_ipaddr="+str(get_ipaddr)+" from default!")
     
     global geodata_from_ipaddr
     geodata_from_ipaddr = get_bool_from_env_file('geodata_from_ipaddr')
-    if not geodata_from_ipaddr:
+    if geodata_from_ipaddr == None:
         geodata_from_ipaddr = False
         print_warning("geodata_from_ipaddr="+str(geodata_from_ipaddr)+" from default!")
 
     global geodata_from_zipinfo
     geodata_from_zipinfo = get_bool_from_env_file('geodata_from_zipinfo')
-    if not geodata_from_zipinfo:
+    if geodata_from_zipinfo == None:
         geodata_from_zipinfo = False
         print_warning("geodata_from_zipinfo="+str(geodata_from_zipinfo)+" from default!")
 
     global show_weather
     show_weather = get_bool_from_env_file('show_weather')
-    if not show_weather:
+    if show_weather == None:
         show_weather = False
         print_warning("show_weather="+str(show_weather)+" from default!")
 
     global email_weather
     email_weather = get_bool_from_env_file('email_weather')
-    if not email_weather:
+    if email_weather == None:
         email_weather = False
         print_warning("email_weather="+str(email_weather)+" from default!")
 
     global use_keyring
     use_keyring = get_bool_from_env_file('use_keyring')
-    if not use_keyring:
+    if use_keyring == None:
         use_keyring = False
         print_warning("use_keyring="+str(use_keyring)+" from default!")
 
@@ -1076,46 +1171,46 @@ def read_env_file():
     # Python library for HashiCorp Vault:
     global use_hvault
     use_hvault = get_int_from_env_file('use_hvault')
-    if not use_hvault:
+    if use_hvault == None:
         use_hvault = 0
         print_warning("use_hvault="+str(use_hvault)+" from default!")
 
     global refresh_vault_certs
     refresh_vault_certs = get_bool_from_env_file('refresh_vault_certs')
-    if not refresh_vault_certs:
+    if refresh_vault_certs == None:
         refresh_vault_certs = False
         print_warning("refresh_vault_certs="+str(refresh_vault_certs)+" from default!")
 
 
     global use_azure
     use_azure = get_int_from_env_file('use_azure')
-    if not use_azure:
+    if use_azure == None:
         use_azure = int(0)
         print_warning("use_azure="+str(use_azure)+" from default!")
     
     global list_azure_resc
     list_azure_resc = get_bool_from_env_file('list_azure_resc')
-    if not list_azure_resc:
+    if list_azure_resc == None:
         list_azure_resc = False
         print_warning("list_azure_resc="+str(list_azure_resc)+" from default!")
 
 
     global use_azure_redis
     use_azure_redis = get_bool_from_env_file('use_azure_redis')
-    if not use_azure_redis:
+    if use_azure_redis == None:
         use_azure_redis = False
         print_warning("use_azure_redis="+str(use_azure_redis)+" from default!")
 
 
     global use_aws
     use_aws = get_int_from_env_file('use_aws')
-    if not use_aws:
+    if use_aws == None:
         use_aws = 0
         print_warning("use_aws="+str(use_aws)+" from default!")
 
     global show_aws_init
     show_aws_init = get_bool_from_env_file('show_aws_init')
-    if not show_aws_init:
+    if show_aws_init == None:
         show_aws_init = True
         print_warning("show_aws_init="+str(show_aws_init)+" from default!")
     # https://aws.amazon.com/cdk/ = Cloud Development Kit v2
@@ -1125,50 +1220,50 @@ def read_env_file():
 
     global use_gcp
     use_gcp = get_int_from_env_file('use_gcp')
-    if not use_gcp:
+    if use_gcp == None:
         use_gcp = 0
         print_warning("use_gcp="+str(use_gcp)+" from default!")
 
     global use_add_blockchain
     add_blockchain = get_bool_from_env_file('add_blockchain')
-    if not add_blockchain:
+    if add_blockchain == None:
         add_blockchain = False
         print_warning("add_blockchain="+str(add_blockchain)+" from default!")
 
     global download_imgs
     download_imgs = get_bool_from_env_file('download_imgs')
-    if not download_imgs:
+    if download_imgs == None:
         download_imgs = False
         print_warning("download_imgs="+str(download_imgs)+" from default!")
 
     global img_set
     img_set = get_bool_from_env_file('img_set')
-    if not img_set:
+    if img_set == None:
         img_set = False
         print_warning("img_set="+str(img_set)+" from default!")
 
     # TODO: Specify in argparse above?
     global img_file_name
     img_file_name = get_bool_from_env_file('img_file_name')
-    if not img_file_name:
+    if img_file_name == None:
         img_file_name = "???"
         print_warning("img_file_name="+img_file_name+" from default!")
 
     global process_img
     process_img = get_bool_from_env_file('process_img')
-    if not process_img:
+    if process_img == None:
         process_img = False
         print_warning("process_img="+str(process_img)+" from default!")
 
     global img_file_naming_method
     img_file_naming_method = get_str_from_env_file('img_file_naming_method')
-    if not img_file_naming_method:
+    if img_file_naming_method == None:
         img_file_naming_method = "uuid4time"  # or "uuid4hex" or "uuid4"
         print_warning("img_file_naming_method="+img_file_naming_method+" from default!")
 
     global remove_img_dir_at_beg
     remove_img_dir_at_beg = get_bool_from_env_file('remove_img_dir_at_beg')
-    if not remove_img_dir_at_beg:
+    if remove_img_dir_at_beg == None:
         remove_img_dir_at_beg = False
         print_warning("remove_img_dir_at_beg=" +
                     str(remove_img_dir_at_beg)+" from default!")
@@ -1176,7 +1271,7 @@ def read_env_file():
     # to clean up folder
     global remove_img_file_at_beg
     remove_img_file_at_beg = get_bool_from_env_file('remove_img_file_at_beg')
-    if not remove_img_file_at_beg:
+    if remove_img_file_at_beg == None:
         remove_img_file_at_beg = False
         print_warning("remove_img_file_at_beg=" +
                     str(remove_img_file_at_beg)+" from default!")
@@ -1184,7 +1279,7 @@ def read_env_file():
     # to clean up folder
     global remove_img_dir_at_end
     remove_img_dir_at_end = get_bool_from_env_file('remove_img_dir_at_end')
-    if not remove_img_dir_at_end:
+    if remove_img_dir_at_end == None:
         remove_img_dir_at_end = False
         print_warning("remove_img_dir_at_end=" +
                     str(remove_img_dir_at_end)+" from default!")
@@ -1192,45 +1287,45 @@ def read_env_file():
     # to clean up file in folder
     global remove_img_file_at_end
     remove_img_file_at_end = get_bool_from_env_file('remove_img_file_at_end')
-    if not remove_img_file_at_end:
+    if remove_img_file_at_end == None:
         remove_img_file_at_end = False
         print_warning("remove_img_file_at_end=" +
                     str(remove_img_file_at_end)+" from default!")
 
     global send_fax
     send_fax = get_bool_from_env_file('send_fax')
-    if not send_fax:
+    if send_fax == None:
         send_fax = False
         print_warning("send_fax="+str(send_fax)+" from default!")
 
 
     global send_sms
     send_sms = get_bool_from_env_file('send_sms')
-    if not send_sms:
+    if send_sms == None:
         send_sms = False
         print_warning("send_sms="+str(send_sms)+" from default!")
 
     global send_slack
     send_slack = get_int_from_env_file('send_slack')
-    if not send_slack:
+    if send_slack == None:
         send_slack = 0
         print_warning("send_slack="+str(send_slack)+" from default!")
 
     global email_via_gmail
     email_via_gmail = get_bool_from_env_file('email_via_gmail')
-    if not email_via_gmail:
+    if email_via_gmail == None:
         email_via_gmail = False
         print_warning("email_via_gmail="+str(email_via_gmail)+" from default!")
 
     global verify_email
     verify_email = get_bool_from_env_file('verify_email')
-    if not verify_email:
+    if verify_email == None:
         verify_email = False
         print_warning("verify_email="+str(verify_email)+" from default!")
 
     global email_file_path
     email_file_path = get_str_from_env_file('email_file_path')
-    if not email_file_path:
+    if email_file_path == None:
         email_file_path = ""
         print_warning("email_file_path="+str(email_file_path)+" from default!")
 
@@ -1238,44 +1333,44 @@ def read_env_file():
     # (use MD5 Hash)
     global view_gravatar
     view_gravatar = get_bool_from_env_file('view_gravatar')
-    if not view_gravatar:
+    if view_gravatar == None:
         view_gravatar = False
         print_warning("view_gravatar="+str(view_gravatar)+" from default!")
 
     global categorize_bmi
     categorize_bmi = get_bool_from_env_file('categorize_bmi')
-    if not categorize_bmi:
+    if categorize_bmi == None:
         categorize_bmi = False
         print_warning("categorize_bmi="+str(categorize_bmi)+" from default!")
 
     global gen_sound_for_text
     gen_sound_for_text = get_str_from_env_file('gen_sound_for_text')
-    if not gen_sound_for_text:
+    if gen_sound_for_text == None:
         gen_sound_for_text = False
         print_warning("gen_sound_for_text="+str(gen_sound_for_text)+" from default!")
 
     global remove_sound_file_generated
     remove_sound_file_generated = get_str_from_env_file('remove_sound_file_generated')
-    if not remove_sound_file_generated:
+    if remove_sound_file_generated == None:
         remove_sound_file_generated = True
         print_warning("remove_sound_file_generated=" +
                     str(remove_sound_file_generated)+" from default!")
 
     global cleanup_img_files
     cleanup_img_files = get_bool_from_env_file('cleanup_img_files')
-    if not cleanup_img_files:
+    if cleanup_img_files == None:
         cleanup_img_files = False
         print_warning("cleanup_img_files="+str(cleanup_img_files)+" from default!")
 
     global update_md_files
     update_md_files = get_bool_from_env_file('update_md_files')
-    if not update_md_files:
+    if update_md_files == None:
         update_md_files = False
         print_warning("update_md_files="+str(update_md_files)+" from default!")
 
     global display_run_stats
     display_run_stats = get_bool_from_env_file('display_run_stats')
-    if not display_run_stats:
+    if display_run_stats == None:
         display_run_stats = False
         print_warning("display_run_stats="+str(display_run_stats)+" from default!")
 
@@ -1302,6 +1397,16 @@ def print_samples():
     print_trace("sample trace")
     print_secret("1234567890123456789")
     return True
+
+
+def print_env_vars():
+    """List all environment variables, one line each using pretty print (pprint)
+    """
+    # import os
+    # import pprint
+    environ_vars = os.environ
+    print_heading("User's Environment variable:")
+    pprint.pprint(dict(environ_vars), width = 1)
 
 
 
@@ -1583,7 +1688,29 @@ def verify_yes_no_manually(question, default='no'):
         print_trace("%s: %s" % (key, value))
 """
 
-#  if show_dates:  # TODO: Move this to the end of the program source code!
+#  if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
+def get_log_datetime() -> str:
+    from datetime import datetime
+    # importing timezone from pytz module
+    from pytz import timezone
+
+    # getting the current time in UTC timezone
+    now_utc = datetime.now(timezone('UTC'))
+
+    # TODO: Give datetime the user or system defined LOCALE:
+    MY_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
+    # Format the above DateTime using the strftime() https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
+    time_str=datetime.utcnow().strftime('%F %T.%f')
+       # ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
+    # time_str=now_utc.strftime(MY_DATE_FORMAT)
+
+    # TODO: Converting to Asia/Kolkata time zone using the .astimezone method:
+    # now_asia = now_utc.astimezone(timezone('Asia/Kolkata'))
+    # Format the above datetime using the strftime()
+    # print('Current Time in Asia/Kolkata TimeZone:',now_asia.strftime(format))
+
+    return time_str
+
 def compare_dates():
     print_heading("show_dates using localized format:")
     my_local_time = time.localtime()
@@ -1663,26 +1790,28 @@ def compare_dates():
     """
     
 def print_wall_times():
-    # All the timings together for consistency of output:
+    """Prints All the timings together for consistency of output:
+    """
+    print_heading("Wall times (hh:mm:sec.microsecs):")
     # TODO: Write to log for longer-term analytics
     
     # For wall time of std imports:
     std_stop_datetimestamp = datetime.datetime.now()
     std_elapsed_wall_time = std_stop_datetimestamp -  std_strt_datetimestamp
-    print_verbose("Wall time for import of Python standard libraries:"+ \
-        str(std_elapsed_wall_time)+" (hh:mm:sec.microsecs)") 
+    print_verbose("for import of Python standard libraries: "+ \
+        str(std_elapsed_wall_time)) 
 
     # For wall time of xpt imports:
     xpt_stop_datetimestamp = datetime.datetime.now()
     xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-    print_verbose("Wall time for import of Python extra    libraries:"+ \
-        str(xpt_elapsed_wall_time)+" (hh:mm:sec.microsecs)") 
+    print_verbose("for import of Python extra    libraries: "+ \
+        str(xpt_elapsed_wall_time)) 
 
     pgm_stop_datetimestamp = datetime.datetime.now()
     pgm_elapsed_wall_time = pgm_stop_datetimestamp -  pgm_strt_datetimestamp
     pgm_stop_perftimestamp = time.perf_counter()
-    print_verbose("Wall time for program run :"+ \
-        str(pgm_elapsed_wall_time)+" (hh:mm:sec.microsecs)") 
+    print_verbose("for whole program run: "+ \
+        str(pgm_elapsed_wall_time))
 
 
 
@@ -1692,7 +1821,8 @@ def display_memory():
     import os, psutil  #  psutil-5.9.5
     process = psutil.Process()
     mem=process.memory_info().rss / (1024 ** 2)  # in bytes 
-    print_verbose(str(process)+" memory="+str(mem)+" MiB")
+    # print_verbose(str(process)+" memory="+str(mem)+" MiB")
+    print_verbose("memory used="+str(mem)+" MiB")
 
 def display_flask():
 
@@ -1734,7 +1864,7 @@ def gen_hash_text(gen_hash_method, byte_array_in):
     # A hash cannot be converted back to the input data (unlike encryption).
     # import hashlib  # https://docs.python.org/3/library/hashlib.html
     # From among hashlib.algorithms_available
-    if gen_hash_method == "SHA1":      # spec removed by FIPS 180-4
+    if gen_hash_method == "SHA1":      # obsolete spec removed by FIPS 180-4
         m = hashlib.sha1()
     elif gen_hash_method == "SHA224":
         m = hashlib.sha224()
@@ -1858,12 +1988,13 @@ class TestGenHash(unittest.TestCase):
 
 # SECTION 17. Setup logging
 
-def show_logging():
-    # Confirm manually: https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBlade
-    # https://azure.github.io/azure-sdk/releases/latest/mgmt/python.html
-   logger = logging.getLogger(__name__)
-   print_info("logger="+str(logger))
-   return False  # for now
+def do_show_logging():
+    if show_logging:
+        # Confirm manually: https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBlade
+        # https://azure.github.io/azure-sdk/releases/latest/mgmt/python.html
+        logger = logging.getLogger(__name__)
+        print_info("logger="+str(logger))
+        return False  # for now
 
 
 
@@ -2884,21 +3015,24 @@ def rm_env_line(api_key_in, replace_str_in):
 
 
 
-# SECTION 30. Login to Vault using Python hvac library
+# SECTION 30. Login to Vault using Python hvac library  
 
 # See https://wilsonmar.github.io/python-samples#HashicorpVault
 
 def do_use_hvault():
+    """Auth and also retrieve a secret
+    # From https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
+    """
     if use_hvault == 0:
         print_trace("do_use_hvault() skipped: use_hvault="+str(use_hvault))
         return False
     print_trace("in do_use_hvault()")
     
-    global VAULT_URL
-    VAULT_URL = get_str_from_env_file('VAULT_URL')
-    if not VAULT_URL:
-        VAULT_URL = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
-        print_warning("VAULT_URL="+VAULT_URL+" from default!")
+    global VAULT_ADDR
+    VAULT_ADDR = get_str_from_env_file('VAULT_ADDR')
+    if not VAULT_ADDR:
+        VAULT_ADDR = 'http://127.0.0.1:8200'  # -vaulturl "http://127.0.0.1:8200"
+        print_warning("VAULT_ADDR="+VAULT_ADDR+" from default!")
 
     global VAULT_TOKEN
     VAULT_TOKEN = get_str_from_env_file('VAULT_TOKEN')
@@ -2919,54 +3053,108 @@ def do_use_hvault():
         HVAULT_LEASE_DURATION = '1h'
         print_warning("HVAULT_LEASE_DURATION="+HVAULT_LEASE_DURATION+" from default!")
 
-    client = auth_hvault()
-    if not client:
-        print_error("client "+client)
+    # From https://github.com/jakefurlong/vault/blob/main/auth.py
+    # Using global variables VAULT_ADDR & VAULT_TOKEN :
+    # import sys   # built-in
+    # import hvac  # https://github.com/hvac/hvac = Python client
+    client = hvac.Client(url=VAULT_ADDR,token=VAULT_TOKEN)
+    if not client.is_authenticated():
+        print_error(f"NOT authenticated as Hashicorp Vault hvac client!")
         return False
-    secret = get_hvault_secret()
-    if not secret:
-        print_error("client "+client)
+    print_verbose(f"authenticated as Hashicorp Vault hvac client!")
+
+"""
+    # After manual entry in Vault: kv get external-apis/socials/twitter
+    TWITTER_API_KEY = get_hvault_secret("TWITTER_API_KEY")
+        # Example: {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
+    # Within .env  IPFIND_API_KEY="external-apis/socials/ipfind"
+    IPFIND_API_KEY = get_hvault_secret(IPFIND_API_KEY)
+    
+    OPENWEATHERMAP_API_KEY = get_hvault_secret(OPENWEATHERMAP_API_KEY)  # "external-apis/socials/ipfind"
+    OPENWEATHERMAP_API_KEY = get_hvault_secret("kv/openweather/api_read")  # "external-apis/socials/ipfind"
+    OPENWEATHERMAP_API_KEY="10c5aa3e8279618cfe92220849af5352"  # This is a secret for a free service
+
+    AWS_ACCOUNT = get_hvault_secret(AWS_ACCOUNT)
+    AWS_ACCESS_KEY_ID = get_hvault_secret(AWS_ACCESS_KEY_ID)
+    AWS_SECRET_ACCESS_KEY = get_hvault_secret(AWS_SECRET_ACCESS_KEY)
+    SUBSCRIPTION_ID = get_hvault_secret(SUBSCRIPTION_ID)  # "kv/azure/projx/subscription_id"
+    AZURE_REDIS_ACCESS_KEY = get_hvault_secret(AZURE_REDIS_ACCESS_KEY)
+    AZURE_REDIS_CONNECTION_STRING = get_hvault_secret(AZURE_REDIS_CONNECTION_STRING)
+    AZURE_REDIS_HOSTNAME_FOR_FIBONACCIPI = get_hvault_secret(AZURE_REDIS_HOSTNAME_FOR_FIBONACCI)
+    
+    GCP_SVC_ACCT_NAME = get_hvault_secret(GCP_SVC_ACCT_NAME)
+    GCP_MAPS_API = get_hvault_secret(GCP_MAPS_API)
+    GCP_DOCUMENT_ID = get_hvault_secret(GCP_DOCUMENT_ID)
+
+    SLACK_APP1_OAUTH_TOKEN = get_hvault_secret(SLACK_APP1_OAUTH_TOKEN)
+    SLACK_APP1_ID = get_hvault_secret(SLACK_APP1_ID)
+    SLACK_APP1_CLIENT_ID = get_hvault_secret(SLACK_APP1_CLIENT_ID)
+    SLACK_APP1_CLIENT_SECRET = get_hvault_secret(SLACK_APP1_CLIENT_SECRET)
+    SLACK_APP1_SIGNING_SECRET = get_hvault_secret(SLACK_APP1_SIGNING_SECRET)
+
+    MAILBOXLAYER_API = get_hvault_secret(MAILBOXLAYER_API)
+    THOWAWAY_GMAIL_ADDRESS = get_hvault_secret(THOWAWAY_GMAIL_ADDRESS)
+    THOWAWAY_GMAIL_PASSWORD = get_hvault_secret(THOWAWAY_GMAIL_PASSWORD)
+"""
+
+def login_hvault():
+    """Returns a boolean if logged into a Vault server.
+    # From https://github.com/jakefurlong/vault/blob/main/auth.py
+    """
+    # Using global variables VAULT_ADDR & VAULT_TOKEN :
+    # import sys   # built-in
+    # import hvac  # https://github.com/hvac/hvac = Python client
+    client = hvac.Client(url=VAULT_ADDR,token=VAULT_TOKEN)
+    if not client.is_authenticated():
+        print_error(f"NOT authenticated as Hashicorp Vault hvac client!")
         return False
-    # hvault_secret_path
-    # write_hvault_secret(hvault_secret_path):
     return True
 
-def auth_hvault():
-    print_trace("in auth_hvault()")
+def get_hvault_client_class():
+    """Returns a hvac class object containing for auth to a Vault server.
+    # From https://github.com/jakefurlong/vault/blob/main/auth.py
+    """
+    hvault_client_class = hvac.Client(url=VAULT_ADDR)
+    if not hvault_client_class.is_authenticated():
+        print_error(f"{VAULT_ADDR} NOT authenticated as Hashicorp Vault hvac client!")
+        return False
+    return hvault_client_class
 
     # Equiv to vault login -method=userpass username=webapp password=webapp-password
 
     # Leveraging the Vault Agent Template feature
     # From https://developer.hashicorp.com/vault/tutorials/vault-agent/agent-read-secrets
-    
 
-    # From https://github.com/jakefurlong/vault/blob/main/read.py
     # import os    # built-in
     # import hvac  # https://github.com/hvac/hvac = Python client
-    client = hvac.Client(url=VAULT_URL)
-    if not client.is_authenticated():
-        print_error(f"{VAULT_URL} NOT authenticated as Hashicorp Vault client!")
+    hvault_client_class = hvac.Client(url=VAULT_ADDR)
+    if not hvault_client_class.is_authenticated():
+        print_error(f"{VAULT_ADDR} NOT authenticated as Hashicorp Vault hvac client!")
         return False
-    return client
+    return hvault_client_class
 
-def get_hvault_secret():
-    print_trace("in get_hvault_secret()")
+def get_hvault_secret(hvault_client, hvault_path):
+    """Returns (JSON) secret text from a given hvac class object containing for auth to a Vault server.
+    # From https://github.com/hashicorp/vault-examples/blob/main/examples/_quick-start/python/example.py
+    https://github.com/jakefurlong/vault/blob/main/read.py
+    """
+    print_trace("in get_hvault_secret("+hvault_path)
     # Equiv to vault kv get external-apis/socials/twitter
     # {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
 
     # import hvac
     # import json
-    client = hvac.Client(url=VAULT_URL)
-    read_response = client.secrets.kv.v2.read_secret_version(path='hello')
-    print(json.dumps(read_response, indent=4, sort_keys=True))
-    if not read_response:
+    hvault_client = hvac.Client(url=VAULT_ADDR)
+    secret_str = hvault_client.secrets.kv.v2.read_secret_version(path=hvault_path)
+    if not secret_str:
         return False
-    return True
+    print_secret(json.dumps(secret_str, indent=4, sort_keys=True))
+    return secret_str
 
 def retrieve_hvault_secret():
     # Adapted from
     # https://fakrul.wordpress.com/2020/06/06/python-script-credentials-stored-in-hashicorp-vault/
-    client = hvac.Client(VAULT_URL)
+    client = hvac.Client(VAULT_ADDR)
     read_response = client.secrets.kv.read_secret_version(path='meraki')
 
     url = 'https://api.meraki.com/api/v0/organizations/{}/inventory'.format(
@@ -2991,7 +3179,7 @@ def retrieve_hvault_secret():
 def write_hvault_secret(hvault_secret_path):
 
     client = hvac.Client(
-        url=os.environ['VAULT_URL'],
+        url=os.environ['VAULT_ADDR'],
         token=os.environ['VAULT_TOKEN'],
         cert=(client_cert_path, client_key_path),
         verify=server_cert_path
@@ -3098,10 +3286,10 @@ def azure_info():
 
     # pip install -r requirements.txt
 
-    AZ_SUBSCRIPTION_ID = get_str_from_env_file('AZ_SUBSCRIPTION_ID')
-    # AZ_SUBSCRIPTION_ID exmple: "285a9b29-43df-4ebf-85b1-61bbf7929871"
-    if not AZ_SUBSCRIPTION_ID:
-        print_error("AZ_SUBSCRIPTION_ID not defined in .env file. No default!")
+    SUBSCRIPTION_ID = get_str_from_env_file('SUBSCRIPTION_ID')
+    # SUBSCRIPTION_ID exmple: "285a9b29-43df-4ebf-85b1-61bbf7929871"
+    if not SUBSCRIPTION_ID:
+        print_error("SUBSCRIPTION_ID not defined in .env file. No default!")
         return False
     
     # Python equivalent of "az login" CLI command.
@@ -3116,9 +3304,9 @@ def azure_blob_actions():
     else:
         azure_region = "eastus"
 
-    AZ_SUBSCRIPTION_ID = get_str_from_env_file('AZ_SUBSCRIPTION_ID')  # from .env file
-    if not AZ_SUBSCRIPTION_ID:
-        print_fail("No AZ_SUBSCRIPTION_ID.")
+    SUBSCRIPTION_ID = get_str_from_env_file('SUBSCRIPTION_ID')  # from .env file
+    if not SUBSCRIPTION_ID:
+        print_fail("No SUBSCRIPTION_ID.")
         use_azure=0
         return None
 
@@ -3150,7 +3338,7 @@ def azure_blob_actions():
     KVUri = f"https://{azure_keyVaultName}.vault.azure.net"
     try:
         credential = DefaultAzureCredential()
-        client = SecretClient(vault_url=KVUri, credential=credential)
+        client = SecretClient(VAULT_ADDR=KVUri, credential=credential)
         print_trace(
             f'Using Azure secret Key Vault \"{azure_keyVaultName}\" in {azure_region} region.')
     except Exception:
@@ -3173,9 +3361,9 @@ def azure_blob_actions():
     # retrieve_azure_secret("IPFIND_API_KEY")
         # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
 
-    if show_logging:
-        print_heading("show_logging")
-        show_logging()
+    #if show_logging:
+    #    print_heading("show_logging")
+    #    show_logging()
 
 
 def azure_see():
@@ -3194,7 +3382,7 @@ def azure_see():
     resource_client = ResourceManagementClient(credential, subscription_id)
     RESOURCE_GROUP_NAME = "PythonAzureExample-Storage-rg"
     LOCATION = "centralus"
-    return
+    return None
 
 """
     az login --use-device-code
@@ -3304,11 +3492,7 @@ def delete_azure_secret(secretName):
 # https://docs.aws.amazon.com/code-samples/latest/catalog/python-kms-encrypt_decrypt_file.py.html
 # https://cloudacademy.com/course/get-started-with-aws-cloudhsm/what-is-cloudhsm/
 # https://learning.oreilly.com/videos/automation-in-aws/9780134818313/">"Automation in AWS with CloudFormation, CLI, and SDKs" by Richard A. Jones
-
-# In the Terminal running this program:
-# Must first install : pip install boto3 -U
-# Use the "cryptopgraphy" package to encrypt and decrypt data.
-# Paste definitions of AWS keys to authenticate.
+# https://developer.hashicorp.com/vault/tutorials/vault-agent/agent-aws
 
 """ Boto3 has two ways to access objects within AWS services (such as kms):
     * boto3.client('kms') provide a low-level interface to all AWS service operations.
@@ -3317,6 +3501,8 @@ def delete_azure_secret(secretName):
 
     * boto3.resources('kms') represent an object-oriented interface to AWS to provide
     a higher-level abstraction than the raw, low-level calls made by service clients.
+# Use the "cryptopgraphy" package to encrypt and decrypt data.
+# Paste definitions of AWS keys to authenticate.
 """
 def login_aws():
     threshold = gen_0_to_100_int()
@@ -4560,31 +4746,36 @@ class TestDisplayRunStats(unittest.TestCase):
 
 # Execute a script by itself, and import objects from the script as though it were a regular module:
 if __name__ == "__main__":
-    sys_info()
+    do_clear_cli()
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
+
+    sys_info()                # if show_sys_info = True
 
     print_heading("main_loop_runs_requested="+str(main_loop_runs_requested))
     main_loop_runs_started=int(1)
     while True:  # loop indefinitely (for stress testing), pausing in-between:
         print_trace("In main loop "+str(main_loop_runs_started))
 
-        do_use_hvault()  # to get secrets
-
-        #open_env_file(ENV_FILE)
+        #open_env_file(ENV_FILE)  # if different for each run
         #read_env_file()
         #print_env_vars()
+
         #set_cli_parms()
-        # display_memory()
         # display_run_stats()
         
-        login_azure()
-            # is_logged_in=azure_login()  # returns JSON of TenantID, (subscription) id
-        
-        do_send_slack()  # FIXME: not working
+        # if flask:  display_flask()
 
 #       geodata_from_ipaddr(my_ip_address)
+        my_zip_code = obtain_zip_code()
+        get_weather_info(my_zip_code)    # if show_weather
 
+        do_use_hvault()  # if use_hvault
+        exit()
+
+        login_azure()  # if use_azure
+            # is_logged_in=azure_login()  # returns JSON of TenantID, (subscription) id
+        
         login_aws()
 
 #        if list_azure_resc == True:
@@ -4601,10 +4792,7 @@ if __name__ == "__main__":
 
         #gen_magic_8ball_str()
 
-        my_zip_code = obtain_zip_code()
-        get_weather_info(my_zip_code)
-
-        # if flask:  display_flask()
+        do_send_slack()  # FIXME: not working
 
         # unittest.main()
         # Automatically invokes all functions within classes which inherits (unittest.TestCase):
