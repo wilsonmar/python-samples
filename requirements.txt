@@ -132,7 +132,7 @@ ConfigArgParse==1.5.3
 contextlib2==21.6.0
 contourpy==1.0.7
 cookiecutter @ file:///home/conda/feedstock_root/build_artifacts/cookiecutter_1621252513699/work
-cryptography==36.0.0
+cryptography==41.0.2
 cycler==0.11.0
 cyclonedx-python-lib==0.12.3
 databricks-cli==0.17.7
