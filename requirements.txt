@@ -269,7 +269,7 @@ pycodestyle==2.8.0
 pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1593275161868/work
 pyflakes==2.4.0
 PyGithub==1.58.2
-Pygments==2.10.0
+Pygments==2.15.0
 PyJWT==2.7.0
 pylint==2.12.1
 PyNaCl==1.5.0
