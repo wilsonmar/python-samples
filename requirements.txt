@@ -245,7 +245,7 @@ passlib==1.7.4
 pathlib2==2.3.7.post1
 pbr==5.8.0
 pep8==1.7.1
-Pillow==9.1.0
+Pillow==10.0.1
 pip-tools @ file:///home/conda/feedstock_root/build_artifacts/pip-tools_1609352639226/work
 pkginfo==1.9.6
 platformdirs==2.4.0
