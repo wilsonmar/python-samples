@@ -261,7 +261,7 @@ proto-plus==1.22.2
 protobuf==4.23.2
 psutil==5.9.5
 pyaes==1.6.1
-pyarrow==11.0.0
+pyarrow==14.0.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycares==4.1.2
