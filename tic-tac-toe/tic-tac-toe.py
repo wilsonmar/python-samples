@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
-"""tic-tac-toe.py at https://github.com/wilsonmar/python-samples/blob/main/tic-tac-toe.py
+"""tic-tac-toe-oop.py at https://github.com/wilsonmar/python-samples/blob/main/tic-tac-toe-oop.py
    Not yet explained at https://wilsonmar.github.io/python-samples 
    This is a classic two-player game played to settle an arugment to simply achieve world peace.
    Thus, this program does not provide the intelligence to play a human.
    
-   This program can be manually run by "chmod +x tic-tac-toe.py" then "./tic-tac-toe.py".
+   This program can be manually run by "chmod +x tic-tac-toe-oop.py" then "./tic-tac-toe-oop.py".
    See https://www.youtube.com/watch?v=Q6CCdCBVypg
    
    Alternately, this file is within a folder so that, during unit testing, this program can be 
@@ -25,13 +25,17 @@
    The "show_board" function displays the grid.
    Alternately, dividing lines can be added like at https://www.youtube.com/watch?v=7Djh-Cbgi0E
    
-   This program presents a text-based UI (not a Tkinter GUI) as in https://realpython.com/tic-tac-toe-python/
+   This program presents a text-based UI (not a Tkinter GUI) as in 
+   https://realpython.com/tic-tac-toe-python/ or https://www.youtube.com/watch?v=gNCpUS4d1Oo
+   https://github.com/softwareNuggets/Python_TKInter_Tic_Tac_Toe/blob/main/tic_tac_toe_pro.py
    which can be turned into a mobile app.
+   https://stackoverflow.com/questions/4083796/how-do-i-run-unittest-on-a-tkinter-app
 
    Logic in this code uses object-oriented programming concepts important to learn and use.
    The class "TicTacToe" encapsulates attributes, methods, and behaviors of game play.
    
-   The "random" module is imported for "random.randint(0, 1)" within function "get_random_first_player".
+   The "random" module is imported to enable "random.randint(0, 1)" within 
+   function "get_random_first_player".
 
    Within an infinite loop, the game_over flag is set after evaluating the result of each move.
    A win goes to the first player to mark three Os or Xs diagonally, horizontally, or vertically,
