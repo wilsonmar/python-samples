@@ -5,21 +5,37 @@
    Not yet explained at https://wilsonmar.github.io/python-samples 
    This is a classic two-player game played to settle an arugment to simply achieve world peace.
    
-   This program uses the Python random module to select a random player to start the game.
-   Each player alternately marks a (binary) O or X on a spot within a nine-square grid.
-   A win goes to the first player to mark three Os or Xs diagonally, horizontally, or vertically.
+   Logic in this code uses object-oriented programming concepts important to learn and use.
+   The class "TicTacToe" encapsulates attributes, methods, and behaviors of game play.
+   NOTE: In the code, 3 chacters are used to indent.
+   
+   This program starts by executing the "create_board" function to define a 3x3 grid of underlines.
+   The "show_board" function displays the grid.
+
+   Within an infinite loop, the game_over flag is set after evaluating the result of each move.
+   A win goes to the first player to mark three Os or Xs diagonally, horizontally, or vertically,
+   as determined by function "has_player_won".
+   
    Each player must also block their opponent while attempting to make their chain.
    Thus, this code has a nested loops to check for winning columns, rows, and diagonals.
 
-   This game is easy to play. So programming this in the Python language is not overly complex.
-   This code uses object-oriented programming concepts important to learn and use.
-   Each class encapsulates attributes, methods, and behaviors needed to simulate this game.
+   The Python random module is imported to select a random player to start the game.
+   Two players in the game alternate turns to mark the board with O or X.
    
-   It implements advice at https://www.linkedin.com/pulse/how-shine-coding-challenges-wilson-mar-/
+   To the prompt "Enter row & column numbers to fix spot: _"
+   each player enters two numbers separated by a space, such a "1 3" for row 1 column 3.
+   
+   TODO: Check whether a spot is already taken and request another choice.
+
+   game_over is identified when the "is_board_filled()" condition is met.
+
+   The program stops when there is a tie or a winner.
+
+   TODO: Add pytest code to provide several sets of inputs and determine whether outputs are correct.
+
+   TODO: At end of game, create another game and keep score.
 
    Creative Commons Copyright (c) 2024 Wilson Mar based on https://hackr.io/blog/python-projects
-
-   NOTE: 3 chacters are used to indent.
 
    This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
    OF ANY KIND, either express or implied. See the License for the specific
@@ -117,6 +133,7 @@ class TicTacToe:
                row, col = list(
                    map(int, input(
                        'Enter row & column numbers to fix spot: ').split()))
+                   # TODO: Add lables to rows (1 2 3) and columns (A B C)
                print()
 
                if col is None:
