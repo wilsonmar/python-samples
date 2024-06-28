@@ -12,8 +12,22 @@ This program provides a GUI created (using tkinter) to select movies and TV show
 tkinter (which comes with Python) is used to create the GUI containing labels, buttons, and entry fields. The user enters a title they enjoyed and the app returns recommendations based on a database from the Kaggle competition.
 The .csv file in the data folder combines csv files unzipped from Amazon Prime, Disney, Hulu, Netflix from https://www.kaggle.com/datasets/shivamb/hulu-movies-and-tv-shows
 
-The header row in the csv has: show_id,type,title,director,cast,country,date_added,release_year,rating,duration,listed_in,description
-
+Each csv has the same header row: show_id,type,title,director,cast,country,date_added,release_year,rating,duration,listed_in,description
+so can be combined into a 22,999 row file using command: 
+cd into the data folder.
+   csvstack orderline_123456.csv orderline_896524.csv > file_load.csv
+   or
+   head -n 1 file1.csv > merged.csv 
+   tail -n+2 file2.csv >> merged.csv
+   or
+   awk -F, -v OFS=, '{$(NF+1)="Disney"; print}' disney_plus_titles.csv >> combined.csv
+   awk -F, -v OFS=, '{$(NF+1)="Hulu"; print}' hulu_titles.csv >> combined.csv
+   awk -F, -v OFS=, '{$(NF+1)="Netflix"; print}' netflix_titles.csv >> combined.csv
+# Move combined.csv above the data folder.
+# Open combined.csv in LibreOffice to change top row last column heading to "Platform".
+# Search of "show_id," to remove extra headings.
+TODO: Fix code to recognize column for Streaming platform.
+   
 The ‘cosine similarity’ algorithm is used to to find similar results based on user input. 
 
 Although not scalable, pandas and numpy are used to clean the data and prepare it for processing.
@@ -21,17 +35,18 @@ Although not scalable, pandas and numpy are used to clean the data and prepare i
 A requirements.txt file accompanies this file to specify the version of each import specified below. It is generated from the requirements.in file using command "pip-compile requirements.in" after pip install pip-tools.
 """
 
+# Thse are part of the Python standard library not need pip install:
+import tkinter as tk
+# These require pip install:
 from nltk.tokenize import word_tokenize
 import numpy as np
 import pandas as pd
 import re  # regular expressions
 import nltk
-# you don't install tkinter via pip, as it's part of the Python standard library:
-import tkinter as tk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 
-data = pd.read_csv('netflix_titles.csv')
+data = pd.read_csv('shows.csv')
 data = data.dropna(subset=['Cast', 'Production Country', 'Rating'])
 # FIXME: above: File "/Users/johndoe/github-wilsonmar/python-samples/show-recommendations/./show-recommendations.py", line 38, in <module>
 movies = data[data['Content Type'] == 'Movie'].reset_index()
