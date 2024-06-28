@@ -1,0 +1,36 @@
+[project]
+description = "Tikter GUI app to recommend movies and TV shows based on the Netflix database (from Kaggle), using the ‘cosine similarity’ ML algorithm."
+authors = [
+    {name = "Wilson Mar", email = "wilsonmar+show2l@gmail.com"},
+]
+name = "show-recommendation"
+version = "0.1.0"
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+[tool.poetry.dependencies]
+python = "^3.7"
+pandas = "^1.3"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0",
+    "coverage>=5.0.3"
+]
+dev = [
+    "black>=21.0",
+    "flake8>=3.9.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/wilsonmar/python-samples"
+"Bug Tracker" = "https://github.com/wilsonmar/python-samples/issues"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -64,7 +64,6 @@
 
    The program stops when there is a tie or a winner.
 
-
    TODO: At end of game, create another game and keep score.
 
    Creative Commons Copyright (c) 2024 Wilson Mar based on https://hackr.io/blog/python-projects
