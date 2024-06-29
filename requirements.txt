@@ -454,7 +454,7 @@ toml @ file:///home/conda/feedstock_root/build_artifacts/toml_1604308577558/work
 tomli==2.0.0
 toposort==1.5
 tornado @ file:///Users/runner/miniforge3/conda-bld/tornado_1625489059091/work
-tqdm==4.62.3
+tqdm==4.66.3
 traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1630423529112/work
 types-setuptools==57.4.9
 types-toml==0.10.4
