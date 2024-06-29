@@ -426,7 +426,7 @@ qrcode==7.3.1
 querystring-parser==1.2.4
 redis==4.5.5
 regex==2021.11.10
-requests==2.31.0
+requests==2.32.2
 requests-oauthlib==1.3.0
 rich==10.14.0
 rope @ file:///home/conda/feedstock_root/build_artifacts/rope_1622405324029/work
