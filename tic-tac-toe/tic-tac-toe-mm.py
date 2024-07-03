@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """tic-tac-toe-mm.py at https://github.com/wilsonmar/python-samples/blob/main/tic-tac-toe-mm.py
 Not yet explained at https://wilsonmar.github.io/python-samples 
+https://rosettacode.org/wiki/Tic-tac-toe
 
 This program can be manually run by "chmod +x tic-tac-toe-mm.py" then "./tic-tac-toe-mm.py".
 See https://www.youtube.com/watch?v=Q6CCdCBVypg
