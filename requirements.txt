@@ -117,7 +117,7 @@ Bottleneck @ file:///Users/runner/miniforge3/conda-bld/bottleneck_1629826595213/
 brotlipy==0.7.0
 cached-property==1.5.2
 cachetools @ file:///home/conda/feedstock_root/build_artifacts/cachetools_1633010882559/work
-certifi==2023.7.22
+certifi==2024.7.4
 cffi @ file:///Users/runner/miniforge3/conda-bld/cffi_1631636289798/work
 chardet==3.0.4
 charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1626371162869/work
