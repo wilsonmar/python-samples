@@ -26,10 +26,9 @@ READ_LIST_PATH = ""  # On Linux: //mount/?to_do
 # Path to save downloaded videos:
 SAVE_PATH = ""  # On Linux: //mount/?to_do
 # YouTube URL to download (with time start and playlist):
-URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=qrnjYfs-xVw"
+URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=fDAPJ7rvcUw"
+# https://www.youtube.com/watch?v=qrnjYfs-xVw"
 #URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=qrnjYfs-xVw&t=1m&list=PLDVrhnY7hFVr0Qykievv5qn0ApwCSYnHB&index=12&pp=iAQB"
-
-yt = YouTube('http://youtube.com/watch?v=2lAe1cqCOXo')
 
 
 def download_a_file(URL_TO_DOWNLOAD):
