@@ -6,14 +6,15 @@
 # pylint: disable=line-too-long trailing-newlines
 """
 This is download-youtube.py at
-https://github.com/wilsonmar/python-samples/blob/main/download-youtube.py
+https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: NOT WORKING
-
-gas "v001 new :download-youtube.py"
+gas "v003 add YOUTUBE_FILE_NAME :download-youtube.py"
 
 Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-videos/
 """
+
+import os
 
 # pip3 install pytube (not in conda)
 from pytube import YouTube   # https://pytube.io/en/latest/user/quickstart.html
@@ -29,19 +30,35 @@ SAVE_PATH = ""  # On Linux: //mount/?to_do
 URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=fDAPJ7rvcUw"
 # https://www.youtube.com/watch?v=qrnjYfs-xVw"
 #URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=qrnjYfs-xVw&t=1m&list=PLDVrhnY7hFVr0Qykievv5qn0ApwCSYnHB&index=12&pp=iAQB"
+YOUTUBE_FILE_NAME="whatever.mp4"
 
 
-def download_a_file(URL_TO_DOWNLOAD):
+def download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_NAME):
 
     print(">>> Downloading",URL_TO_DOWNLOAD)
-    # get the video with the extension and
-    # resolution passed in the get() function
     try:
-        d_video = yt.get(mp4files[-1].extension,mp4files[-1].resolution)
-        # downloading the video
-        d_video.download(SAVE_PATH)
+        # object creation using YouTube
+        yt = YouTube(link)
     except:
-        print("Some Error!")
+        #to handle exception
+        print("Connection Error")
+        return
+
+     # get the video with the extension and
+    # resolution passed in the get() function
+    # Get all streams and filter for mp4 files
+    mp4_streams = yt.streams.filter(file_extension='mp4').all()
+
+    # get the video with the highest resolution:
+    d_video = mp4_streams[-1]
+
+    try:
+        d_video.download(SAVE_PATH)  # where SAVE_PATH is global
+            # d_video = yt.get(mp4files[-1].extension,mp4files[-1].resolution)
+        print('Video downloaded successfully!')
+
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
         return f"Error!", None
 
 
@@ -50,6 +67,7 @@ def download_several(read_list_path):
     # link of the video to be downloaded
     # opening the file
     link=open(read_list_path,'r')
+    # get YOUTUBE_FILE_NAME
 
     for i in link:
         try:
@@ -57,8 +75,7 @@ def download_several(read_list_path):
             # which was imported in the beginning
             yt = YouTube(i)
         except:
-
-            #to handle exception
+            # TODO: handle exception
             print("Connection Error")
 
         #filters out all the files with "mp4" extension
@@ -73,17 +90,19 @@ def download_several(read_list_path):
 #
 #### Audit parameters:
 if SAVE_PATH == "":
-    print(">>> Downloading to current folder!")
+    print(">>> SAVE_PATH contains blank!")
 else:
-    print(">>> Downloading to ",SAVE_PATH)
+    if os.path.isdir(SAVE_PATH):
+        print(">>> Downloading to ",SAVE_PATH)
+    else:
+        print(">>> Folder",SAVE_PATH," does not exist!")
+        exit()
+
 
 if READ_LIST_PATH == "":
     print(">>> Downloading a single file.")
-    download_a_file(URL_TO_DOWNLOAD)
+    download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_NAME)
 else:
     print(">>> Downloading a several files from list at ",READ_LIST_PATH)
     download_several(READ_LIST_PATH)
-
-
-
 
