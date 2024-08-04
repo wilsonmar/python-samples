@@ -11,7 +11,7 @@ to download the Survivor Library: How to surveve when the Technology Doesn't
 (It's not a Library about survival. It's a library for surviors.)
 
 CURRENT STATUS: NOT WORKING
-gas "v002 rename library-scraper.py to :regex-scraper.py"
+gas "v002 add :regex-scraper.py"
 
 Based on https://github.com/alw98/SurvivorLibraryCrawler/blob/master/LibraryCrawler.py
 and A Canticle for Leibowitz.
