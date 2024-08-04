@@ -177,6 +177,7 @@ def extract_files(category_found):
         # ['20th_century_bookkeeping_and_accounting_1922.pdf', 'Accounting.zip', etc.
 
     file_found_count = 0
+    file_download_count = 0
     for match in matches:
         file_found = match.strip()
         file_found_count += 1
@@ -195,6 +196,8 @@ def extract_files(category_found):
         # Add an interesting rating field to the database.
 
         download_file(file_found)
+        file_download_count += 1
+
         exit()
 
 
@@ -230,9 +233,9 @@ def download_file(file_found):
     # Print size of downloaded file:
     try:
         file_size = os.path.getsize(file_path)
-        formatted_num = f"{file_size:,}"
+        #formatted_num = f"{file_size:,}"
         # formatted_num = f"{file_size:n}"
-        #formatted_num = locale.format_string("%.2f", file_size, grouping=True)
+        formatted_num = locale.format_string("%.2f", file_size, grouping=True)
         print(f">>> {file_path} file size: {formatted_num} bytes.")
     except Exception as e:
         print(f">>> download_file: {e}")
