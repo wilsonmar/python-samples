@@ -5,11 +5,11 @@
 # conda install black  # to reformat
 # pylint: disable=line-too-long trailing-newlines
 """
-This is download-youtube.py at
+This is youtube-download.py at
 https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: NOT WORKING
-gas "v003 add YOUTUBE_FILE_NAME :download-youtube.py"
+gas "v005 add YOUTUBE_FILE_PATH verif :download-youtube.py"
 
 Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-videos/
 """
@@ -33,16 +33,15 @@ URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=fDAPJ7rvcUw"
 YOUTUBE_FILE_NAME="whatever.mp4"
 
 
-def download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_NAME):
+def download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH):
 
-    print(">>> Downloading",URL_TO_DOWNLOAD)
+    print(">>> Downloading from:",URL_TO_DOWNLOAD)
     try:
         # object creation using YouTube
         yt = YouTube(link)
-    except:
-        #to handle exception
-        print("Connection Error")
-        return
+    except Exception as err:
+        print(f">>> Link error {err=}, {type(err)=}")
+        return f">>> Error!", None
 
      # get the video with the extension and
     # resolution passed in the get() function
@@ -53,13 +52,13 @@ def download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_NAME):
     d_video = mp4_streams[-1]
 
     try:
-        d_video.download(SAVE_PATH)  # where SAVE_PATH is global
+        d_video.download(YOUTUBE_FILE_PATH)  # where SAVE_PATH is global
             # d_video = yt.get(mp4files[-1].extension,mp4files[-1].resolution)
-        print('Video downloaded successfully!')
+        print('>>> Video downloaded successfully!')
 
     except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
-        return f"Error!", None
+        print(f">>> Unexpected {err=}, {type(err)=}")
+        return f">>> Error!", None
 
 
 def download_several(read_list_path):
@@ -90,18 +89,21 @@ def download_several(read_list_path):
 #
 #### Audit parameters:
 if SAVE_PATH == "":
-    print(">>> SAVE_PATH contains blank!")
+    SAVE_PATH=os.getcwd()  # cwd=current working directory.
+    print(">>> SAVE_PATH is blank!")
+
+if os.path.isdir(SAVE_PATH):
+    print(">>> Downloading to:  ",SAVE_PATH)
 else:
-    if os.path.isdir(SAVE_PATH):
-        print(">>> Downloading to ",SAVE_PATH)
-    else:
-        print(">>> Folder",SAVE_PATH," does not exist!")
-        exit()
+    print(">>> Folder",SAVE_PATH," does not exist!")
+    exit()
 
 
 if READ_LIST_PATH == "":
-    print(">>> Downloading a single file.")
-    download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_NAME)
+    # On Linux & Macos:
+    YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
+    print(">>> Downloading file:",YOUTUBE_FILE_PATH)
+    download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
 else:
     print(">>> Downloading a several files from list at ",READ_LIST_PATH)
     download_several(READ_LIST_PATH)
