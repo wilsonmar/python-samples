@@ -63,7 +63,7 @@ def get_disk_usage(path):
     used = usage.used / (1024 * 1024 * 1024)    # Convert to GB
     free = usage.free / (1024 * 1024 * 1024)    # Convert to GB
 
-    print(f"Total: {total:.2f} GB, Used: {used:.2f} GB, Free: {free:.2f} GB")
+    print(f">>> Disk Space Capacity: {total:.2f} GB, Used: {used:.2f} GB, Free: {free:.2f} GB")
     return 0
 
 
@@ -89,7 +89,7 @@ def make_folder(base_path,add_folder):
     if base_path == "~":
         # Check if folder exists within user's home folder:
         base_path = os.path.expanduser('~')
-        print(">>> make_folder: ~ =",base_path)
+        print(">>> ~ =",base_path)
 
     path = Path(base_path)
     if not path.is_dir():
@@ -128,7 +128,7 @@ def make_folder(base_path,add_folder):
 
 def extract_categories(save_folder_path):
 
-    print(f">>> extract_categories: {save_folder_path}")
+    # print(f">>> extract_categories: {save_folder_path}")
 
     # TODO: Make url a paramter-provided value?
     url = "https://www.survivorlibrary.com/index.php/main-library-index/"
@@ -222,7 +222,7 @@ def extract_files(folder_path,category_found):
 
     html_content = response.text
     files_html_char_count=len(html_content)
-    print(f">>>",category_found,"files page contains",files_html_char_count,"characters.")
+    print(f">>>",files_html_char_count,"characters in",category_found,"files page.")
 
     # soup = BeautifulSoup(html_content, 'html.parser')
         # extracted_data = extract_table_data(html_content)
