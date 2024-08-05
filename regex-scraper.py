@@ -13,15 +13,17 @@ to download the Survivor Library: How to surveve when the Technology Doesn't
 Based on https://github.com/alw98/SurvivorLibraryCrawler/blob/master/LibraryCrawler.py
 and A Canticle for Leibowitz.
 
-CURRENT STATUS: NOT WORKING
+CURRENT STATUS: WORKING!
 gas "v003 shell db, downloading :regex-scraper.py"
 
 """
 
-from urllib.request import urlopen
-import re
-import os
 import html
+import re
+import time
+import os
+import shutil
+from urllib.request import urlopen
 
 from pathlib import Path
 import datetime
@@ -41,6 +43,7 @@ DB_NAME="survivor"
 # if Linux or MacOS:
 BASE_FOLDER = "~"
 SAVE_FOLDER = "survivorlibrary"
+PAUSE_SECS=2
 LIST_CATALOG=False
 
 # PHASE A: Build a database of CATEGORIES and a link to each from the MAIN INDEX table at
@@ -54,9 +57,30 @@ LIST_CATALOG=False
    # https://www.survivorlibrary.com/library/20th_century_bookkeeping_and_accounting_1922.pdf
 
 
+def get_disk_usage(path):
+    usage = shutil.disk_usage(path)
+    total = usage.total / (1024 * 1024 * 1024)  # Convert to GB
+    used = usage.used / (1024 * 1024 * 1024)    # Convert to GB
+    free = usage.free / (1024 * 1024 * 1024)    # Convert to GB
+
+    print(f"Total: {total:.2f} GB, Used: {used:.2f} GB, Free: {free:.2f} GB")
+    return 0
+
+
 # PHASE A: Build a database of CATEGORIES and a link to each from the MAIN INDEX table at
    # https://www.survivorlibrary.com/index.php/main-library-index/
 def establish_database(folder_path,db_name):
+
+    # Specify the path you want to check
+    path = "/"  # This checks the root directory, you can change it to any path
+
+    # Get disk usage statistics:
+    total, used, free = shutil.disk_usage(path)
+
+    # Convert bytes to gigabytes for readability
+    free_gb = free // (2**30)
+    print(f">>> Free disk space: {free_gb} GB")
+
     print(f">>> establish_database: {db_name} within {folder_path}.")
 
 
@@ -83,7 +107,7 @@ def make_folder(base_path,add_folder):
         print(f">>> make_folder: {e}")
 
     path = path / add_folder
-    print(f">>> make_folder: {path} extended!")
+    # print(f">>> make_folder: {path} extended!")
     if not path.is_dir():
         print(">>> make_folder:",path,"does not exist. Creating...")
         try:
@@ -158,7 +182,7 @@ def save_category(category_found):
 # If the Category folder does not exist under program folder, create it:
 def create_category_folder(category_folder_path):
     # print(f">>> category_folder_path: {category_folder_path}")
-    try:
+    # try:
         path = Path(category_folder_path)
         if not path.is_dir():
             #print(">>> Folder:",category_folder_path,"does not exist. Creating...")
@@ -173,13 +197,13 @@ def create_category_folder(category_folder_path):
         print(f">>> {modified_date} {category_folder_path}")
         return 0
 
-    except Exception as e:
-        print(f">>> download_file: {e}")
-        return 0
+    #except Exception as e:
+        # print(f">>> download_file: {e}")
+        # return 0
 
 
 # Called from function above:
-def extract_files(save_folder_path,category_found):
+def extract_files(folder_path,category_found):
     # Construct URL such as https://www.survivorlibrary.com/index.php/Accounting
     url="https://www.survivorlibrary.com/index.php/"+category_found
     # print(">>> files_url:",url)
@@ -197,7 +221,6 @@ def extract_files(save_folder_path,category_found):
         # https://www.perplexity.ai/search/extract-separate-values-from-e-fKJ47.ivRquXBiVYC_7PMg
 
     html_content = response.text
-
     files_html_char_count=len(html_content)
     print(f">>>",category_found,"files page contains",files_html_char_count,"characters.")
 
@@ -228,7 +251,7 @@ def extract_files(save_folder_path,category_found):
     for match in matches:
         file_found = match.strip()
         file_found_count += 1
-        print(">>> file_found:",file_found)
+        # print(">>> file_found:",file_found)
 
         # TODO: See if the Category is already in the database.
 
@@ -242,6 +265,8 @@ def extract_files(save_folder_path,category_found):
         # TODO: Save the fields from each row to a database or CSV file.
         # TODO: Add an interesting rating field to the database.
 
+        save_folder_path=folder_path / category_found
+        # print(f">>> save_folder_path: {save_folder_path}")
         download_file(file_found,save_folder_path)
         file_download_count += 1
 
@@ -250,44 +275,41 @@ def extract_files(save_folder_path,category_found):
 
 # Called from function above:
 def download_file(file_found,save_folder_path):
-    print(f">>> download_file: {file_found} to {save_folder_path}.")
+    # print(f">>> download_file: {file_found} to {save_folder_path}.")
 
     #create_category_folder(save_folder_path)
     file_path = save_folder_path / file_found   # as object
+    # print(">>> file_path:",file_path)
     try:
         # Bypass if file already downloaded:
         if os.path.exists(file_path):
             file_stats = os.stat(file_path)
             file_size = file_stats.st_size
-            print(f">>> Existing {file_path} contains {file_size} bytes.")
-            return
-        else:
-            print(f">>> {file_path} does not exist. So download!")
+            print(f">>> {file_size} bytes in {file_path}.")
 
     except Exception as e:
         print(f">>> {save_folder_path} {e}")
 
        # https://www.survivorlibrary.com/library/20th_century_bookkeeping_and_accounting_1922.pdf
     url="https://www.survivorlibrary.com/library/"+file_found
-    print(">>> download_file:",url)
+    print(">>> download:",url)
 
     try:
         response = requests.get(url, stream=True)  # to download large files in chunks.
+        if response.status_code == 200:
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+        else:
+            print('>>> Failed to download file with',response)
+            return 0
     except requests.RequestException as e:
         print(f">>> download_file Error fetching the url: {e}")
     except Exception as e:
         print(f">>> download_file {url} Error: {e}")
 
-    if response.status_code == 200:
-        with open(file_path, 'wb') as file:
-            file.write(response.content)
-        print('>>> File downloaded successfully')
-    else:
-        print('>>> Failed to download file with',response)
-
 
     # Print size of downloaded file:
-    try:
+    #try:
         file_size = os.path.getsizez(file_path)
         #formatted_num = f"{file_size:,}"
         # formatted_num = f"{file_size:n}"
@@ -295,13 +317,20 @@ def download_file(file_found,save_folder_path):
         formatted_num = locale.format_string("%.2f", file_size, grouping=True)
         print(f">>> {file_path} file size: {formatted_num} bytes.")
         return 0
-    except Exception as e:
-        print(f">>> file_size of {file_path} Error: {e}")
+    # except Exception as e:
+        # print(f">>> file_size of {file_path} Error: {e}")
 
-    exit()
+    # Pause for seconds between downloads:
+    time.sleep(PAUSE_SECS)
+    print(" ")
 
+
+# Your code after the pause
 
 #### MAIN:
+
+path = "/"  # Root directory for Unix-like systems, or "C:\\" for Windows
+disk_stats = get_disk_usage(path)
 
 establish_database(DB_PATH,DB_NAME)
 
