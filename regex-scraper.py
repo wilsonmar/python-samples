@@ -14,7 +14,7 @@ Based on https://github.com/alw98/SurvivorLibraryCrawler/blob/master/LibraryCraw
 and A Canticle for Leibowitz.
 
 CURRENT STATUS: WORKING!
-gas "v003 shell db, downloading :regex-scraper.py"
+gas "v005 msg formatting only bytes list :regex-scraper.py"
 
 """
 
@@ -292,7 +292,7 @@ def download_file(file_found,save_folder_path):
 
        # https://www.survivorlibrary.com/library/20th_century_bookkeeping_and_accounting_1922.pdf
     url="https://www.survivorlibrary.com/library/"+file_found
-    print(">>> download:",url)
+    # print(">>> download:",url)
 
     try:
         response = requests.get(url, stream=True)  # to download large files in chunks.
