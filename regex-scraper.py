@@ -10,11 +10,12 @@ https://github.com/wilsonmar/python-samples/blob/main/regex-scraper.py
 to download the Survivor Library: How to surveve when the Technology Doesn't
 (It's not a Library about survival. It's a library for surviors.)
 
-CURRENT STATUS: NOT WORKING
-gas "v002 add :regex-scraper.py"
-
 Based on https://github.com/alw98/SurvivorLibraryCrawler/blob/master/LibraryCrawler.py
 and A Canticle for Leibowitz.
+
+CURRENT STATUS: NOT WORKING
+gas "v003 shell db, downloading :regex-scraper.py"
+
 """
 
 from urllib.request import urlopen
@@ -33,14 +34,16 @@ import requests
 import locale
 locale.setlocale(locale.LC_ALL, '')
 
+DB_PATH="survivor"
+DB_NAME="survivor"
 # if Windows:
   # saveloc = "C:\\Users\\alw98\\Downloads\\Programming Stuff\\survivorlibrary"
 # if Linux or MacOS:
-SAVE_FOLDER = ".survivorlibrary"
-DB_FOLDER="survivor"
+BASE_FOLDER = "~"
+SAVE_FOLDER = "survivorlibrary"
+LIST_CATALOG=False
 
 # PHASE A: Build a database of CATEGORIES and a link to each from the MAIN INDEX table at
-   # https://www.survivorlibrary.com/index.php/main-library-index/
 
 # PHASE B: Build a database of files and download those files locally.
    # Accounting.csv does not contain URLs so we must scrape the HTML such as:
@@ -51,47 +54,63 @@ DB_FOLDER="survivor"
    # https://www.survivorlibrary.com/library/20th_century_bookkeeping_and_accounting_1922.pdf
 
 
-def establish_library(save_folder):
-    # print(">>> establish_library: save_folder:",save_folder)
+# PHASE A: Build a database of CATEGORIES and a link to each from the MAIN INDEX table at
+   # https://www.survivorlibrary.com/index.php/main-library-index/
+def establish_database(folder_path,db_name):
+    print(f">>> establish_database: {db_name} within {folder_path}.")
 
-    # Check if folder exists within user's home folder:
-    home_directory = os.path.expanduser('~')
-    # print(">>> home_directory:",home_directory)
 
-    folder_path=home_directory+"/"+save_folder
-    print(">>> save_folder_path:",folder_path)
+def make_folder(base_path,add_folder):
 
+    if base_path == "~":
+        # Check if folder exists within user's home folder:
+        base_path = os.path.expanduser('~')
+        print(">>> make_folder: ~ =",base_path)
+
+    path = Path(base_path)
+    if not path.is_dir():
+        print(">>> make_folder:",path,"does not exist. Creating...")
+        try:
+            os.mkdir(path)
+            print(f">>> make_folder: {path} created!")
+        except FileExistsError:
+            print(f">>> make_folder: {path} already exists!")
     try:
-        path = Path(folder_path)
-        if not path.is_dir():
-            print(">>> Folder:",folder_path,"does not exist. Creating...")
-            try:
-                os.mkdir(path)
-                print(f">>> Folder {path} created!")
-            except FileExistsError:
-                print(f">>> Folder {path} already exists")
-
-        modified_timestamp = os.path.getmtime(folder_path)
+        modified_timestamp = os.path.getmtime(path)
         modified_date = datetime.datetime.fromtimestamp(modified_timestamp)
-        print(f">>> Folder: {folder_path} last modified: {modified_date}")
-        return folder_path
-
+        print(f">>> {modified_date} {path}")
     except Exception as e:
-        print(f">>> download_file: {e}")
+        print(f">>> make_folder: {e}")
+
+    path = path / add_folder
+    print(f">>> make_folder: {path} extended!")
+    if not path.is_dir():
+        print(">>> make_folder:",path,"does not exist. Creating...")
+        try:
+            os.mkdir(path)
+            print(f">>> make_folder: {path} created!")
+        except FileExistsError:
+            print(f">>> make_folder: {path} already exists!")
+            return 0
+    try:
+        modified_timestamp = os.path.getmtime(path)
+        modified_date = datetime.datetime.fromtimestamp(modified_timestamp)
+        print(f">>> {modified_date} {path}")
+    except Exception as e:
+        print(f">>> make_folder: {e}")
         return 0
+    return path
 
 
-def establish_database(db_folder):
-    print(">>> TODO: establish_database:",db_folder)
+def extract_categories(save_folder_path):
 
+    print(f">>> extract_categories: {save_folder_path}")
 
-def extract_categories():
-
+    # TODO: Make url a paramter-provided value?
     url = "https://www.survivorlibrary.com/index.php/main-library-index/"
     # print(">>> Starting crawler...")
-
-    website = urlopen(url)
-    print(">>> opened web page: " + url)
+    #website = urlopen(url)
+    #print(">>> opened web page: " + url)
 
 #    content = website.read().decode('utf-8')
 #    categories_html_char_count=len(content)
@@ -113,27 +132,54 @@ def extract_categories():
         category_found = match.strip()
         category_found_count += 1
 
-        # print(" ")
-        # print(">>> category_found:",category_found)
+        # Add field "Interest-Rating" field to each category in the database.
+        # Add field "Download" to each category entry.
+        #result=save_category(category_found)  # saved:
+        #if result:  # == 0
 
-        save_category(category_found)
+        category_folder_path = save_folder_path / category_found  # equivalent to base_folder_path +'/'+ category_found
+        # print(f">>> category_folder_path: {category_folder_path}")
+        create_category_folder(category_folder_path)
 
-        extract_files(category_found)  # see local function below.
-
-    # Add field "Interest-Rating" field to each category in the database.
-    # Add field "Download" to each category entry.
+        extract_files(save_folder_path,category_found)  # see local function below.
 
     # Summarize:
     print(" ")
     print(">>> category_found_count=",category_found_count)
+    return 0
 
 
-# See if the Category is already in the database.
 def save_category(category_found):
-    print(">>> TODO: {category_found} to save in db:",category_found)
+    #print(f">>> TODO: save category {category_found} in db.")
+    return 0  # for now.
 
 
-def extract_files(category_found):
+# Called from a function above:
+# If the Category folder does not exist under program folder, create it:
+def create_category_folder(category_folder_path):
+    # print(f">>> category_folder_path: {category_folder_path}")
+    try:
+        path = Path(category_folder_path)
+        if not path.is_dir():
+            #print(">>> Folder:",category_folder_path,"does not exist. Creating...")
+            try:
+                os.mkdir(path)
+                print(f">>> Folder {path} created!")
+            except FileExistsError:
+                print(f">>> Folder {path} already exists")
+
+        modified_timestamp = os.path.getmtime(category_folder_path)
+        modified_date = datetime.datetime.fromtimestamp(modified_timestamp)
+        print(f">>> {modified_date} {category_folder_path}")
+        return 0
+
+    except Exception as e:
+        print(f">>> download_file: {e}")
+        return 0
+
+
+# Called from function above:
+def extract_files(save_folder_path,category_found):
     # Construct URL such as https://www.survivorlibrary.com/index.php/Accounting
     url="https://www.survivorlibrary.com/index.php/"+category_found
     # print(">>> files_url:",url)
@@ -145,7 +191,7 @@ def extract_files(category_found):
     except requests.RequestException as e:
         print(f">>> Error fetching the webpage: {e}")
     except Exception as e:
-        print(f">>>Error occurred: {e}")
+        print(f">>> Error occurred: {e}")
 
         # Loop through table to extract each line:
         # https://www.perplexity.ai/search/extract-separate-values-from-e-fKJ47.ivRquXBiVYC_7PMg
@@ -153,7 +199,7 @@ def extract_files(category_found):
     html_content = response.text
 
     files_html_char_count=len(html_content)
-    print(">>>",category_found,"files page contains",files_html_char_count,"characters.")
+    print(f">>>",category_found,"files page contains",files_html_char_count,"characters.")
 
     # soup = BeautifulSoup(html_content, 'html.parser')
         # extracted_data = extract_table_data(html_content)
@@ -169,40 +215,46 @@ def extract_files(category_found):
     #        </td>
     #    </tr>
 
-    # FIXME: Define the pattern to extract text:
     pattern = r'<a href="/library/(.*?)">'
     # Find all matches:
     matches = re.findall(pattern, html_content, re.DOTALL)
     # print(">>> matches:",matches)
-        # ['20th_century_bookkeeping_and_accounting_1922.pdf', 'Accounting.zip', etc.
+
+    # FIXME: Define the pattern to extract text:
+    # ['20th_century_bookkeeping_and_accounting_1922.pdf', 'Accounting.zip', etc.
 
     file_found_count = 0
+    file_download_count = 0
     for match in matches:
         file_found = match.strip()
         file_found_count += 1
-        # print(">>> file_found:",file_found)
+        print(">>> file_found:",file_found)
 
-        # See if the Category is already in the database.
+        # TODO: See if the Category is already in the database.
 
-        # See if the file is already in the database.
+        # TODO: See if the file is already in the database.
 
-        # Extract the year of publication at the end of each TITLE.
-        # Extract the file size (such as "23 mb") for the LINK field.
-        # Extract file url around "PDF"
-        # Download the url.
+        # TODO: Extract the year of publication at the end of each TITLE.
+        # TODO: Extract the file size (such as "23 mb") for the LINK field.
+        # TODO: Extract file url around "PDF"
+        # TODO: Download the url.
 
-        # Save the fields from each row to a database or CSV file.
-        # Add an interesting rating field to the database.
+        # TODO: Save the fields from each row to a database or CSV file.
+        # TODO: Add an interesting rating field to the database.
 
-        download_file(file_found)
-        exit()
+        download_file(file_found,save_folder_path)
+        file_download_count += 1
+
+    return 0
 
 
-def download_file(file_found):
-    print(">>> download_file:",file_found)
+# Called from function above:
+def download_file(file_found,save_folder_path):
+    print(f">>> download_file: {file_found} to {save_folder_path}.")
 
+    #create_category_folder(save_folder_path)
+    file_path = save_folder_path / file_found   # as object
     try:
-        file_path=save_folder_path+"/"+file_found
         # Bypass if file already downloaded:
         if os.path.exists(file_path):
             file_stats = os.stat(file_path)
@@ -210,7 +262,7 @@ def download_file(file_found):
             print(f">>> Existing {file_path} contains {file_size} bytes.")
             return
         else:
-            print(">>>",file_path,"does not exist. So download:")
+            print(f">>> {file_path} does not exist. So download!")
 
     except Exception as e:
         print(f">>> {save_folder_path} {e}")
@@ -220,38 +272,52 @@ def download_file(file_found):
     print(">>> download_file:",url)
 
     try:
-       #response = requests.get(url)
-       response = requests.get(url, stream=True)  # to download large files in chunks.
+        response = requests.get(url, stream=True)  # to download large files in chunks.
     except requests.RequestException as e:
         print(f">>> download_file Error fetching the url: {e}")
     except Exception as e:
-        print(f">>> download_file Error occurred: {e}")
+        print(f">>> download_file {url} Error: {e}")
+
+    if response.status_code == 200:
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+        print('>>> File downloaded successfully')
+    else:
+        print('>>> Failed to download file with',response)
+
 
     # Print size of downloaded file:
     try:
-        file_size = os.path.getsize(file_path)
-        formatted_num = f"{file_size:,}"
+        file_size = os.path.getsizez(file_path)
+        #formatted_num = f"{file_size:,}"
         # formatted_num = f"{file_size:n}"
-        #formatted_num = locale.format_string("%.2f", file_size, grouping=True)
+        # FIXME: number not being formatted with commans:
+        formatted_num = locale.format_string("%.2f", file_size, grouping=True)
         print(f">>> {file_path} file size: {formatted_num} bytes.")
+        return 0
     except Exception as e:
-        print(f">>> download_file: {e}")
+        print(f">>> file_size of {file_path} Error: {e}")
 
+    exit()
 
 
 #### MAIN:
 
-save_folder_path=establish_library(SAVE_FOLDER)
-print(f">>> main: {save_folder_path} ")
-# establish_database(DB_FOLDER)
+establish_database(DB_PATH,DB_NAME)
 
-extract_categories()
-   # Construct URL
+extended_path=make_folder(BASE_FOLDER,SAVE_FOLDER)
+# print(f">>> main: {extended_path} ")
 
+if extended_path:
+   result=extract_categories(extended_path)
 
-#def retrieve_by_category():
-    # Within "DOWNLOAD BOOKS" where there is a table by DATE, CATEGORY, TITLE, LINK to PDF.
-
-    # Download "Last 180 Days.csv"
+    # Alternately, Download "Last 180 Days.csv" ???
     # https://www.survivorlibrary.com/index.php/files-added-in-last-180-days
+
+if result:
+   if LIST_CATALOG == True:
+       print(">>> TODO: LIST_CATALOG")
+
+
+    # Within "DOWNLOAD BOOKS" where there is a table by DATE, CATEGORY, TITLE, LINK to PDF.
 
