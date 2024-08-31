@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 """
-This is phonetic.py at
+This is phonetic.py of Pengram holoalphabetic sentence that 
+contains every letter of the 26 letters of the alphabet at least once at
 https://github.com/wilsonmar/python-samples/blob/main/phonetic.py
 
-gas "v002 add newline with backsplash :phonetic.py"
+gas "v003 Printout sentence before substitutions :phonetic.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
@@ -28,10 +29,13 @@ def nato_phonetic_substitution(sentence):
 
     # Method to Convert the sentence to uppercase:
     sentence = sentence.upper()
-    # FIXME: sentence = sentence.title()
+    # FIXME:sentence = sentence.lower()
+    print(sentence.upper() )
 
     # Initialize an empty list to store the NATO words:
     nato_words = []
+    # Add space to the beginning of output.
+    nato_words.append("")
 
     # Iterate through each character in the sentence:
     for char in sentence:
@@ -56,4 +60,5 @@ sentence = "The quick brown fox jumps over the lazy dog"
 
 # Call the function and print the result
 result = nato_phonetic_substitution(sentence)
+
 print(result)
