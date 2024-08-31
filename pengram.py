@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 """
-This is pengram.py of Pengram holoalphabetic sentence that 
+This is phonetic.py of Pengram holoalphabetic sentence that 
 contains every letter of the 26 letters of the alphabet at least once at
-https://github.com/wilsonmar/python-samples/blob/main/pengram.py
+https://github.com/wilsonmar/python-samples/blob/main/phonetic.py
 
-gas "v003 Printout sentence before substitutions :pengram.py"
+gas "v003 Printout sentence before substitutions :phonetic.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
 write a python program to substitute each letter of the sentence with 
-a NATO pengram alphabet word.
+a NATO phonetic alphabet word.
 """
 
 import platform  # to detect if this program is running Windows OS.
 
-def nato_pengram_substitution(sentence):
-    # NATO pengram alphabet dictionary
+def nato_phonetic_substitution(sentence):
+    # NATO phonetic alphabet dictionary
     nato_alphabet = {
         'A': 'Alpha', 'B': 'Bravo', 'C': 'Charlie', 'D': 'Delta', 'E': 'Echo',
         'F': 'Foxtrot', 'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliet',
@@ -59,6 +59,6 @@ def nato_pengram_substitution(sentence):
 sentence = "The quick brown fox jumps over the lazy dog"
 
 # Call the function and print the result
-result = nato_pengram_substitution(sentence)
+result = nato_phonetic_substitution(sentence)
 
 print(result)
