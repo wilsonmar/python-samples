@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 """
-This is pengram.py of Pengram holoalphabetic sentence that 
+This is pengram2nato.py of Pengram holoalphabetic sentence that 
 contains every letter of the 26 letters of the alphabet at least once.
 Used to display typefaces and test typing equipment.
-https://github.com/wilsonmar/python-samples/blob/main/pengram.py
+https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
 
-gas "v003 Printout sentence before substitutions :pengram.py"
+gas "v003 Printout sentence before substitutions :pengram2nato.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
