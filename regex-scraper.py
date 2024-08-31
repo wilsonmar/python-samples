@@ -7,14 +7,15 @@
 """
 This is regex-scraper.py at
 https://github.com/wilsonmar/python-samples/blob/main/regex-scraper.py
-to download the Survivor Library: How to surveve when the Technology Doesn't
-(It's not a Library about survival. It's a library for surviors.)
+to download the "Survivor Library: How to survive when the Technology Doesn't"
+Its subject categories is at https://www.survivorlibrary.com/index.php/main-library-index/
+For each category page is a list of pdf files, including a zip file containing all the pdf files.
 
+This uses the Python Regular Expression library
 Based on https://github.com/alw98/SurvivorLibraryCrawler/blob/master/LibraryCrawler.py
-and A Canticle for Leibowitz.
 
 CURRENT STATUS: WORKING!
-gas "v005 msg formatting only bytes list :regex-scraper.py"
+gas "v006pi add __name__ :regex-scraper.py"
 
 """
 
@@ -29,7 +30,7 @@ from pathlib import Path
 import datetime
 
 # pip3 install bs4
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 import requests
 
 # Set the locale to the user's default settings
@@ -70,16 +71,6 @@ def get_disk_usage(path):
 # PHASE A: Build a database of CATEGORIES and a link to each from the MAIN INDEX table at
    # https://www.survivorlibrary.com/index.php/main-library-index/
 def establish_database(folder_path,db_name):
-
-    # Specify the path you want to check
-    path = "/"  # This checks the root directory, you can change it to any path
-
-    # Get disk usage statistics:
-    total, used, free = shutil.disk_usage(path)
-
-    # Convert bytes to gigabytes for readability
-    free_gb = free // (2**30)
-    print(f">>> Free disk space: {free_gb} GB")
 
     print(f">>> establish_database: {db_name} within {folder_path}.")
 
@@ -142,7 +133,7 @@ def extract_categories(save_folder_path):
 
     # Read the content of the file saved:
     # TODO: Instead read real-time using Beautiful Soup:
-    with open('surivor.html', 'r') as file:
+    with open('surivor.html', 'r')pipepip as file:
         content = file.read()
 
     # Define the pattern to extract text:
@@ -161,11 +152,13 @@ def extract_categories(save_folder_path):
         #result=save_category(category_found)  # saved:
         #if result:  # == 0
 
+        download_file(category_found+".zip",save_folder_path)
+
         category_folder_path = save_folder_path / category_found  # equivalent to base_folder_path +'/'+ category_found
         # print(f">>> category_folder_path: {category_folder_path}")
-        create_category_folder(category_folder_path)
 
-        extract_files(save_folder_path,category_found)  # see local function below.
+        # create_category_folder(category_folder_path)
+        # extract_files(save_folder_path,category_found)  # see local function below.
 
     # Summarize:
     print(" ")
@@ -175,6 +168,9 @@ def extract_categories(save_folder_path):
 
 def save_category(category_found):
     #print(f">>> TODO: save category {category_found} in db.")
+
+    #assert db  # check if database exists.
+
     return 0  # for now.
 
 
@@ -206,7 +202,7 @@ def create_category_folder(category_folder_path):
 def extract_files(folder_path,category_found):
     # Construct URL such as https://www.survivorlibrary.com/index.php/Accounting
     url="https://www.survivorlibrary.com/index.php/"+category_found
-    # print(">>> files_url:",url)
+    print(">>> Category_url:",url)
 
     try:
         # Fetch the entire HTML page as content:
@@ -238,10 +234,13 @@ def extract_files(folder_path,category_found):
     #        </td>
     #    </tr>
 
-    pattern = r'<a href="/library/(.*?)">'
-    # Find all matches:
-    matches = re.findall(pattern, html_content, re.DOTALL)
-    # print(">>> matches:",matches)
+    pattern = r'<a href="/library/(.*?)zip">'
+    try:
+        # Find all matches:
+        matches = re.findall(pattern, html_content, re.DOTALL)
+        # print(">>> matches:",matches)
+    except Exception as e:
+        print(f">>> {pattern} {e}")
 
     # FIXME: Define the pattern to extract text:
     # ['20th_century_bookkeeping_and_accounting_1922.pdf', 'Accounting.zip', etc.
@@ -267,7 +266,8 @@ def extract_files(folder_path,category_found):
 
         save_folder_path=folder_path / category_found
         # print(f">>> save_folder_path: {save_folder_path}")
-        download_file(file_found,save_folder_path)
+        download_file(file_found+".zip",save_folder_path)
+
         file_download_count += 1
 
     return 0
@@ -292,7 +292,7 @@ def download_file(file_found,save_folder_path):
 
        # https://www.survivorlibrary.com/library/20th_century_bookkeeping_and_accounting_1922.pdf
     url="https://www.survivorlibrary.com/library/"+file_found
-    # print(">>> download:",url)
+    #print(">>> download:",url)
 
     try:
         response = requests.get(url, stream=True)  # to download large files in chunks.
@@ -315,7 +315,7 @@ def download_file(file_found,save_folder_path):
         # formatted_num = f"{file_size:n}"
         # FIXME: number not being formatted with commans:
         formatted_num = locale.format_string("%.2f", file_size, grouping=True)
-        print(f">>> {file_path} file size: {formatted_num} bytes.")
+        print(f">>> {formatted_num} bytes in {file_path}")
         return 0
     # except Exception as e:
         # print(f">>> file_size of {file_path} Error: {e}")
@@ -329,24 +329,24 @@ def download_file(file_found,save_folder_path):
 
 #### MAIN:
 
-path = "/"  # Root directory for Unix-like systems, or "C:\\" for Windows
-disk_stats = get_disk_usage(path)
+if __name__ == '__main__':
+    path = "/"  # Root directory for Unix-like systems, or "C:\\" for Windows
+    disk_stats = get_disk_usage(path)
 
-establish_database(DB_PATH,DB_NAME)
+    establish_database(DB_PATH,DB_NAME)
 
-extended_path=make_folder(BASE_FOLDER,SAVE_FOLDER)
-# print(f">>> main: {extended_path} ")
+    extended_path=make_folder(BASE_FOLDER,SAVE_FOLDER)
+    # print(f">>> main: {extended_path} ")
 
-if extended_path:
-   result=extract_categories(extended_path)
+    if extended_path:
+       result=extract_categories(extended_path)
 
-    # Alternately, Download "Last 180 Days.csv" ???
-    # https://www.survivorlibrary.com/index.php/files-added-in-last-180-days
+        # Alternately, Download "Last 180 Days.csv" ???
+        # https://www.survivorlibrary.com/index.php/files-added-in-last-180-days
 
-if result:
-   if LIST_CATALOG == True:
-       print(">>> TODO: LIST_CATALOG")
+    if LIST_CATALOG == True:
+        print(">>> TODO: LIST_CATALOG")
 
 
-    # Within "DOWNLOAD BOOKS" where there is a table by DATE, CATEGORY, TITLE, LINK to PDF.
+        # Within "DOWNLOAD BOOKS" where there is a table by DATE, CATEGORY, TITLE, LINK to PDF.
 
