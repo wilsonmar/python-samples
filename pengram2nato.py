@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 """
 This is pengram2nato.py of Pengram holoalphabetic sentence that 
@@ -7,7 +6,7 @@ contains every letter of the 26 letters of the alphabet at least once.
 Used to display typefaces and test typing equipment.
 https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
 
-gas "v003 Printout sentence before substitutions :pengram2nato.py"
+gas "v005 Add result output :pengram2nato.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
@@ -56,10 +55,24 @@ def nato_pengram_substitution(sentence):
     # Join the NATO words with spaces:
     return ' '.join(nato_words)
 
-# The sentence to convert:
-sentence = "The quick brown fox jumps over the lazy dog"
+# To allow this file to be both imported as a module and run directly:
+if __name__ == "__main__":
 
-# Call the function and print the result
-result = nato_pengram_substitution(sentence)
+    print("שלום עולם")  # RIGHT-TO-LEFT Hebrew for Hello World (Shalom Olam)
 
-print(result)
+    # The sentence to convert:
+    sentence = "The quick brown fox jumps over the lazy dog"
+
+    # Call the function and print the result
+    result = nato_pengram_substitution(sentence)
+
+    print(result)
+    # Tango Hotel Echo
+    # Quebec Uniform India Charlie Kilo
+    # Bravo Romeo Oscar Whiskey November
+    # Foxtrot Oscar X-ray
+    # Juliet Uniform Mike Papa Sierra
+    # Oscar Victor Echo Romeo
+    # Tango Hotel Echo
+    # Lima Alpha Zulu Yankee
+    # Delta Oscar Golf
