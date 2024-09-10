@@ -6,7 +6,7 @@ contains every letter of the 26 letters of the alphabet at least once.
 Used to display typefaces and test typing equipment.
 https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
 
-gas "v005 Add result output :pengram2nato.py"
+gas "v006 Add Hanselman CR/LF explainer :pengram2nato.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
@@ -15,6 +15,10 @@ a NATO pengram alphabet word.
 """
 
 import platform  # to detect if this program is running Windows OS.
+import os
+
+# use OS-agnostic line ending constants:
+line_ending = os.linesep
 
 def nato_pengram_substitution(sentence):
     # NATO pengram alphabet dictionary
@@ -43,14 +47,12 @@ def nato_pengram_substitution(sentence):
             # If the character is a letter, append its NATO word
             nato_words.append(nato_alphabet[char])
         else:
-            # If it's not a letter, append the character itself:
+            # INSTEAD OF: If it's not a letter, append the character itself:
             # nato_words.append(char)
-            # If it's not a letter, add a newline:
-            if platform.system() == "Windows":
-                # Add newline + \r carriage return:
-                nato_words.append("\r\n")
-            else:  # Linux or Mac:
-                nato_words.append("\n")
+            # If it's not a letter, add a newline: https://www.youtube.com/watch?v=TtiBhktB4Qg
+            nato_words.append("\n")  # LF  (ASCII 10, Hex 8a)
+            # Python handleS the conversion to the appropriate platform-specific line ending.
+    # git config --global core.autocrlf input
 
     # Join the NATO words with spaces:
     return ' '.join(nato_words)
