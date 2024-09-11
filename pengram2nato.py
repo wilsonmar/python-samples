@@ -6,7 +6,7 @@ contains every letter of the 26 letters of the alphabet at least once.
 Used to display typefaces and test typing equipment.
 https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
 
-gas "v006 Add Hanselman CR/LF explainer :pengram2nato.py"
+gas "v006 Add t to Juliet & CR/LF explainer :pengram2nato.py"
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
@@ -24,7 +24,7 @@ def nato_pengram_substitution(sentence):
     # NATO pengram alphabet dictionary
     nato_alphabet = {
         'A': 'Alpha', 'B': 'Bravo', 'C': 'Charlie', 'D': 'Delta', 'E': 'Echo',
-        'F': 'Foxtrot', 'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliet',
+        'F': 'Foxtrot', 'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliett',
         'K': 'Kilo', 'L': 'Lima', 'M': 'Mike', 'N': 'November', 'O': 'Oscar',
         'P': 'Papa', 'Q': 'Quebec', 'R': 'Romeo', 'S': 'Sierra', 'T': 'Tango',
         'U': 'Uniform', 'V': 'Victor', 'W': 'Whiskey', 'X': 'X-ray',
@@ -59,8 +59,6 @@ def nato_pengram_substitution(sentence):
 
 # To allow this file to be both imported as a module and run directly:
 if __name__ == "__main__":
-
-    print("שלום עולם")  # RIGHT-TO-LEFT Hebrew for Hello World (Shalom Olam)
 
     # The sentence to convert:
     sentence = "The quick brown fox jumps over the lazy dog"
