@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gas "v005 add surise sunset :openweather.py"
+gas "v006 VERBOSE False :openweather.py"
 by Wilson Mar
 LICENSE: MIT
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
@@ -116,7 +116,7 @@ def compass_text_from_degrees(degrees):
 
 
 #### TODO: Obtain input values from arguments
-VERBOSE = True  # True or False
+VERBOSE = False  # True or False
 USE_IMPERIAL_UNITS = True  # True or False
 city_input = "Billings" # instead of input("Enter City:")
 city_encoded = urllib.parse.quote(city_input)
