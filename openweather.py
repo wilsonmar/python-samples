@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gas "v006 VERBOSE False :openweather.py"
+gas "v007 sea_level_hpa as pressure :openweather.py"
 by Wilson Mar
 LICENSE: MIT
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
@@ -172,8 +172,8 @@ else:
 feels_like = data['main']['feels_like']
 temp_k = data['main']['temp']
 humidity = data['main']['humidity']
-sea_level_m = data['main']['sea_level']
-grnd_level_m = data['main']['grnd_level']
+sea_level_hpa = data['main']['sea_level']
+grnd_level_hpa = data['main']['grnd_level']
 pressure = data['main']['pressure']
 
 
@@ -230,22 +230,14 @@ else:
 print(f"openweather.org at {formatted_datetime} reports")  # cloud, rain
 print(f"          Sunrise: {sunrise_formatted}")
 print(f"          Sunset:  {sunset_formatted}")
-print(f"{description} at {city_input}",end="")
+print(f"{description} at \"{city_input}\"",end="")
 print(f" country={country}",end="")
 if station_name == "":
     print("")
 else:
     print(f" ({station_name})")
 
-if USE_IMPERIAL_UNITS:
-    sea_level_f = sea_level_m * 3.28084
-    print(f"    Elevation: {sea_level_f:.2f} feet",end="")
-    grnd_level_f = grnd_level_m
-    print(f" (Ground_level: {grnd_level_f} feet)")
-else:
-    print(f"    Elevation: {sea_level_m:.2f} meters",end="")
-    print(f" (Ground_level: {grnd_level_m} meters)")
-
+# _ft = _m * 3.28084
 print(f"    Latitude:  {lat} from the Equator &")
 print(f"    Longitude: {lon} from the Meridian at Greenwich, UK")
 # Not print if same: print('Feels like: ',feels_like)
@@ -277,6 +269,7 @@ else:
     else:
         print(f" with gusts: {wind_gust_kph:.2f} kph")
 
+# sea_level returned is a normalized value that allows for comparison between different locations, regardless of their actual elevation.
 # The average sea-level pressure is 1013.25 mb/hPA (Hectopascal).
 # One millibar is equivalent to 100 Pa (Pascals).
 # The SI Atmosphere (atm) average air pressure at sea level
@@ -285,27 +278,26 @@ else:
 # See https://cumulus.hosiene.co.uk/viewtopic.php?t=8286
 # Example usage of the adjustment functions:
 sea_level_pressure = calculate_sea_level_pressure( \
-    pressure, sea_level_m, temp_c)
+    pressure, sea_level_hpa, temp_c)
 pressure_diff = sea_level_pressure - pressure
 
-altitude_to_adjust = sea_level_m  # meters
+altitude_to_adjust = sea_level_hpa  # meters
 adjusted_pressure = adjust_pressure_for_altitude \
-    (sea_level_pressure, altitude_to_adjust, temp_c)
+    (sea_level_hpa, altitude_to_adjust, temp_c)
 
 # Format & display each element:
 
-print(f"Pressure:",end="")
-#print(f" {pressure_desc} at")
-print(f" {pressure} hPa (Hectopascals, aka millibars)")
+print(f"Atmospheric pressure: {sea_level_hpa} hPa (Hectopascals, aka millibars)")
+print(f"       (Ground_level:  {grnd_level_hpa} hPa)")
 
 #print(f"is {pressure_diff:.2f} \
 #      hPa from adjusted average \
 #      {sea_level_pressure:.2f} hPa")
-print(f"      vs. {sea_level_pressure} hPa adjusted to sea level.")
+# print(f"      vs. {sea_level_hpa} hPa at sea level.")
 # print(f"{hectopascals:.2f} hPa above sea level average of 1013.25 hPA")
 # What is normal for your location's altitude
 # Python code: https://www.perplexity.ai/search/how-adjust-normal-hectopascals-SuInNLlARxadL9GbY.NmBA
-print(f"      vs. 1013.25 hPa unadjusted normally at sea level.")
+# print(f"      vs. 1013.25 hPa unadjusted normally at sea level.")
 # print(f"      vs. {adjusted_pressure:.2f} hPa normally for local elevation.")
 
 # Normal pressure is between 1009.144 hPa and 1022.689 hPa.
