@@ -1,14 +1,37 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-gas "v010 move humidty desc left :openweather.py"
-by Wilson Mar
-LICENSE: MIT
+"""openweather.py
+ay https://github.com
+
+gas "v011 add visability min & max temp :openweather.py"
+by Wilson Mar, LICENSE: MIT
+
+This program formats CLI output after parsing JSON returned from
+REST API calls to openweathermp.org. Response includes
+sunrise and sunset times.
+This creates fuzzy tags for value rangess of 
+cloud, humidity, pressure, wind direction.
+TODO: Store each day's readings to a database for trending.
+TODO: Integrate locally collected data (rainfall, sunlight, etc.)
+
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
 ⛈ subscribe to the "One Call API 3.0" with a credit card.
-and get the API key. 
 https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
+
+Samplr CLI putput:
+openweather.org at 01:25 AM (01:25:00) 2024-09-29 reports
+               at: 01:25 AM (01:25:00) 2024-09-29
+          Sunrise: 07:12 AM (07:12:11) 2024-09-29
+          Sunset:  06:59 PM (18:59:43) 2024-09-29
+clear sky at "lat=45.48686&lon=-108.97500" country=US
+    Latitude:  45.48686° from the Equator &
+    Longitude: -108.97500° from the Meridian at Greenwich, UK
+mild 25% humidity at 63.48°F for Dew Point: 27.04°F
+Wind: 7.41 mph from WSW (217°) with Visibility to 10000 meters
+low pressure at 1009 hPa (Hectopascals, aka millibars)
+      (vs. normal: 1013.25 hPa at sea level)
+    (Ground_level:  878 hPa)
 """
 from datetime import datetime
 import os
@@ -315,6 +338,7 @@ def pressure_desc(pressure):
         return GREEN+"normal"+RESET
 
 def cloud_text(cloud_desc):
+    # Fuzzy names
     # https://openweathermap.org/history
     if cloud_desc == "clear sky":
         return BLUE+cloud_desc+RESET
@@ -421,6 +445,7 @@ icon_code = data['weather'][0]['icon']  # '01n'
 country = data['sys']['country']
 sunrise_epoch = data['sys']['sunrise']
 sunset_epoch = data['sys']['sunset']
+call_dt = data['dt']
 wind_kph = data['wind']['speed']
 wind_deg = data['wind']['deg']
 wind_gust_kph = 0
@@ -432,21 +457,30 @@ else:
     wind_gust_kph = 0
 feels_like = data['main']['feels_like']
 temp_k = data['main']['temp']
+temp_k_min = data['main']['temp_min']
+temp_k_max = data['main']['temp_max']
 humidity = data['main']['humidity']
 sea_level_hpa = data['main']['sea_level']
 grnd_level_hpa = data['main']['grnd_level']
 pressure = data['main']['pressure']
-
+visibility = data['visibility']
 
 #### Calculations from response:
 
 STRFTIME_FORMAT="%I:%M %p (%H:%M:%S) %Y-%m-%d"
-cloud_text = cloud_text(cloud_desc)
+
 formatted_datetime=current_datetime.strftime(STRFTIME_FORMAT)
+
 sunrise_date_time = datetime.fromtimestamp(sunrise_epoch)
 sunrise_formatted = sunrise_date_time.strftime(STRFTIME_FORMAT)
+
 sunset_date_time = datetime.fromtimestamp(sunset_epoch)
 sunset_formatted = sunset_date_time.strftime(STRFTIME_FORMAT)
+
+call_date_time = datetime.fromtimestamp(call_dt)
+call_formatted = call_date_time.strftime(STRFTIME_FORMAT)
+
+cloud_text = cloud_text(cloud_desc)
 
 temp_c = float(temp_k) - 273.15
 # Dew point provides a more consistent and
@@ -458,7 +492,8 @@ dew_comfort = dew_desc_f(dew_point_f)
 
 #### Print:
 
-print(f"openweather.org at {formatted_datetime} reports")  # cloud, rain
+print(f"openweather.org at {call_formatted} reports")  # cloud, rain
+print(f"               at: {formatted_datetime}")
 print(f"          Sunrise: {sunrise_formatted}")
 print(f"          Sunset:  {sunset_formatted}")
 print(f"{cloud_text} at \"{apispec}\"",end="")
@@ -468,20 +503,34 @@ if station_name == "":
 else:
     print(f" ({station_name})")
 
-print(f"    Latitude:  {my_latitude} from the Equator &")
-print(f"    Longitude: {my_longitude} from the Meridian at Greenwich, UK")
+print(f"    Latitude:  {my_latitude}° from the Equator &")
+print(f"    Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
 # Not print if same: print('Feels like: ',feels_like)
 
 if USE_IMPERIAL_UNITS:
    temp_f = celcius2fahrenheit(temp_c)
    dew_point_c
-   print(f"{dew_comfort} humidity {humidity}%",end="")
+   print(f"{dew_comfort} {humidity}% humidity",end="")
    print(f" at {BOLD}{temp_f:.2f}°F{RESET}",end="")
-   print(f" for Dew Point: {dew_point_f:.2f}°F")
+   print(f" for Dew Point of {dew_point_f:.2f}°F")
 else:
    print(f"At a {dew_comfort} {temp_c:.2f}°C",end="")
    print(f" with Humidity: {humidity}%",end="")
    print(f" for Dew Point: {dew_point_c:.2f}°C")
+
+# Don't display min & max temperature if the are bogus:
+if temp_k_min != temp_k_max:
+    temp_c_min = float(temp_k_min) - 273.15
+    temp_c_max = float(temp_k_max) - 273.15
+    if temp_c_min == temp_c_max:
+        if USE_IMPERIAL_UNITS:
+            temp_f_min = celcius2fahrenheit(temp_c_min)
+            temp_f_max = celcius2fahrenheit(temp_c_max)
+            print(f"    Temp. Minimum: {temp_f_min:.2f}°F,",end="")
+            print(f" Maximum: {temp_f_max:.2f}°F")
+        else:
+            print(f"    Temp. Minimum: {temp_c_min:.2f}°C,",end="")
+            print(f" Maximum: {temp_c_max:.2f}°C")
 
 # Convert wind direction to names (such as NWW):
 wind_dir = compass_text_from_degrees(wind_deg)
@@ -491,14 +540,13 @@ if USE_IMPERIAL_UNITS:
 else:
     print(f"Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
 # See illustration at https://res.cloudinary.com/dcajqrroq/image/upload/v1727494071/compass-800x800_hvwmtu.webp
-if wind_gust_kph == 0:
-    print("")
-else:
+if wind_gust_kph > 0:
     if USE_IMPERIAL_UNITS:
         wind_gust_mph = kph2mph(wind_gust_kph)
-        print(f" with gusts: {wind_gust_mph:.2f} mph")
+        print(f" with gusts: {wind_gust_mph:.2f} mph",end="")
     else:
-        print(f" with gusts: {wind_gust_kph:.2f} kph")
+        print(f" with gusts: {wind_gust_kph:.2f} kph",end="")
+print(f" with Visibility to {visibility} meters")
 
 
 # sea_level returned is a normalized value that allows for comparison between different locations, regardless of their actual elevation.
