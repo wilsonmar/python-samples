@@ -3,7 +3,7 @@
 """openweather.py
 ay https://github.com
 
-gas "v011 add visability min & max temp :openweather.py"
+gas "v012 add timezone :openweather.py"
 by Wilson Mar, LICENSE: MIT
 
 This program formats CLI output after parsing JSON returned from
@@ -20,20 +20,21 @@ Create account at https://home.openweathermap.org/users/sign_up
 https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
 
 Samplr CLI putput:
-openweather.org at 01:25 AM (01:25:00) 2024-09-29 reports
-               at: 01:25 AM (01:25:00) 2024-09-29
+openweather.org at 01:50 AM (01:50:55) 2024-09-29 reports
+as 5661766     at: 01:52 AM (01:52:23) 2024-09-29 TZ: -21600
           Sunrise: 07:12 AM (07:12:11) 2024-09-29
           Sunset:  06:59 PM (18:59:43) 2024-09-29
 clear sky at "lat=45.48686&lon=-108.97500" country=US
     Latitude:  45.48686° from the Equator &
     Longitude: -108.97500° from the Meridian at Greenwich, UK
-mild 25% humidity at 63.48°F for Dew Point: 27.04°F
-Wind: 7.41 mph from WSW (217°) with Visibility to 10000 meters
+mild 25% humidity at 63.45°F for Dew Point of 27.01°F
+Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
 low pressure at 1009 hPa (Hectopascals, aka millibars)
       (vs. normal: 1013.25 hPa at sea level)
     (Ground_level:  878 hPa)
 """
 from datetime import datetime
+from datetime import timedelta, timezone
 import os
 import pathlib
 import urllib.parse
@@ -430,22 +431,8 @@ if VERBOSE:
 # Extract individual elements:
 lon = data['coord']['lon']
 lat = data['coord']['lat']
-try:
-    station_name = data['sys']['name']
-except Exception as e:
-    # print(f">>> Error getting: name in {e}")
-    station_name = ""
-    # exit()
-else:
-    station_name = ""
-
 cloud_desc = data['weather'][0]['description']
 icon_code = data['weather'][0]['icon']  # '01n'
-# 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
-country = data['sys']['country']
-sunrise_epoch = data['sys']['sunrise']
-sunset_epoch = data['sys']['sunset']
-call_dt = data['dt']
 wind_kph = data['wind']['speed']
 wind_deg = data['wind']['deg']
 wind_gust_kph = 0
@@ -462,12 +449,35 @@ temp_k_max = data['main']['temp_max']
 humidity = data['main']['humidity']
 sea_level_hpa = data['main']['sea_level']
 grnd_level_hpa = data['main']['grnd_level']
-pressure = data['main']['pressure']
 visibility = data['visibility']
+call_dt = data['dt']
+pressure = data['main']['pressure']
+# 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
+country = data['sys']['country']
+sunrise_epoch = data['sys']['sunrise']
+sunset_epoch = data['sys']['sunset']
+timezone = data['timezone']
+call_id = data['id']  # 5661766
+try:
+    station_name = data['name']
+except Exception as e:
+    # print(f">>> Error getting: name in {e}")
+    station_name = ""
+    # exit()
+else:
+    station_name = ""
+cod = data['cod']  # 200
+
 
 #### Calculations from response:
 
 STRFTIME_FORMAT="%I:%M %p (%H:%M:%S) %Y-%m-%d"
+
+tz_offset = timedelta(seconds = timezone)  # = "-1 day, 18:00:00"
+#tz = timezone(tz_offset)
+   # FIXME: TypeError: 'int' object is not callable
+#tz_name = datetime.now(tz).strftime('%Z')
+   # print({tz_name})  # "UTC-0600"
 
 formatted_datetime=current_datetime.strftime(STRFTIME_FORMAT)
 
@@ -492,8 +502,8 @@ dew_comfort = dew_desc_f(dew_point_f)
 
 #### Print:
 
-print(f"openweather.org at {call_formatted} reports")  # cloud, rain
-print(f"               at: {formatted_datetime}")
+print(f"openweather.org at {call_formatted} reports")
+print(f"as {call_id}     at: {formatted_datetime} TZ: {timezone}")
 print(f"          Sunrise: {sunrise_formatted}")
 print(f"          Sunset:  {sunset_formatted}")
 print(f"{cloud_text} at \"{apispec}\"",end="")
