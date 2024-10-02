@@ -12,12 +12,19 @@ sunrise and sunset times.
 This creates fuzzy tags for value rangess of 
 cloud, humidity, pressure, wind direction.
 TODO: Store each day's readings to a database for trending.
-TODO: Integrate locally collected data (rainfall, sunlight, etc.)
+TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
 
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
 ⛈ subscribe to the "One Call API 3.0" with a credit card.
 https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
+weatherstack.com/
+* Ambient Weather: https://ambientweather.net/dashboard/3e5ec6331a8884e1ac1d5fbd2812ba11/tiles
+* Weather Underground: https://www.wunderground.com/dashboard/pws/KNJRIDGE44
+* Weather Cloud: https://app.weathercloud.net/d7511690833#current
+* PWS Weather: https://www.pwsweather.com/station/pws/KRUSE1
+* weather.gov (free)
+* sunriseandsunset.io (free)
 
 Samplr CLI putput:
 openweather.org at 01:50 AM (01:50:55) 2024-09-29 reports
