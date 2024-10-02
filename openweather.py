@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """openweather.py
-ay https://github.com
+ay https://github.com/bomonike/python-samples/
 
 gas "v012 add timezone :openweather.py"
 by Wilson Mar, LICENSE: MIT

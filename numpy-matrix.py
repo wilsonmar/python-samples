@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# from https://levelup.gitconnected.com/the-end-of-libraries-why-pythons-biggest-overhaul-could-spell-trouble-for-your-favorite-packages-983726f064ce
+
 import numpy as np
 
 # Creating two 3x3 matrices
