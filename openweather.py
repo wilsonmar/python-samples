@@ -3,9 +3,9 @@
 """openweather.py
 ay https://github.com/bomonike/python-samples/
 
-gas "v012 add timezone :openweather.py"
-by Wilson Mar, LICENSE: MIT
+gas "v013 celcius2fahrenheit :openweather.py"
 
+by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
 REST API calls to openweathermp.org. Response includes
 sunrise and sunset times.
@@ -52,8 +52,9 @@ import math
 from dotenv import load_dotenv
 # Based on: conda install python-dotenv   # found!
 
-#### Constants used within functions:
-VERBOSE = True  # True or False
+#### TODO: Pull from command arguemnt:
+# Constants used within functions:
+VERBOSE = False  # True or False
 USE_IMPERIAL_UNITS = True  # True or False
 
 use_env_file = True    # -env "python-samples.env"
@@ -287,6 +288,9 @@ def adjust_pressure_for_altitude(sea_level_pressure, altitude, temperature):
     adjusted_pressure = sea_level_pressure * math.exp(-(GRAVITY * altitude) / (R * T))
     return round(adjusted_pressure, 2)
 
+def kelvin2celcius(temp_k):
+    return float(temp_k) - 273.15
+
 def celcius2fahrenheit(temp_c):
     return (temp_c * 9/5) + 32
 
@@ -499,7 +503,7 @@ call_formatted = call_date_time.strftime(STRFTIME_FORMAT)
 
 cloud_text = cloud_text(cloud_desc)
 
-temp_c = float(temp_k) - 273.15
+temp_c = kelvin2celcius(temp_k)
 # Dew point provides a more consistent and
 # easily interpretable measure of how humid it actually feels outside.
 dew_point_c = get_dew_point_c(temp_c, humidity)
