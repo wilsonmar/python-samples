@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""try-accept.py within https://github.com/bomonike/python-samples/
+"""try-accept.py within https://github.com/wilsonmar/python-samples/blob/main/try-accept.py
 Program to demo try/except blocks catch errors to provide a smoother custom message.
 GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
 
-gas "v001 new :try-accept.py"
+gas "v003 reorder ref urls :try-accept.py"
 
 TODO: Log errors appropriately.
 TODO: Debug using import pdb; pdb.set_trace() or ic()
@@ -12,7 +12,6 @@ TODO: Debug using import pdb; pdb.set_trace() or ic()
 References:
 * https://docs.python.org/3/library/exceptions.html provides all details.
 * https://www.youtube.com/watch?v=nlCKrKGHSSk by dominatrix Socratica at http://bit.ly/PythonHelloWorld
-* https://www.youtube.com/watch?v=KdMAj8Et4xk by Giraffe Academy [basic]
 * https://www.youtube.com/watch?v=j_q6NGOwDJo&t=22s by Bro Code [uses manual input()]
 * https://www.youtube.com/watch?v=ZUqGMDppEDs&t=49s by 
 * https://www.youtube.com/watch?v=ZsvftkbbrR0&t=
@@ -20,6 +19,11 @@ References:
 * https://www.youtube.com/watch?v=fhxByMe0mq8 by techTFQ
 * https://www.youtube.com/watch?v=odrgC7T-q2s&list=PLXovS_5EZGh7MMmgukUeg8rE8pfean17G&pp=iAQB by leardata
 * https://www.youtube.com/watch?v=ZsvftkbbrR0&t=1m53 by AjanCodes catches Flask route errors (connection)
+Ignore (not much value):
+* https://www.youtube.com/watch?v=Iflu9zEJipQ "Exceptions vs Errors" by Lex Friedman interviewing Chris Lattner 
+* https://www.youtube.com/watch?v=KdMAj8Et4xk by Giraffe Academy [basic]
+
+PROTIP: 
 """
 
 def divide_num(a, b) -> int:
@@ -32,13 +36,16 @@ def divide_num(a, b) -> int:
     except ZeroDivisionError as e:
         print(f"FATAL: ZeroDivisionError: {e}")
         return 1
-    except Exception as e:  # The most generic of exception catching. Put this last.
+    except Exception as e:  # Catch all other exceptions. PROTIP: Put this last.
         print(f"FATAL: Generic exception: {e}")
         # Instead of return 1
         sys.exit('Unanticipated exception: Terminating program!')
     else:  # when no exception was found:
         print(f"INFO: all fine...")
         return divided
+
+# TODO: OverFlowError
+# TODO: AttributeError
 
 def input_file_a_read() -> int:
     input_file_a="somefile.txt"
@@ -48,10 +55,12 @@ def input_file_a_read() -> int:
         if f.name == input_file_a:
             print(f"ERROR: Raising exception open file {input_file_a}: {e}")
             raise Exception
+    # except PermissionError as e:
+    # except TimeoutError as e:
     except FileNotFoundError as e:
         print(f"ERROR: opening file: {e}")  # assuming file name is in error message.
         return 1
-    except Exception as e:  # The most generic of exception catching. Put this last.
+    except Exception as e:  # Catch all other exceptions. PROTIP: Put this last.
         print(f"ERROR: Generic exception: {e}")
         return 1
     else:  # when no exception was found:
@@ -61,6 +70,8 @@ def input_file_a_read() -> int:
         print(f"INFO: Finally: closing {input_file_a}...")
         f.close()
         return 0
+
+# TODO: def LookupIndexError & LookupKeyError
 
 if __name__ == "__main__":
 
