@@ -4,10 +4,11 @@
 Program to demo try/except blocks catch errors to provide a smoother custom message.
 GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
 
-gas "v004 + TypeError, PROTIP, reorder ref urls :try-accept.py"
+gas "v006 + PyTest constructs :try-accept.py"
 
-TODO: Log errors appropriately.
-TODO: Debug using import pdb; pdb.set_trace() or ic()
+TODO: + pip install -U pytest (version pytest 8.3.3) https://docs.pytest.org/en/stable/getting-started.html
+TODO: + Log errors appropriately.
+TODO: + Debug using import pdb; pdb.set_trace() or ic()
 
 References:
 * https://docs.python.org/3/library/exceptions.html provides all details.
@@ -27,6 +28,7 @@ Ignore (not much value):
 * https://www.w3schools.com/python/python_ref_exceptions.asp glossary of exceptions
 
 """
+import pytest
 
 def divide_num(a, b) -> int:
     try:  # PROTIP: Specify the severity of each message:
@@ -37,7 +39,7 @@ def divide_num(a, b) -> int:
         print(f"WARNING: TypeError: {a}")  # if a or b is a not converted to a float:
         # Cannot be divided = float(a) / float(b)  # to ensure it works.
         return None # PROTIP: Return value None so caller can take approriate action.
-    except ValueError as e:
+    except ValueError as e:  #  wrong value in a specified data type.
         print(f"WARNING: ValueError: {a}")  # if a or b is a string that can't be converted to a number.
         return None
     except ZeroDivisionError as e:  # PROTIP: Include official name of exception in message:
@@ -83,11 +85,17 @@ def input_file_a_read() -> int:
 
 # TODO: def LookupIndexError & LookupKeyError
 
+# Run by pytest:
+def test_happy_path():
+    assert divide_num(8,2) == 4     # Happy path.
+def test_data_type_err():
+    assert divide_num('9',3) == 3     # Data Type Error expected.
+
 if __name__ == "__main__":
 
 #     print(dir(locals()['__builtins__']))  # all exceptions in one line.
 
-    divided = divide_num(9,3)     # Happy path.
+    divided = divide_num(8,2)    # Happy path.
 #    divided = divide_num('9',3)   # Data Type Error expected.
     if divided == None:
        print(f"YIKES: divide_num={divided}" )
