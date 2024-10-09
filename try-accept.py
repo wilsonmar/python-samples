@@ -2,7 +2,12 @@
 # -*- coding: utf-8 -*-
 """try-accept.py within https://github.com/bomonike/python-samples/
 Program to demo try/except blocks catch errors to provide a smoother custom message.
+GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
+
+gas "v001 new :try-accept.py"
+
 TODO: Log errors appropriately.
+TODO: Debug using import pdb; pdb.set_trace() or ic()
 
 References:
 * https://docs.python.org/3/library/exceptions.html provides all details.
@@ -16,7 +21,6 @@ References:
 * https://www.youtube.com/watch?v=odrgC7T-q2s&list=PLXovS_5EZGh7MMmgukUeg8rE8pfean17G&pp=iAQB by leardata
 * https://www.youtube.com/watch?v=ZsvftkbbrR0&t=1m53 by AjanCodes catches Flask route errors (connection)
 """
-# import pdb; pdb.set_trace()
 
 def divide_num(a, b) -> int:
     try:
