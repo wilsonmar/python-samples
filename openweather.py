@@ -3,7 +3,7 @@
 """openweather.py
 ay https://github.com/bomonike/python-samples/
 
-gas "v013 celcius2fahrenheit :openweather.py"
+gas "v014 + datetime func :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -88,8 +88,12 @@ class bcolors:  # ANSI escape sequences:
 
     RESET = '\033[0m'   # switch back to default color
 
+def iso_plus_local_datetime():
+    """ Generate the current local datetime. """
+    print(" ")
+
 def print_separator():
-    """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. """
+    """ Put a blank line in CLI output. Used in case the technique changes throughout this code. """
     print(" ")
 
 def print_heading(text_in):
