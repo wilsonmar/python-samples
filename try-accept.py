@@ -5,9 +5,8 @@ Program to demo try/except blocks catch errors to provide a smoother custom mess
 GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
 To run using pytest on CLI, first pip install -U pytest (version pytest 8.3.3) https://docs.pytest.org/en/stable/getting-started.html
 
-gas "v009 + KeyboardInterrupt per LinkedIn tutorial :try-accept.py"
+gas "v010 + logging videos :try-accept.py"
 
-TODO: + Log errors appropriately.
 TODO: + Debug using import pdb; pdb.set_trace() or ic()
 
 References:
@@ -18,6 +17,7 @@ References:
 * https://www.youtube.com/watch?v=NIWwJbo-9_8 by Corey Schafe [smooth presentation on file exceptions]
 * https://www.youtube.com/watch?v=nlCKrKGHSSk by dominatrix Socratica at http://bit.ly/PythonHelloWorld
 * https://www.youtube.com/watch?v=j_q6NGOwDJo&t=22s by Bro Code [uses manual input()]
+Alternatives:
 * https://www.youtube.com/watch?v=ZUqGMDppEDs&t=49s 
 * https://www.youtube.com/watch?v=6SPDvPK38tw&t=25s types of errors
 * https://www.youtube.com/watch?v=fhxByMe0mq8 by techTFQ
@@ -26,10 +26,18 @@ References:
 * https://www.youtube.com/watch?v=ZsvftkbbrR0&t=1m53 by AjanCodes catches Flask route errors (connection)
 * https://www.linkedin.com/learning/certified-entry-level-python-programmer-pcep-30-02-cert-prep/using-exceptions-and-try-except?autoSkip=true&resume=false
 Ignore (not much value):
+* https://www.youtube.com/watch?v=qOuOV4pDVGY by Patrick Loeber
+* https://www.youtube.com/watch?v=68pauJ81pKs by Anjali Sharma "Nested try-except-finally"
 * https://www.youtube.com/watch?v=Iflu9zEJipQ "Exceptions vs Errors" by Lex Friedman interviewing Chris Lattner 
 * https://www.youtube.com/watch?v=KdMAj8Et4xk by Giraffe Academy [basic]
 * https://www.w3schools.com/python/python_ref_exceptions.asp glossary of exceptions
 
+# Logging the new way vs. old dunder method:
+* https://www.youtube.com/watch?v=m08LtvC3jaY by NeuralNine
+* https://www.youtube.com/watch?v=aJCK0LWz8kg by BetterStack
+* https://www.youtube.com/watch?v=gCD-Wsb_Iw4 by Richard Schwabe
+* https://www.youtube.com/watch?v=p3HWzTYUfu8 by teclado
+* https://www.youtube.com/watch?v=gsa1oFn9n0M by techTFQ
 """
 import pytest
 
