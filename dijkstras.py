@@ -2,17 +2,32 @@
 # -*- coding: utf-8 -*-
 """dijkstras.py at https://github.com/wilsonmar/python-samples/blob/main/dijkstras.py
 
-gas "v005 + rename from dijkstra.py :dijkstras.py"
+gas "v006 + more videos :dijkstras.py"
 
 This program uses different alogorithms to calculate the 
 shortest distance to each node using the Dijkstra algorithm, 
 
-Dijkstra is called "greedy" since it makes the locally optimal 
-choice at each stage with the hope of finding a global optimum.
-By contrast, the A* (A-star) heuristic algorithm at https://www.pythonpool.com/a-star-algorithm-python/
+Dijkstra is called "greedy" since it makes the locally optimal by
+choosing the next most promising node at each stage, 
+ignoring the possibility of a smaller global path with more analysis effort.
+
+This enables Dijkstra to have a time complexity of O(E*log(V)) 
+which is competitive with other shortest path algorithms. However, 
+the A* (A-star) heuristic algorithm at https://www.pythonpool.com/a-star-algorithm-python/
 references from each node an additional dimension of distance to the global target.
 
-Alternative: https://www.youtube.com/watch?v=IG1QioWSXRI
+Alternative: 
+* https://www.youtube.com/watch?v=IG1QioWSXRI 
+* https://www.youtube.com/watch?v=gdmfOwyQlcI by Nathaniel Fan
+* https://www.youtube.com/watch?v=BuvKtCh0SKk by Geekific
+* https://www.youtube.com/watch?v=XB4MIexjvY0 by Abdul Bari
+
+* https://www.youtube.com/watch?v=pSqmAO-m7Lk by WilliamFiset names nodes with numbers UGH
+* https://www.youtube.com/watch?v=mbLzxKUeLJ4 presents Java code at
+* https://github.com/williamfieset/algorithms
+
+* https://www.youtube.com/watch?v=NyrHRNiRpds by Depth First
+* https://www.youtube.com/watch?v=EFg3u_E6eHU by Spanning Tree
 """
 
 def dijkstra1(current, nodes, distances):
