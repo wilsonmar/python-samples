@@ -5,7 +5,7 @@ Program to demo try/except blocks catch errors to provide a smoother custom mess
 GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
 To run using pytest on CLI, first pip install -U pytest (version pytest 8.3.3) https://docs.pytest.org/en/stable/getting-started.html
 
-gas "v008 + glossary :try-accept.py"
+gas "v009 + KeyboardInterrupt per LinkedIn tutorial :try-accept.py"
 
 TODO: + Log errors appropriately.
 TODO: + Debug using import pdb; pdb.set_trace() or ic()
@@ -24,6 +24,7 @@ References:
 * https://www.youtube.com/watch?v=w_ZRcN-hpGI "Multiple Exceptions"
 * https://www.youtube.com/watch?v=odrgC7T-q2s&list=PLXovS_5EZGh7MMmgukUeg8rE8pfean17G&pp=iAQB by leardata
 * https://www.youtube.com/watch?v=ZsvftkbbrR0&t=1m53 by AjanCodes catches Flask route errors (connection)
+* https://www.linkedin.com/learning/certified-entry-level-python-programmer-pcep-30-02-cert-prep/using-exceptions-and-try-except?autoSkip=true&resume=false
 Ignore (not much value):
 * https://www.youtube.com/watch?v=Iflu9zEJipQ "Exceptions vs Errors" by Lex Friedman interviewing Chris Lattner 
 * https://www.youtube.com/watch?v=KdMAj8Et4xk by Giraffe Academy [basic]
@@ -50,10 +51,12 @@ def divide_num(a, b) -> int:
     except ArithmeticError as e:
         print(f"WARNING: ArithmeticError: {a}")
         return None
+    except KeyboardInterrupt as e:
+        sys.exit('FATAL: User-issued interrupt stopping program!')
     except Exception as e:  # Catch all other exceptions. PROTIP: Put this last.
         print(f"FATAL: Generic exception: {e}")
         # Instead of return 1
-        sys.exit('Unanticipated exception: Terminating program!')
+        sys.exit('CRITICAL: Unanticipated exception: Terminating program!')
     else:  # when no exception was found:
         print(f"INFO: all fine...")
         return divided  # from try: above.
