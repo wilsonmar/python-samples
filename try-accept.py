@@ -3,16 +3,18 @@
 """try-accept.py within https://github.com/wilsonmar/python-samples/blob/main/try-accept.py
 Program to demo try/except blocks catch errors to provide a smoother custom message.
 GLOSSARY: Exception = an event detected during execution that interrupt the flow of a program.
+To run using pytest on CLI, first pip install -U pytest (version pytest 8.3.3) https://docs.pytest.org/en/stable/getting-started.html
 
-gas "v006 + PyTest constructs :try-accept.py"
+gas "v008 + glossary :try-accept.py"
 
-TODO: + pip install -U pytest (version pytest 8.3.3) https://docs.pytest.org/en/stable/getting-started.html
 TODO: + Log errors appropriately.
 TODO: + Debug using import pdb; pdb.set_trace() or ic()
 
 References:
 * https://docs.python.org/3/library/exceptions.html provides all details.
 * https://www.programiz.com/python-programming/exceptions
+* https://blog.airbrake.io/blog/python/class-hierarchy
+* https://www.geeksforgeeks.org/built-exceptions-python/
 * https://www.youtube.com/watch?v=NIWwJbo-9_8 by Corey Schafe [smooth presentation on file exceptions]
 * https://www.youtube.com/watch?v=nlCKrKGHSSk by dominatrix Socratica at http://bit.ly/PythonHelloWorld
 * https://www.youtube.com/watch?v=j_q6NGOwDJo&t=22s by Bro Code [uses manual input()]
@@ -85,23 +87,26 @@ def input_file_a_read() -> int:
 
 # TODO: def LookupIndexError & LookupKeyError
 
-# Run by pytest:
+# Run in CLI: pytest try-accept.py
 def test_happy_path():
     assert divide_num(8,2) == 4     # Happy path.
 def test_data_type_err():
     assert divide_num('9',3) == 3     # Data Type Error expected.
+def test_divide_by_zero():
+    assert divide_num(4,0) == None
+
 
 if __name__ == "__main__":
 
 #     print(dir(locals()['__builtins__']))  # all exceptions in one line.
 
-    divided = divide_num(8,2)    # Happy path.
-#    divided = divide_num('9',3)   # Data Type Error expected.
+    divided = divide_num(4,2)    # Happy path.
+    divided = divide_num('9',3)   # Data Type Error expected.
     if divided == None:
        print(f"YIKES: divide_num={divided}" )
     else:
         print(f"divide_num={divided}" )
-#    divided = divide_num(9.9,0.1) # ValueError expected.
-#    divided = divide_num(9,0)     # ZeroDivisionError expected.
+    divided = divide_num('x',1) # ValueError expected.
+    divided = divide_num(9,0)     # ZeroDivisionError expected.
 
 #    print( input_file_a_read() )
