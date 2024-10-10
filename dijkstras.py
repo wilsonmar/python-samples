@@ -1,33 +1,46 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
 """dijkstras.py at https://github.com/wilsonmar/python-samples/blob/main/dijkstras.py
 
-gas "v006 + more videos :dijkstras.py"
+gas "v007 + iyappan c video :dijkstras.py"
 
-This program uses different alogorithms to calculate the 
-shortest distance to each node using the Dijkstra algorithm, 
+This program compares different alogorithms to calculate the 
+shortest distance to each node using the Dijkstra algorithm.
+It's used by map apps, computer network routing, etc.
 
-Dijkstra is called "greedy" since it makes the locally optimal by
-choosing the next most promising node at each stage, 
-ignoring the possibility of a smaller global path with more analysis effort.
+Dijkstra is called "greedy" since it makes the locally optimal by,
+at each stage, choosing the node (aka vertex) with the smallest 
+weight or distance (along an edge) to the next node/vertex,
+without taking additional analysis effort to identify
+a shorter total/global path.
 
 This enables Dijkstra to have a time complexity of O(E*log(V)) 
 which is competitive with other shortest path algorithms. However, 
 the A* (A-star) heuristic algorithm at https://www.pythonpool.com/a-star-algorithm-python/
 references from each node an additional dimension of distance to the global target.
 
-Alternative: 
-* https://www.youtube.com/watch?v=IG1QioWSXRI 
-* https://www.youtube.com/watch?v=gdmfOwyQlcI by Nathaniel Fan
-* https://www.youtube.com/watch?v=BuvKtCh0SKk by Geekific
-* https://www.youtube.com/watch?v=XB4MIexjvY0 by Abdul Bari
+Highest rated:
+* https://www.youtube.com/watch?v=pVfj6mxhdMw by Computer Science Lessons [DataSet 1]
 
+Not worth watching:
 * https://www.youtube.com/watch?v=pSqmAO-m7Lk by WilliamFiset names nodes with numbers UGH
 * https://www.youtube.com/watch?v=mbLzxKUeLJ4 presents Java code at
 * https://github.com/williamfieset/algorithms
 
+* https://www.youtube.com/watch?v=IG1QioWSXRI 
+* https://www.youtube.com/watch?v=gdmfOwyQlcI by Nathaniel Fan
+* https://www.youtube.com/watch?v=BuvKtCh0SKk by Geekific
+* https://www.youtube.com/watch?v=XB4MIexjvY0 by Abdul Bari
+* https://www.youtube.com/watch?v=O7d-BgIqx-I by Maths is Maths
 * https://www.youtube.com/watch?v=NyrHRNiRpds by Depth First
 * https://www.youtube.com/watch?v=EFg3u_E6eHU by Spanning Tree
+* https://www.youtube.com/watch?v=Lfb8qkXzHY0 by iyappan c
+* https://www.youtube.com/watch?v=WN3Rb9wVYDY by Santitham Prom-on
+* https://www.youtube.com/watch?v=eFZCPlZCyIM by patrickJMT
+* https://www.youtube.com/watch?v=5GT5hYzjNoo by barngrader
+* https://www.youtube.com/watch?v=5GT5hYzjNoo by Bryn Humberstone
+* https://www.youtube.com/watch?v=_lHSawdgXpI by Michael Sambol
+
 """
 
 def dijkstra1(current, nodes, distances):
@@ -100,11 +113,11 @@ def dijkstra2(graph,start,goal):
             path.insert(0,currentNode)
             currentNode = predecessor[currentNode]
         except KeyError:
-            print('Path not reachable')
+            print('*** Path not reachable')
             break
     path.insert(0,start)
     if shortest_distance[goal] != infinity:
-        print('Shortest distance is ' + str(shortest_distance[goal]), end=" ")
+        print('*** Shortest distance is ' + str(shortest_distance[goal]), end=" ")
         print('along path ' + str(path))
 
     # TODO: Print intermediate stage nodes with distances.
@@ -113,8 +126,27 @@ def dijkstra2(graph,start,goal):
 if __name__ == "__main__":
 
     # TODO: Define these outside the program from a file?
-    start = 'A'  # Starting node.
-    goal = "F"
+
+    start = 'A'  # Starting node. Applies to all datasets.
+    goal = "E"
+
+    # [DataSet 1] explained by https://www.youtube.com/watch?v=pVfj6mxhdMw
+    nodes = ('A', 'B', 'C', 'D', 'E')
+    graph = { # between nodes, from
+        'A': {'B': 6, 'D': 1},
+        'B': {'A': 6, 'C': 5, 'E':2},
+        'C': {'B': 5, 'E': 5},
+        'D': {'A': 1, 'E': 1},
+        'E': {'D': 1, 'B': 2, 'C': 5}}
+    print(dijkstra1(start, nodes, graph))
+        # {'A': 0, 'D': 1, 'E': 2, 'B': 4, 'C': 7}
+    print(dijkstra2(graph,start,goal))
+        # *** dijkstra2() From Ian Sullivan:
+        # Shortest distance is 2 along path ['A', 'D', 'E']
+
+    print(" ")
+
+    # [DataSet 2] explained by https://www.youtube.com/watch?v=OrJ004Wid4o
     nodes = ('A', 'B', 'C', 'D', 'E', 'F')
 #    graph = { # between nodes, from
 #        'A': {'B': 5, 'C': 2},
@@ -122,8 +154,7 @@ if __name__ == "__main__":
 #        'C': {'B': 3, 'D': 7},
 #        'D': {'E': 7},
 #        'E': {'D': 9}}
-
-    graph = { # between nodes, from https://www.youtube.com/watch?v=OrJ004Wid4o
+    graph = { # between nodes
         'A': {'B': 2, 'C': 4},
         'B': {'A': 2, 'C': 3, 'D': 8},
         'C': {'A': 4, 'B': 3, 'E': 5, 'D': 2},
@@ -140,8 +171,7 @@ if __name__ == "__main__":
         # return visited: A C E F = 10
         # {'A': 0, 'B': 2, 'C': 4, 'D': 6, 'E': 9, 'F': 10}
 
-    # graph = {'a':{'b':10,'c':3},'b':{'c':1,'d':2},'c':{'b':4,'d':8,'e':2},'d':{'e':7},'e':{'d':9}}
-    # goal = "E"
+    print(" ")
     print(dijkstra2(graph,start,goal))
         # Shortest distance is 10
         # And the path is ['A', 'C', 'E', 'F']
