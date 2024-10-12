@@ -14,10 +14,13 @@ References:
 * https://www.programiz.com/python-programming/exceptions
 * https://blog.airbrake.io/blog/python/class-hierarchy
 * https://www.geeksforgeeks.org/built-exceptions-python/
+Videos;:
+* https://www.youtube.com/watch?v=j_q6NGOwDJo&t=22s by Bro Code [uses manual input()]
 * https://www.youtube.com/watch?v=NIWwJbo-9_8 by Corey Schafe [smooth presentation on file exceptions]
 * https://www.youtube.com/watch?v=nlCKrKGHSSk by dominatrix Socratica at http://bit.ly/PythonHelloWorld
-* https://www.youtube.com/watch?v=j_q6NGOwDJo&t=22s by Bro Code [uses manual input()]
+* https://www.youtube.com/watch?v=JG1livF44_E by Indently (10 errors explained in 15 min.)
 Alternatives:
+* https://www.youtube.com/watch?v=tIh42X0oGQc by anthonywritescode
 * https://www.youtube.com/watch?v=ZUqGMDppEDs&t=49s 
 * https://www.youtube.com/watch?v=6SPDvPK38tw&t=25s types of errors
 * https://www.youtube.com/watch?v=fhxByMe0mq8 by techTFQ
@@ -33,13 +36,16 @@ Ignore (not much value):
 * https://www.w3schools.com/python/python_ref_exceptions.asp glossary of exceptions
 
 # Logging the new way vs. old dunder method:
+* https://www.youtube.com/watch?v=QH5fw9kxDQA decorators for cross-cutting concerns
+* https://www.youtube.com/watch?v=r7Dtus7N4pI
+* https://www.youtube.com/watch?v=9L77QExPmI0 by mCoding (Modern Pythong Logging)
 * https://www.youtube.com/watch?v=m08LtvC3jaY by NeuralNine
 * https://www.youtube.com/watch?v=aJCK0LWz8kg by BetterStack
 * https://www.youtube.com/watch?v=gCD-Wsb_Iw4 by Richard Schwabe
 * https://www.youtube.com/watch?v=p3HWzTYUfu8 by teclado
 * https://www.youtube.com/watch?v=gsa1oFn9n0M by techTFQ
 """
-import pytest
+#import pytest
 
 def divide_num(a, b) -> int:
     try:  # PROTIP: Specify the severity of each message:
