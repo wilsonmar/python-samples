@@ -1,19 +1,31 @@
 # python-samples
 Sample Python coding with a lot of security and technical features, all in one rep for easy adoption.
 
-## Updates
-* 24-10-10 + dijkstras.py to calculate shortest path on a graph
-* 24-10-09 + try-accept.py to show usage of try/except/else/finally exceptions
-* 24-10-08 + openweather.py to obtain from API calls and format weather data as fuzzy tokens
-* 24-09-11 + pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
-* 24-06-24 + num2words.py to calculate super strong word phrases and remember them via LLM gen'd songs
+## Programs alphabetically
+* calculator-tk.py is a calculator created using the Tk GUI library.
+* dijkstras.py to calculate shortest path on a graph
+* num2words.py simply converts a number input to its word.
+* openweather.py to obtain from API calls and format weather data as fuzzy tokens
+* pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
+* python-samplex.py is a conglomeration of many features.
+* rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
+* try-accept.py to show usage of try/except/else/finally exceptions
+* youtube-download.py downloads videos based on its URL.
 
-* 24-06-11 Run which python to identify where path Python was installed ()
-* 24-04-20 "safety scan --apply-fixes" was run to update requirements.txt
-   No known fix for localstack==0.13.0 to fix 7 vulnerabilities
-   After pip install -r requirements.txt
-* 24-04-20  conda-list-2404020.txt
-* 24-04-20 https://github.com/wilsonmar/python-samples/security/dependabot
+NOTE: Other pograms are in the https://github.com/bomonike organization:
+* https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
+on how to memorize using PAO (Person Action Object)
+
+The STATUS of each program is noted within each file.
+
+Before running each:
+```
+chmod +x dijkstras.py
+./dijkstras.py
+```
+
+
+## etc.
 
 https://codehs.com/tutorial/david/sample-a-csp-performance-task-1
 Sample A CSP Performance Task
