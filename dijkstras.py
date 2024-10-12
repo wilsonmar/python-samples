@@ -2,11 +2,16 @@
 
 """dijkstras.py at https://github.com/wilsonmar/python-samples/blob/main/dijkstras.py
 
-gas "v007 + iyappan c video :dijkstras.py"
+gas "v008 + link to powerpoint illustrations file :dijkstras.py"
+STATUS: Working
+
+This program has a time complexity of O(E*log(V)).
+Illustrated within python-graphs-1.pptx at https://7451111251303.gumroad.com/l/rsvia
 
 This program compares different alogorithms to calculate the 
-shortest distance to each node using the Dijkstra algorithm.
-It's used by map apps, computer network routing, etc.
+shortest distance to each node using the Dijkstra algorithm
+used by map apps, computer network routing, etc.
+    * https://www.youtube.com/watch?v=WJFWb9Z5uHY
 
 Dijkstra is called "greedy" since it makes the locally optimal by,
 at each stage, choosing the node (aka vertex) with the smallest 
@@ -14,13 +19,25 @@ weight or distance (along an edge) to the next node/vertex,
 without taking additional analysis effort to identify
 a shorter total/global path.
 
-This enables Dijkstra to have a time complexity of O(E*log(V)) 
-which is competitive with other shortest path algorithms. However, 
-the A* (A-star) heuristic algorithm at https://www.pythonpool.com/a-star-algorithm-python/
-references from each node an additional dimension of distance to the global target.
+On a table (matrix) to calculate the total cost of each path,
+https://www.youtube.com/watch?v=db_-e07jkjo
+draws a square around the least costly distance to the next node
+in a matrix.
 
-Highest rated:
+The shortest path picked starting at the end.
+
+The A* (A-star) algorithm at https://www.pythonpool.com/a-star-algorithm-python/
+adds an additional dimension of a heuristic variable to estimate for each node
+a distance to the global target "as the crow flies"`.
+
+Highest rated videos:
 * https://www.youtube.com/watch?v=pVfj6mxhdMw by Computer Science Lessons [DataSet 1]
+    # https://www.youtube.com/watch?v=OrJ004Wid4o
+    # https://neetcode.io/problems/dijkstra
+    # https://www.youtube.com/watch?v=_B5cx-WD5EA&t=29s
+
+Generalization of this is Graph handling in Python:
+* https://www.udemy.com/course/data-structures-and-algorithms-in-python-gb/learn/lecture/39778648#overview
 
 Not worth watching:
 * https://www.youtube.com/watch?v=pSqmAO-m7Lk by WilliamFiset names nodes with numbers UGH
@@ -28,6 +45,7 @@ Not worth watching:
 * https://github.com/williamfieset/algorithms
 
 * https://www.youtube.com/watch?v=IG1QioWSXRI 
+* https://www.youtube.com/watch?v=db_-e07jkjo by VCE Further Maths
 * https://www.youtube.com/watch?v=gdmfOwyQlcI by Nathaniel Fan
 * https://www.youtube.com/watch?v=BuvKtCh0SKk by Geekific
 * https://www.youtube.com/watch?v=XB4MIexjvY0 by Abdul Bari
@@ -40,8 +58,19 @@ Not worth watching:
 * https://www.youtube.com/watch?v=5GT5hYzjNoo by barngrader
 * https://www.youtube.com/watch?v=5GT5hYzjNoo by Bryn Humberstone
 * https://www.youtube.com/watch?v=_lHSawdgXpI by Michael Sambol
+* https://www.youtube.com/watch?v=d6ZFqjH63vo by Gaurav Sen 2017
+* https://www.youtube.com/watch?v=HlFsexTpM4Q by Lalitha Natraj writing on paper
+* https://www.youtube.com/watch?v=_lHSawdgXpI by Michael Sambol
+* https://www.youtube.com/watch?v=Rv2RzVu9S9k by Beena Ballal
+* https://www.youtube.com/watch?v=8Ls1RqHCOPw by distanceedjohn hand-waving "you have to remember"
+
+
 
 """
+
+# TODO: Ensure that only one edge is specified. No multigraphs allowed.
+
+# Code here do not insert graph data, just read.
 
 def dijkstra1(current, nodes, distances):
     # From Pratik Kinage at https://www.pythonpool.com/dijkstras-algorithm-python/
@@ -130,6 +159,9 @@ if __name__ == "__main__":
     start = 'A'  # Starting node. Applies to all datasets.
     goal = "E"
 
+    # The graph is an "Adjacency List" with values to each edge.
+    # Values in graphs can be decimal (not just integers).
+    # Vertices can be two-way (non-directed graphs (aka digraph)
     # [DataSet 1] explained by https://www.youtube.com/watch?v=pVfj6mxhdMw
     nodes = ('A', 'B', 'C', 'D', 'E')
     graph = { # between nodes, from
@@ -138,6 +170,8 @@ if __name__ == "__main__":
         'C': {'B': 5, 'E': 5},
         'D': {'A': 1, 'E': 1},
         'E': {'D': 1, 'B': 2, 'C': 5}}
+    # The graph can be displayed as an adjancy matrix or incidence matrix.
+
     print(dijkstra1(start, nodes, graph))
         # {'A': 0, 'D': 1, 'E': 2, 'B': 4, 'C': 7}
     print(dijkstra2(graph,start,goal))
@@ -170,13 +204,10 @@ if __name__ == "__main__":
         # [('E', 9)]
         # return visited: A C E F = 10
         # {'A': 0, 'B': 2, 'C': 4, 'D': 6, 'E': 9, 'F': 10}
-
-    print(" ")
     print(dijkstra2(graph,start,goal))
         # Shortest distance is 10
         # And the path is ['A', 'C', 'E', 'F']
         # None
+
     # TODO: Illustrate visually in a GUI?
-    # https://www.youtube.com/watch?v=OrJ004Wid4o
-    # https://neetcode.io/problems/dijkstra
-    # https://www.youtube.com/watch?v=_B5cx-WD5EA&t=29s
+
