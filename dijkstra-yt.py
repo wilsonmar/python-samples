@@ -9,7 +9,7 @@ This makes use of built-in modules itertools and heap.
 
 From https://github.com/Glassbyte/YT/blob/main/dijkstra.py
 as described by Ionut Caliman (showing variables as they change)
-at https://www.youtube.com/watch?v=_B5cx-WD5EA
+at https://www.youtube.com/watch?v=_B5cx-WD5EA&t=17m4s
 """
 # Built-in modules:
 import itertools  # for itertools.count() and permutations
