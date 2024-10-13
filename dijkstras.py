@@ -39,34 +39,10 @@ Highest rated videos:
 Generalization of this is Graph handling in Python:
 * https://www.udemy.com/course/data-structures-and-algorithms-in-python-gb/learn/lecture/39778648#overview
 
-Not worth watching:
-* https://www.youtube.com/watch?v=pSqmAO-m7Lk by WilliamFiset names nodes with numbers UGH
-* https://www.youtube.com/watch?v=mbLzxKUeLJ4 presents Java code at
-* https://github.com/williamfieset/algorithms
-
-* https://www.youtube.com/watch?v=IG1QioWSXRI 
-* https://www.youtube.com/watch?v=db_-e07jkjo by VCE Further Maths
-* https://www.youtube.com/watch?v=gdmfOwyQlcI by Nathaniel Fan
-* https://www.youtube.com/watch?v=BuvKtCh0SKk by Geekific
-* https://www.youtube.com/watch?v=XB4MIexjvY0 by Abdul Bari
-* https://www.youtube.com/watch?v=O7d-BgIqx-I by Maths is Maths
-* https://www.youtube.com/watch?v=NyrHRNiRpds by Depth First
-* https://www.youtube.com/watch?v=EFg3u_E6eHU by Spanning Tree
-* https://www.youtube.com/watch?v=Lfb8qkXzHY0 by iyappan c
-* https://www.youtube.com/watch?v=WN3Rb9wVYDY by Santitham Prom-on
-* https://www.youtube.com/watch?v=eFZCPlZCyIM by patrickJMT
-* https://www.youtube.com/watch?v=5GT5hYzjNoo by barngrader
-* https://www.youtube.com/watch?v=5GT5hYzjNoo by Bryn Humberstone
-* https://www.youtube.com/watch?v=_lHSawdgXpI by Michael Sambol
-* https://www.youtube.com/watch?v=d6ZFqjH63vo by Gaurav Sen 2017
-* https://www.youtube.com/watch?v=HlFsexTpM4Q by Lalitha Natraj writing on paper
-* https://www.youtube.com/watch?v=_lHSawdgXpI by Michael Sambol
-* https://www.youtube.com/watch?v=Rv2RzVu9S9k by Beena Ballal
-* https://www.youtube.com/watch?v=8Ls1RqHCOPw by distanceedjohn hand-waving "you have to remember"
-
-
 
 """
+# no imports
+
 
 # TODO: Ensure that only one edge is specified. No multigraphs allowed.
 
@@ -152,6 +128,18 @@ def dijkstra2(graph,start,goal):
     # TODO: Print intermediate stage nodes with distances.
     return
 
+
+# def dijkstra3(graph, start): # by https://www.youtube.com/watch?v=_B5cx-WD5EA
+    # Code requested from glassbyte.io@gmail.com
+#    graph = { # between nodes, from
+#        'A': {'B': 3, 'C': 6, 'D': 4},
+#        'B': {'A': 3, 'C': 2, 'E': 3},
+#        'C': {'A': 6, 'B': 2, 'E': 3, 'F': 3},
+#        'D': {'A': 4, 'F': 6},
+#        'E': {'B': 3, 'C': 3, 'F': 1}
+#        'F': {'C': 3, 'D': 6, 'E': 1}}
+
+
 if __name__ == "__main__":
 
     # TODO: Define these outside the program from a file?
@@ -171,6 +159,16 @@ if __name__ == "__main__":
         'D': {'A': 1, 'E': 1},
         'E': {'D': 1, 'B': 2, 'C': 5}}
     # The graph can be displayed as an adjancy matrix or incidence matrix.
+
+    goal = "F"
+    nodes = ('A', 'B', 'C', 'D', 'E', 'F')
+    graph = { # between nodes, from
+        'A': {'B': 3, 'C': 6, 'D': 4},
+        'B': {'A': 3, 'C': 2, 'E': 3},
+        'C': {'A': 6, 'B': 2, 'E': 3, 'F': 3},
+        'D': {'A': 4, 'F': 6},
+        'E': {'B': 3, 'C': 3, 'F': 1},
+        'F': {'C': 3, 'D': 6, 'E': 1}}
 
     print(dijkstra1(start, nodes, graph))
         # {'A': 0, 'D': 1, 'E': 2, 'B': 4, 'C': 7}
