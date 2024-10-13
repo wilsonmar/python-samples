@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""openweather.py
-ay https://github.com/bomonike/python-samples/
+"""openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-gas "v014 + datetime func :openweather.py"
-
+gas "v015 + gettime() func :openweather.py"
+STATUS: working
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
 REST API calls to openweathermp.org. Response includes
@@ -88,9 +87,10 @@ class bcolors:  # ANSI escape sequences:
 
     RESET = '\033[0m'   # switch back to default color
 
-def iso_plus_local_datetime():
+def get_time() -> str:
     """ Generate the current local datetime. """
-    print(" ")
+    now: datetime = datetime.now()
+    return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d}'
 
 def print_separator():
     """ Put a blank line in CLI output. Used in case the technique changes throughout this code. """
