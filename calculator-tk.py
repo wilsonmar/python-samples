@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+
+"""calculator-tk.py at https://github.com/wilsonmar/python-samples/blob/main/calculator-tk.py
+Provides a calculator created using the Tk library for Python.
+
+gas "v003 + try :calculator-tk.py"
+STATUS: Not working. Output env: python3\r: No such file or directory
+   
+Before running, in CLI run pip install tkinter
+"""
 import tkinter as tk
 
 # Create Window
