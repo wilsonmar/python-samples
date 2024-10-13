@@ -2,15 +2,20 @@
 
 """ dijkstra-yt.py
 
-gas "v001 + new :dijkstra-yt.py"
+gas "v002 + add built-in comments :dijkstra-yt.py"
 STATUS: working
 
-Described at https://www.youtube.com/watch?v=_B5cx-WD5EA
-From https://github.com/Glassbyte/YT/blob/main/dijkstra.py
-"""
+This makes use of built-in modules itertools and heap.
 
-import itertools
+From https://github.com/Glassbyte/YT/blob/main/dijkstra.py
+as described by Ionut Caliman (showing variables as they change)
+at https://www.youtube.com/watch?v=_B5cx-WD5EA
+"""
+# Built-in modules:
+import itertools  # for itertools.count() and permutations
+    # https://docs.python.org/3/library/itertools.html#
 from heapq import heappush, heappop
+    # https://docs.python.org/3/library/heapq.html
 
 
 class Graph:
@@ -62,7 +67,8 @@ def dijkstra(graph, start, end):
     return
 
 
-# slightly modified heapq implementation from https://docs.python.org/3/library/heapq.html
+# slightly modified heapq implementation from
+# https://docs.python.org/3/library/heapq.html
 class PriorityQueue:
     def __init__(self):
         self.pq = []  # list of entries arranged in a heap

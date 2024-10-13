@@ -3,7 +3,8 @@ Sample Python coding with a lot of security and technical features, all in one r
 
 ## Programs alphabetically
 * calculator-tk.py is a calculator created using the Tk GUI library.
-* dijkstras.py to calculate shortest path on a graph
+* dijkstras.py to compare calculations of shortest path on a graph
+* dijkstra-yt.py to calculate shortest path using heapq library
 * num2words.py simply converts a number input to its word.
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
