@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-gas "v015 + gettime() func :openweather.py"
+gas "v016 + weathermaps dashboard :openweather.py"
 STATUS: working
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -10,7 +10,8 @@ REST API calls to openweathermp.org. Response includes
 sunrise and sunset times.
 This creates fuzzy tags for value rangess of 
 cloud, humidity, pressure, wind direction.
-TODO: Store each day's readings to a database for trending.
+TODO: Store each day's readings to a database for trending on dashboard (such as
+https://wilsonmar.github.io/dashboards/#weather-maps)
 TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
 
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
