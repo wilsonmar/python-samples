@@ -24,6 +24,7 @@ From https://medium.com/pythoneers/28-insanely-useful-python-code-snippets-for-e
 def define_datatypes():
 
     # Define Text Type: 	str
+    # https://docs.python.org/3/tutorial/introduction.html#text
     x = "Hello World"
     print(f"x=\"{x}\" of {type(x)}")
 
@@ -33,6 +34,7 @@ def define_datatypes():
 
     print("\nNumeric: int, float, complex:")
     # Define Numeric Types: int
+    # https://docs.python.org/3/tutorial/introduction.html#numbers
     x = int(20)
     print(f"int({x}) of {type(x)}")
 
@@ -40,25 +42,35 @@ def define_datatypes():
     x = float(20.5)
     print(f"float({x}) of {type(x)}")
 
-    # Define Numeric Types: complex
+    # Define Numeric Types: complex numbers:
+    # https://docs.python.org/3/library/cmath.html
     x = complex(1j)
     print(f"complex({x}) of {type(x)}")
 
     print("\nSequence: range, tuple, list to hold collection of items:")
     # Define Sequence Type: range
+    # https://docs.python.org/3/library/stdtypes.html#range
     x = range(6)
     print(f"range(6) = {x} of {type(x)}")
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    list(range(1, 11))
 
-    # Define Sequence Type: tuple
+    # Define Sequence Type: tuples and squences:
+    # https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
     x = ("apple", "banana", "cherry")
     print(f"x = ({x}) of {type(x)}")
 
+    # Nested Tuples:
+
     # Define Sequence Type: list
+    # https://docs.python.org/3/tutorial/introduction.html#lists
+    # https://docs.python.org/3/tutorial/datastructures.html#more-on-lists
     x = list(("apple", "banana", "cherry"))
     print(f"x = list({x}) of {type(x)}")
 
     print("\nSet: set, frozenset to hold collection of unique items:")
     # Define Set Types: 	set
+    # https://docs.python.org/3/tutorial/datastructures.html#sets
     x = {"apple", "banana", "cherry"}
     print(f"x={x} of {type(x)} <- using curly braces")
 
@@ -67,8 +79,12 @@ def define_datatypes():
     print(f"{x} of {type(x)}")
 
     # Define Mapping Type: 	dict
+    # https://docs.python.org/3/tutorial/datastructures.html#dictionaries
     x = {"name" : "John", "age" : 36}
-    print(f"x = {x} of {type(x)} for Mapping data in key-value pairs:")
+    print(f"x = {x} of {type(x)} for Mapping data in key-value pairs
+          
+          
+          :")
 
 
     print(f"\nBytes and bits:")
