@@ -2,7 +2,7 @@
 
 """ dijkstra-yt.py
 
-gas "v002 + add built-in comments :dijkstra-yt.py"
+"v003 + video start time :dijkstra-yt.py"
 STATUS: working
 
 This makes use of built-in modules itertools and heap.
@@ -119,6 +119,8 @@ adj_list = {
 }
 
 my_graph = Graph(adj_list)
+
+print(my_graph)
 
 dijkstra(my_graph, start=A, end=H)
    # shortest distance to H:  4.8
