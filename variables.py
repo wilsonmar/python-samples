@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """variables.py at https://github.com/wilsonmar/python-samples/blob/main/variables.py
-"v001 + new :variables.py"
+"v003 fix ending of text :variables.py"
 STATUS: working but under construction.
 This program demonstrates the creation and analysis of various data types of variables,
 to experiment with defining and viewing objects of various data types.
@@ -23,12 +23,20 @@ From https://medium.com/pythoneers/28-insanely-useful-python-code-snippets-for-e
 
 def define_datatypes():
 
+    # Define None Type: 	NoneType
+    x = None
+    print(f"x = {x} of {type(x)}")
+       # When a return statement is not at the  ottom of a function def, Python implicity returns None.
+
+    print(f"\n")
+
     # Define Text Type: 	str
     # https://docs.python.org/3/tutorial/introduction.html#text
     x = "Hello World"
     print(f"x=\"{x}\" of {type(x)}")
 
     # Define Boolean Type: 	bool
+    # https://docs.python.org/3/library/stdtypes.html#boolean-type-bool
     x = bool(5)
     print(f"bool(5)={x} of {type(x)}")
 
@@ -48,6 +56,8 @@ def define_datatypes():
     print(f"complex({x}) of {type(x)}")
 
     print("\nSequence: range, tuple, list to hold collection of items:")
+    # https://docs.python.org/3/library/stdtypes.html#sequence-types-list-tuple-range
+
     # Define Sequence Type: range
     # https://docs.python.org/3/library/stdtypes.html#range
     x = range(6)
@@ -80,11 +90,9 @@ def define_datatypes():
 
     # Define Mapping Type: 	dict
     # https://docs.python.org/3/tutorial/datastructures.html#dictionaries
+    # https://www.youtube.com/watch?v=lTgLOuaQsvk
     x = {"name" : "John", "age" : 36}
-    print(f"x = {x} of {type(x)} for Mapping data in key-value pairs
-          
-          
-          :")
+    print(f"x = {x} of {type(x)} for Mapping data in key-value pairs:")
 
 
     print(f"\nBytes and bits:")
@@ -99,11 +107,6 @@ def define_datatypes():
     # Define Binary Types: 	memoryview
     x = memoryview(bytes(5))
     print(f"x = memoryview(bytes(5)) = {x} of {type(x)}")
-
-    print(f"\n")
-    # Define None Type: 	NoneType
-    x = None
-    print(f"x = {x} of {type(x)}")
 
 
 def compare_ids():
