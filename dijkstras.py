@@ -2,7 +2,7 @@
 
 """dijkstras.py at https://github.com/wilsonmar/python-samples/blob/main/dijkstras.py
 
-gas "v008 + link to powerpoint illustrations file :dijkstras.py"
+"v009 + globals, display_tree :dijkstras.py"
 STATUS: Working
 
 This program has a time complexity of O(E*log(V)).
@@ -43,8 +43,9 @@ Generalization of this is Graph handling in Python:
 """
 # no imports
 
-
-# TODO: Ensure that only one edge is specified. No multigraphs allowed.
+# Define Global:
+SHOW_GRAPH = True
+SHOW_NODES = False
 
 # Code here do not insert graph data, just read.
 
@@ -129,15 +130,16 @@ def dijkstra2(graph,start,goal):
     return
 
 
-# def dijkstra3(graph, start): # by https://www.youtube.com/watch?v=_B5cx-WD5EA
-    # Code requested from glassbyte.io@gmail.com
-#    graph = { # between nodes, from
-#        'A': {'B': 3, 'C': 6, 'D': 4},
-#        'B': {'A': 3, 'C': 2, 'E': 3},
-#        'C': {'A': 6, 'B': 2, 'E': 3, 'F': 3},
-#        'D': {'A': 4, 'F': 6},
-#        'E': {'B': 3, 'C': 3, 'F': 1}
-#        'F': {'C': 3, 'D': 6, 'E': 1}}
+def display_tree(dictionary, indent=""):
+    """Display dictionary graph with indents.
+    """
+    # TODO: Ensure that only one edge is specified. No multigraphs allowed.
+    for key, value in dictionary.items():
+        print(f"{indent}Key: {key}")
+        if isinstance(value, dict):
+            display_tree(value, indent + "  ")
+        else:
+            print(f"{indent}  Value: {value}")
 
 
 if __name__ == "__main__":
@@ -159,6 +161,8 @@ if __name__ == "__main__":
         'D': {'A': 1, 'E': 1},
         'E': {'D': 1, 'B': 2, 'C': 5}}
     # The graph can be displayed as an adjancy matrix or incidence matrix.
+    if SHOW_GRAPH == True:
+        display_tree(graph, indent="")
 
     goal = "F"
     nodes = ('A', 'B', 'C', 'D', 'E', 'F')
@@ -169,8 +173,11 @@ if __name__ == "__main__":
         'D': {'A': 4, 'F': 6},
         'E': {'B': 3, 'C': 3, 'F': 1},
         'F': {'C': 3, 'D': 6, 'E': 1}}
+    if SHOW_GRAPH == True:
+        display_tree(graph, indent="")
 
-    print(dijkstra1(start, nodes, graph))
+    if SHOW_NODES == True:
+        print(dijkstra1(start, nodes, graph))
         # {'A': 0, 'D': 1, 'E': 2, 'B': 4, 'C': 7}
     print(dijkstra2(graph,start,goal))
         # *** dijkstra2() From Ian Sullivan:
@@ -194,7 +201,10 @@ if __name__ == "__main__":
         'E': {'C': 5, 'D': 11, 'F': 1},
         'F': {'D': 22, 'E': 1}}
         # CAUTION: Values in distances cannot be negative.
-    print(dijkstra1(start, nodes, graph))
+    if SHOW_GRAPH == True:
+        display_tree(graph, indent="--")
+    if SHOW_NODES == True:
+        print(dijkstra1(start, nodes, graph))
         # Numeric distances between nodes can be hours time or miles:
         # [('B', 2), ('C', 4)]
         # [('C', 4), ('D', 10)]
@@ -208,4 +218,15 @@ if __name__ == "__main__":
         # None
 
     # TODO: Illustrate visually in a GUI?
+
+
+# def dijkstra3(graph, start): # by https://www.youtube.com/watch?v=_B5cx-WD5EA
+    # Code requested from glassbyte.io@gmail.com
+#    graph = { # between nodes, from
+#        'A': {'B': 3, 'C': 6, 'D': 4},
+#        'B': {'A': 3, 'C': 2, 'E': 3},
+#        'C': {'A': 6, 'B': 2, 'E': 3, 'F': 3},
+#        'D': {'A': 4, 'F': 6},
+#        'E': {'B': 3, 'C': 3, 'F': 1}
+#        'F': {'C': 3, 'D': 6, 'E': 1}}
 
