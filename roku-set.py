@@ -8,7 +8,7 @@ Based on Perplexity.ai prompt "write ..."
 """
 
 # pip install roku  # roku-4.1.0
-from roku import Roku  # v31 Aug 4, 2019
+from roku import Roku  # v3.1 Aug 4, 2019
     # https://pypi.org/project/roku/
     # https://github.com/jcarbaugh/python-roku
 import time
