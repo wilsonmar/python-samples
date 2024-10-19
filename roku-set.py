@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """roku-set.py at https://github.com/wilsonmar/python-samples/blob/main/roku.py
-"v001 + new :roku-set.py"
-STATUS: working.
+"v002 + add discovery :roku-set.py"
+STATUS: Works until opening YouTube.
 A Python program to set a roku device to a specific video in youtube"
 Based on Perplexity.ai prompt "write ..." 
 """
@@ -43,12 +43,12 @@ youtube_app = roku['YouTube']
 youtube_app.launch()
 
 # Wait for the app to load
-time.sleep(5)
-
+time.sleep(20)
 
 # Navigate to the search function
 roku.home()
-time.sleep(1)
+time.sleep(5)
+
 roku.down()
 roku.select()
 
