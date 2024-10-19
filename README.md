@@ -8,7 +8,8 @@ Sample Python coding with a lot of security and technical features, all in one r
 * num2words.py simply converts a number input to its word.
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
-* python-samplex.py is a conglomeration of many features.
+* python-samples.py is a conglomeration of many features.
+* roku-set.py opens Roku at a given IP address to the YouTube video specified.
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
 * try-accept.py to show usage of try/except/else/finally exceptions
 * variables.py to experiment with defining and viewing objects of various data types.
