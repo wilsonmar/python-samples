@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """ recursive-cache.py at https://github.com/wilsonmar/python-samples/blob/main/recursive-cache.py
-STATUS: NOT WORKING. Zero
+STATUS: WORKING.
 "v002 + flake8 fixes :recursive-cache.py"
 
 This program runs recursively a Fibonacci sequence (see https://en.wikipedia.org/wiki/Fibonacci_sequence#Binet's_formula), 
