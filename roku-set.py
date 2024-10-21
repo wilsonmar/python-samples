@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+""" roku-set.py at https://github.com/wilsonmar/python-samples/blob/main/roku.py
+STATUS: NOT WORKING. Opens YouTube with hard-coded values.
+"v003 + flake8 fixes :roku-set.py"
 
-"""roku-set.py at https://github.com/wilsonmar/python-samples/blob/main/roku.py
-"v002 + add discovery :roku-set.py"
-STATUS: Works until opening YouTube.
-A Python program to set a roku device to a specific video in youtube"
-Based on Perplexity.ai prompt "write ..." 
+This Python program sets a Roku device on the same network to a specific Youtube video."
+
 """
 
 # pip install roku  # roku-4.1.0
@@ -13,7 +13,7 @@ from roku import Roku  # v3.1 Aug 4, 2019
     # https://github.com/jcarbaugh/python-roku
 import time
 
-#### GLOBALS:
+# GLOBALS:
 # Replace with your Roku's IP address
 # obtained on Roku device connected using the same SSID as your computer.
 # 1. Press the Home button on your remote to access the main menu.
@@ -36,10 +36,11 @@ except Exception as e:
     print(f"failed {e}")
 
 # roku.apps  # returns list of apps
-    # [<Application: [2285] Hulu Plus v2.7.6>, <Application: [13] Amazon Instant Video v5.1.3>, <Application: [20445] VEVO v2.0.12092013>]
+
 # Launch the YouTube app
 youtube_app = roku['YouTube']
-    # <Application: [2285] Hulu Plus v2.7.6>
+# OUTPUT: <Application: [2285] Hulu Plus v2.7.6>
+
 youtube_app.launch()
 
 # Wait for the app to load
@@ -58,4 +59,3 @@ roku.literal(YOUTUBE_ID)
 # Start the video
 roku.right()
 roku.select()
-
