@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-"""argparse.py 
-"v001 new :argparse.py"
+"""argparse.py at https://github.com/wilsonmar/python-samples/blob/main/argparse.py
 STATUS: AttributeError: module 'argparse' has no attribute 'ArgumentParser'
+"v001 new :argparse.py"
 Tested on macOS 14.5 (23F79) using Python 3.13.
+flake8  E501 line too long, E222 multiple spaces after operator
 
 This program is an example of how to specify command line arguments into this program.
 per https://docs.python.org/3/library/argparse.html#module-argparse
