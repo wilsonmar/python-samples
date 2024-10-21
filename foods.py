@@ -1,9 +1,10 @@
 foods.py
 
 """foods.py at 
-This program identifies complete meal plans for specific conditions such as low sodium.
-"v001 + video start time :dijkstra-yt.py"
 STATUS: In design.
+"v001 + new :foods.py"
+
+This program identifies complete meal plans for specific conditions such as low sodium.
 
 https://spoonacular.com/food-api
 https://www.youtube.com/watch?v=V20Mj4w-7K4
