@@ -2,12 +2,14 @@
 
 """ endecode-protobuf.py at https://github.com/wilsonmar/python-samples/blob/main/endecode-protobuf.py
 STATUS: Kinda working - not putting # between commas in rawlist.
-"v002 rm self but commas ignored :endecode-protobuf.py"
+"v003 + Dockstrong :endecode-protobuf.py"
 
-Encode and decode a list of strings like Protobuf for gRPC by 
-prefixing each string with a count delimited by # character.
+Encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
+
 From Neetcode at https://youtube.com/shorts/zwUjHW8Exyc?si=zJqvmNgYht_Oajwq
 "This is a common interview question".
+
+Tested on macOS 14.5 (23F79) using Python 3.13.
 """
 
     # NOTE:  Python requires self to be explicitly defined as the first parameter in instance methods.
