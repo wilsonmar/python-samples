@@ -6,6 +6,8 @@ STATUS: Partial working (confusion matrix error with random data) Classification
 "v001 new :ml-metrics.py"
 
 This is an example of how to use PyTorch with Skikit to calculate performance metrics for Machine Learning.
+Explained using PowerPoint available at https://7451111251303.gumroad.com/l/romzjt
+
 Based on code at https://www.v7labs.com/blog/performance-metrics-in-machine-learning
 
 Tested on macOS M2 14.5 (23F79) using Python 3.13.
