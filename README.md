@@ -3,7 +3,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 
 ## Programs alphabetically
 
-* argparse-samples.py caluclates confusion & Evaluation Metrics using sklearn
+* argparse-samples.py shows how to specify command line arguments into this program.
 * calculator-tk.py is a calculator created using the Tk GUI library.
 * dijkstras.py to compare calculations of shortest path on a graph
 * dijkstra-yt.py to calculate shortest path using heapq library
@@ -12,6 +12,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
 * python-samples.py is a conglomeration of many features.
+* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
 * pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 * recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
