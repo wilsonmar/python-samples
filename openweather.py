@@ -10,23 +10,8 @@ REST API calls to openweathermp.org. Response includes
 sunrise and sunset times.
 This creates fuzzy tags for value rangess of 
 cloud, humidity, pressure, wind direction.
-TODO: Store each day's readings to a database for trending on dashboard (such as
-https://wilsonmar.github.io/dashboards/#weather-maps)
-TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
 
-Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
-Create account at https://home.openweathermap.org/users/sign_up
-⛈ subscribe to the "One Call API 3.0" with a credit card.
-https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
-weatherstack.com/
-* Ambient Weather: https://ambientweather.net/dashboard/3e5ec6331a8884e1ac1d5fbd2812ba11/tiles
-* Weather Underground: https://www.wunderground.com/dashboard/pws/KNJRIDGE44
-* Weather Cloud: https://app.weathercloud.net/d7511690833#current
-* PWS Weather: https://www.pwsweather.com/station/pws/KRUSE1
-* weather.gov (free)
-* sunriseandsunset.io (free)
-
-Samplr CLI putput:
+Sample CLI putput running this program:
 openweather.org at 01:50 AM (01:50:55) 2024-09-29 reports
 as 5661766     at: 01:52 AM (01:52:23) 2024-09-29 TZ: -21600
           Sunrise: 07:12 AM (07:12:11) 2024-09-29
@@ -39,6 +24,25 @@ Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
 low pressure at 1009 hPa (Hectopascals, aka millibars)
       (vs. normal: 1013.25 hPa at sea level)
     (Ground_level:  878 hPa)
+
+Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
+Create account at https://home.openweathermap.org/users/sign_up
+⛈ subscribe to the "One Call API 3.0" with a credit card.
+https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
+weatherstack.com/
+
+TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
+like https://www.ventusky.com/?p=45.45;-109.78;6&l=gust&w=soft
+TODO: Store each day's readings to a database for trending on dashboard (such as
+https://wilsonmar.github.io/dashboards/#weather-maps)
+* Ambient Weather: https://ambientweather.net/dashboard/3e5ec6331a8884e1ac1d5fbd2812ba11/tiles
+* Weather Underground: https://www.wunderground.com/dashboard/pws/KNJRIDGE44
+* Weather Cloud: https://app.weathercloud.net/d7511690833#current
+* PWS Weather: https://www.pwsweather.com/station/pws/KRUSE1
+* weather.gov (free)
+* sunriseandsunset.io (free)
+
+
 """
 from datetime import datetime
 from datetime import timedelta, timezone
