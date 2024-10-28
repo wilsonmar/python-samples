@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """variables.py at https://github.com/wilsonmar/python-samples/blob/main/variables.py
-"v003 fix ending of text :variables.py"
+"v004 + comma at end of list :variables.py"
 STATUS: working but under construction.
 This program demonstrates the creation and analysis of various data types of variables,
 to experiment with defining and viewing objects of various data types.
@@ -30,23 +30,23 @@ def define_datatypes():
 
     print(f"\n")
 
-    # Define Text Type: 	str
+    print("\n*** Define Text Type: 	str:")
     # https://docs.python.org/3/tutorial/introduction.html#text
     x = "Hello World"
     print(f"x=\"{x}\" of {type(x)}")
 
-    # Define Boolean Type: 	bool
+    print("\n*** Define Boolean Type: 	bool:")
     # https://docs.python.org/3/library/stdtypes.html#boolean-type-bool
     x = bool(5)
     print(f"bool(5)={x} of {type(x)}")
 
-    print("\nNumeric: int, float, complex:")
+    print("\n*** Numeric: int, float, complex:")
     # Define Numeric Types: int
     # https://docs.python.org/3/tutorial/introduction.html#numbers
     x = int(20)
     print(f"int({x}) of {type(x)}")
 
-    # Define Numeric Types: float
+    print("\n*** Define Numeric Types: float:")
     x = float(20.5)
     print(f"float({x}) of {type(x)}")
 
@@ -55,9 +55,8 @@ def define_datatypes():
     x = complex(1j)
     print(f"complex({x}) of {type(x)}")
 
-    print("\nSequence: range, tuple, list to hold collection of items:")
     # https://docs.python.org/3/library/stdtypes.html#sequence-types-list-tuple-range
-
+    print("\n*** Sequence: range:")
     # Define Sequence Type: range
     # https://docs.python.org/3/library/stdtypes.html#range
     x = range(6)
@@ -65,10 +64,16 @@ def define_datatypes():
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     list(range(1, 11))
 
+    print("\n*** Sequence: tuple, list to hold collection of items:")
+    x1 = ("apple", "banana", "cherry",)
+    print(f"x1 = ({x1}) of {type(x1)}")
+
+    print("\n*** Sequence: list to hold collection of items:")
     # Define Sequence Type: tuples and squences:
     # https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
-    x = ("apple", "banana", "cherry")
-    print(f"x = ({x}) of {type(x)}")
+    x2 = ["apple", "banana", "cherry",]
+    # PROTIP: Comma at end of list makes it easier to copy/paste values.
+    print(f"x2 = ({x2}) of {type(x2)}")
 
     # Nested Tuples:
 
@@ -78,7 +83,7 @@ def define_datatypes():
     x = list(("apple", "banana", "cherry"))
     print(f"x = list({x}) of {type(x)}")
 
-    print("\nSet: set, frozenset to hold collection of unique items:")
+    print("\n*** Set: set, frozenset to hold collection of unique items:")
     # Define Set Types: 	set
     # https://docs.python.org/3/tutorial/datastructures.html#sets
     x = {"apple", "banana", "cherry"}
@@ -95,7 +100,7 @@ def define_datatypes():
     print(f"x = {x} of {type(x)} for Mapping data in key-value pairs:")
 
 
-    print(f"\nBytes and bits:")
+    print(f"\n*** Bytes and bits:")
     # Define Binary Types: 	bytes
     x = b"Hello"
     print(f"b\"Hello\" = {x} of {type(x)}")
