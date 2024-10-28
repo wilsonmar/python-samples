@@ -2,16 +2,21 @@
 Sample Python coding with a lot of security and technical features, all in one rep for easy adoption.
 
 ## Programs alphabetically
+
+* argparse-samples.py caluclates confusion & Evaluation Metrics using sklearn
 * calculator-tk.py is a calculator created using the Tk GUI library.
 * dijkstras.py to compare calculations of shortest path on a graph
 * dijkstra-yt.py to calculate shortest path using heapq library
+* endecode-protobuf.py encodes and decodes a list of strings like Protobuf
 * num2words.py simply converts a number input to its word.
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
 * python-samples.py is a conglomeration of many features.
+* pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 * recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
+* sklearn-sample calculates
 * try-accept.py to show usage of try/except/else/finally exceptions
 * variables.py to experiment with defining and viewing objects of various data types.
 * youtube-download.py downloads videos based on its URL.
