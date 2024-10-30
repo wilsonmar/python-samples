@@ -17,6 +17,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 * recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
+* roman2int.py converts Roman numerals to base 10 numbers.
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
 * sklearn-sample calculates
 * try-accept.py to show usage of try/except/else/finally exceptions
