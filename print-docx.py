@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
 
-""" print-docx.py at https://github.com/wilsonmar/python-samples/
-STATUS: Working but under construction.
-"v003 + flake8 fixes :print-docx.py"
+""" print-docx.py at https://github.com/wilsonmar/python-samples/blob/main/print-docx.py
+STATUS: NOT Working: docx import not in conda
+"v006 + get file size :print-docx.py"
 
 Based on a specified (hard coded) folder/file path,
 this program creates a .docx format Microsoft Word file, then
-converts it to a .pdf file for generic printing by most printers.
-"""
+converts it to a .pdf file for generic printing on the default printer.
 
-# pip install docx, docx2pdf
+This is a local solution instead of having the 
+printer company send pages over the internet:
+https://www.youtube.com/watch?v=53nOTAc0Oy8
+That EpsonConnect technique prints out a cover sheet as well the file
+if you don't uncheck "print email body" under Email Print settings.
+
+Before running this program:
+brew install miniconda
+conda create -n py312
+conda install -c conda-forge python=3.12
+pip install docx docx2pdf
+conda activate py312
+chmod +x print-docx.py
+./print-docx.py
+"""
 import docx
 from docx2pdf import convert
 # import schedule
@@ -43,6 +56,19 @@ def get_file_datetime(file_path):
     return creation_date.strftime('%Y-%m-%d %H:%M:%S')
 
 
+def get_file_size(file_path):
+    """ Get the file size in bytes """
+    try:
+        file_size = os.path.getsize(file_path)
+        return file_size
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+
 def create_word_document(file_path):
     # Create a new Document:
     doc = Document()
@@ -60,7 +86,7 @@ def create_word_document(file_path):
 
     # TODO: Remove "Ink Colors" heading. This can be ignored for now.
 
-    # Add a paragraph for each color:
+    # Add a paragraph for each color using VBA coding:
     for color_name, color_rgb in colors:
         # TODO: Randomize location on page:
         paragraph = doc.add_paragraph()
@@ -142,6 +168,7 @@ if __name__ == "__main__":
             # Print the creation date in a human-readable format:
             print(f"*** INFO: {docx_file_path} found...")
             print("*** INFO: with created date/timestamp "+get_file_datetime(docx_file_path))
+            print("*** INFO: file size bytes: "+get_file_size(docx_file_path))
             # Don't create_word_document().
 
     if LIST_PRINTERS:

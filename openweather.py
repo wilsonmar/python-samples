@@ -44,9 +44,15 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 
 
 """
+# STEP 1 = Setup. Before running this program: Installing Required Libraries & Importing Required Libraries
+# Buikt-in: import os
 from datetime import datetime
 from datetime import timedelta, timezone
-import os
+
+# brew install miniconda
+# conda create -n py313
+# conda activate py313
+# conda install --name py313 requestsa
 import pathlib
 import urllib.parse
 import requests

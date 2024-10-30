@@ -3,12 +3,13 @@
 """ ml-metrics.py at https://github.com/wilsonmar/python-samples/blob/main/ml-metrics.py
 
 STATUS: Partial working (confusion matrix error with random data) Classification Accuracy & Logarithmic Loss
-"v001 new :ml-metrics.py"
+"v002 + powerpoint url :ml-metrics.py"
 
 This is an example of how to use PyTorch with Skikit to calculate performance metrics for Machine Learning.
 Explained using PowerPoint available at https://7451111251303.gumroad.com/l/romzjt
 
 Based on code at https://www.v7labs.com/blog/performance-metrics-in-machine-learning
+Also see https://medium.com/@jscvcds/a-step-by-step-guide-to-model-evaluation-in-python-3a72dee92560
 
 Tested on macOS M2 14.5 (23F79) using Python 3.13.
 flake8  E501 line too long, E222 multiple spaces after operator

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """variables.py at https://github.com/wilsonmar/python-samples/blob/main/variables.py
-"v004 + comma at end of list :variables.py"
+"v005 + type :variables.py"
 STATUS: working but under construction.
 This program demonstrates the creation and analysis of various data types of variables,
 to experiment with defining and viewing objects of various data types.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" roku-set.py at https://github.com/wilsonmar/python-samples/blob/main/roku.py
+""" roku-set.py at https://github.com/wilsonmar/python-samples/blob/main/roku-set.py
 STATUS: NOT WORKING. Opens YouTube with hard-coded values.
 "v003 + flake8 fixes :roku-set.py"
 
