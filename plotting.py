@@ -4,40 +4,77 @@
 
 This is starter sample code to create common visualizations using matplotlib.
 
-STATUS: Working.
-"v001 + new use matplotlib in :plotting.py"
+STATUS: Working on macOS M2 14.5 (23F79) using Python 3.12.7.
+"v002 + add sciendots :plotting.py"
 
 Before running this program:
 brew install miniconda
 conda create -n py312
+conda install -c conda-forge python=3.12 matplotlib numpy scienceplots
 conda activate py312
-conda install python=3.12 matplotlib numpy -c conda-forge 
 chmod +x plotting.py
 ./plotting.py
 
-TODO: Matplotlib advanced features: https://matplotlib.org/stable/users/explain/quick_start.html
-* 3D plotting
-* Animation
-* Customizable colormaps
-* Logarithmic scales
+See https://matplotlib.org/stable/users/explain/quick_start.html
+
+TODO: Matplotlib advanced features: 
 * Twin axes
+* Logarithmic scales
+* Customizable colormaps
+* 2D Contour Plots
+* 3D plotting
+* Animations https://www.youtube.com/watch?v=bNbN9yoEOdU
+
+TODO: Use https://seaborn.pydata.org/installing.html
+See https://www.youtube.com/watch?v=ooqXQ37XHMM for Seaborn
 """
 
 import matplotlib.pyplot as plt
 # FIXME: print(matplotlib.__version__)
 import numpy as np
+import scienceplots  # https://github.com/garrettj403/SciencePlots
+
 
 # Globals:
-SAVE_PNG = False
+SAVE_PNG = False  # FIXME: png files created with blanks.
 
-# Sample data
+
+# STAGE: Define enviornment:
+plt.style.use(['science','ieee','no-latex'])  # https://github.com/garrettj403/SciencePlots/wiki/Gallery
+plt.rcParams.update({'figure.dpi': '100'})    # dots per inch for IEEE publications
+
+
+# STAGE: Create a scatter plot:
+# From https://matplotlib.org/stable/users/explain/quick_start.html#types-of-inputs-to-plotting-functions
+np.random.seed(19680801)  # seed the random number generator.
+data = {'a': np.arange(50),
+        'c': np.random.randint(0, 50, 50),
+        'd': np.random.randn(50)}
+data['b'] = data['a'] + 10 * np.random.randn(50)
+data['d'] = np.abs(data['d']) * 100
+
+fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+ax.set_title('My Scatter Dots Plot')
+ax.scatter('a', 'b', c='c', s='d', data=data)
+ax.set_xlabel('entry a')
+ax.set_ylabel('entry b')
+
+# See https://matplotlib.org/stable/users/explain/text/annotations.html#basic-annotation
+ax.annotate('(0,0)\nzero', xy=(0, 0), xytext=(10, 40),
+            arrowprops=dict(facecolor='grey', shrink=0.05))
+plt.show()
+if SAVE_PNG:
+    plt.savefig('my_scatterdots.png')
+
+
+# STAGE: Define sample data:
 #x = [1, 2, 3, 4]
 #y = [1, 4, 9, 16]
 x = np.array([1, 2, 3, 4])
 y = np.array([1, 4, 9,16])
 
 
-# Create a figure and an axes:
+# STAGE: Create a line chart:
 fig, ax = plt.subplots()
 ax.set_title('My Line Chart')
 plt.xlabel('X-axis')
@@ -48,15 +85,7 @@ if SAVE_PNG:
     plt.savefig('my_line_chart.png')
 
 
-plt.suptitle('My Scatter Plot')
-plt.xlabel('X-axis')
-plt.ylabel('Y-axis')
-plt.scatter(x, y)
-plt.show()
-if SAVE_PNG:
-    plt.savefig('my_scatterplot.png')
-
-
+# STAGE: Create a bar chart:
 plt.suptitle('My Bar Chart')
 plt.xlabel('X-axis')
 plt.ylabel('Y-axis')
@@ -67,6 +96,7 @@ if SAVE_PNG:
 # TODO: Stacked Barchart
 
 
+# STAGE: Create a histogram:
 plt.suptitle('My Histogram')
 plt.ylabel('Y-axis')
 plt.xlabel('X-axis')
@@ -76,7 +106,22 @@ if SAVE_PNG:
     plt.savefig('my_histogram.png')
 
 
+# STAGE: Create a scatter plot:
+plt.suptitle('My Scatter Plot')
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.scatter(x, y)
+plt.show()
+if SAVE_PNG:
+    plt.savefig('my_scatterplot.png')
+# TODO: Add regression line.
+
+
+
+
 # TODO: Close pop-up window programmatically vs. manually with control+W.
 
-# TODO: Use https://seaborn.pydata.org/installing.html
 
+# A figure with one Axes on the left, and two on the right:
+#fig, axs = plt.subplot_mosaic([['left', 'right_top'],
+#                               ['left', 'right_bottom']])
