@@ -6,7 +6,7 @@ This coverts Roman letters to interger, solving Leetcode #13.
 Roman letters are in the bottom of movie credits to make the year of publication less obvious.
 
 STATUS: Working on macOS M2 14.5 (23F79) using Python 3.12.7.
-"v001 new for APCSP :roman2int.py"
+git commit -m "v001 new for APCSP :roman2int.py"
 
 Based on https://github.com/gahogg/Leetcode-Solutions/blob/main/Roman%20to%20Integer%20-%20Leetcode%2013/Roman%20to%20Integer%20-%20Leetcode%2013.py
 explained at https://www.youtube.com/watch?v=JlVOzbOJiv0
