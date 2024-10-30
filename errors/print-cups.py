@@ -3,10 +3,19 @@
 """ print-cups.py at https://github.com/wilsonmar/python-samples/blob/main/print-cups.py
 
 STATUS: Working but under construction on macOS M2 14.5 (23F79) using Python 3.12.7.
-git commit -m "v002 + docstring desc :cups.py"
+git commit -m "v002 + docstring desc ren cups.py :print-cups.py"
 
 This makes use of the Linux cups utility to control printers.
 
+Before running this program:
+brew install miniconda
+conda create -n py312
+conda activate py312
+# conda install -c conda-forge python=3.12 matplotlib numpy scienceplots
+   # ModuleNotFoundError: No module named 'pycups'
+pip install pycups  docx  docx2pdf  
+chmod +x print-cups.py  # pycups-2.0.4
+./print-cups.py
 """
 
 # pip install pycups, docx, docx2pdf

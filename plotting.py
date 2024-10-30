@@ -129,3 +129,7 @@ if SAVE_PNG:
 # A figure with one Axes on the left, and two on the right:
 #fig, axs = plt.subplot_mosaic([['left', 'right_top'],
 #                               ['left', 'right_bottom']])
+
+# TODO: Add ChatGPT generation of code.
+# https://apps.cognitiveclass.ai/learning/course/course-v1:IBMSkillsNetwork+GPXX0TJREN+v1/block-v1:IBMSkillsNetwork+GPXX0TJREN+v1+type@sequential+block@guided_project/block-v1:IBMSkillsNetwork+GPXX0TJREN+v1+type@vertical+block@guided_project_lets_do_it
+# https://cf-courses-data.static.labs.skills.network/jupyterlite/2.5.5/lab/index.html?mode=learn&env_type=jupyterlite&notebook_url=https%3A%2F%2Fcf-courses-data.static.labs.skills.network%2FIBMSkillsNetwork-GPXX0TJREN%2Flabs%2FPlottingByChatGPT.jupyterlite.ipynb&file_path=%2Flabs%2FIBMSkillsNetwork-GPXX0TJREN%2Flabs%2FPlottingByChatGPT.jupyterlite.ipynb
