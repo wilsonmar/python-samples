@@ -46,21 +46,29 @@ def romanToInt(s: str) -> int:
     # Time: O(n)
     # Space: O(1)
 
+
+def test_roman2int():
+    # Test case 1: Normal case
+    assert romanToInt("MCMXCIV") == 1994, "Should be 1994"
+
+
 ###############
 
 if __name__ == "__main__":
 
     while True:
-        roman_letters = input(f"Roman numerals: ") or ROMAN_DEFAULT
-            # Press enter to accept default values (for easier testing)
+        roman_letters = input(f"Roman numerals: ")
+        # Press Enter without entry to exit:
+        if roman_letters is None:
+            exit()
+
         roman_letters = roman_letters.upper()
         response = romanToInt(roman_letters)
         if response :
-            print(f"{response}",  )
+            print(f"{response}")
         else:
             print(f"Roman {roman_letters}", response )
             exit()
-
 
 # TODO: Add assert in unit test statements.
 # TODO: Create a GUI calculator so user can just tap each letter instead of typing.
