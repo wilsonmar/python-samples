@@ -11,6 +11,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * num2words.py simply converts a number input to its word.
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
+* perf-ns.py obtains timings in nanosecond-level resolution.
 * plotting.py to create common visualizations using matplotlib.
 * python-samples.py is a conglomeration of many features.
 * ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
