@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" perf-ns.py
+""" perf-ns.py at https://github.com/wilsonmar/python-samples/blob/main/perf-ns.py
 An example of obtaining timings in nanosecond-level resolution.
 
 CURRENT STATUS: WORKING on macOS M2 14.5 (23F79) using Python 3.12.7.
