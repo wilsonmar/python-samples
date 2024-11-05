@@ -1,64 +1,50 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# SPDX-License-Identifier: MPL-2.0
-# Please reference .pylintrc for PEP8 formatting according to https://peps.python.org/pep-0008/
-# conda install black  # to reformat
-# pylint: disable=line-too-long trailing-newlines
-"""
-This is youtube-download.py at
-https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
-CURRENT STATUS: NOT WORKING
-gas "v005 add YOUTUBE_FILE_PATH verif :download-youtube.py"
+""" youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
+
+CURRENT STATUS: WORKING for single file.
+git commit -m "v006 + YOUTUBE_PREFIX :youtube-download.py"
 
 Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-videos/
 """
 
 import os
 
-# pip3 install pytube (not in conda)
-from pytube import YouTube   # https://pytube.io/en/latest/user/quickstart.html
+# NOTE: pytube.io had errors.
+# pip3 install yt_dlp because with Conda a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
+import yt_dlp
+from datetime import datetime
 
-    # pytube is a lightweight, Pythonic, dependency-free, library (and command-line utility) for downloading YouTube Videos.
-    # from pytube.streams import Stream
 
-# where to save
+# Globals:
 READ_LIST_PATH = ""  # On Linux: //mount/?to_do
-# Path to save downloaded videos:
-SAVE_PATH = ""  # On Linux: //mount/?to_do
-# YouTube URL to download (with time start and playlist):
-URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=fDAPJ7rvcUw"
-# https://www.youtube.com/watch?v=qrnjYfs-xVw"
-#URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=qrnjYfs-xVw&t=1m&list=PLDVrhnY7hFVr0Qykievv5qn0ApwCSYnHB&index=12&pp=iAQB"
-YOUTUBE_FILE_NAME="whatever.mp4"
 
 
-def download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH):
+def download_video(url,out_path):
+    """ Download a YouTube based on URL See https://ostechnix.com/yt-dlp-tutorial/
+    """
+    ydl_opts = {
+        'format': 'best',  # Download the 'bestaudio/best' available quality
+#        'download_ranges': lambda _: [{'start_time': 10, 'end_time': 20}],
+#        'outtmpl': '%(title)s.%(ext)s',  # Set filename to video title
+        'outtmpl': out_path,
+        'noplaylist': True,  # Download single video if URL is part of a playlist
+        'quiet': False,  # Show download progress in the console
+        'ignoreerrors': False,  # Continue even if an error is encountered
+        'no_warnings': False,  # Suppress warnings
+#        'postprocessors': [{
+#            'key': 'FFmpegExtractAudio',
+#            'preferredcodec': 'mp3',
+#            'preferredquality': '192',
+#         }],
+    }
 
-    print(">>> Downloading from:",URL_TO_DOWNLOAD)
-    try:
-        # object creation using YouTube
-        yt = YouTube(link)
+    try:  # Use yt-dlp to download the video
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(url)
+        print("*** Download completed successfully.")
     except Exception as err:
-        print(f">>> Link error {err=}, {type(err)=}")
-        return f">>> Error!", None
-
-     # get the video with the extension and
-    # resolution passed in the get() function
-    # Get all streams and filter for mp4 files
-    mp4_streams = yt.streams.filter(file_extension='mp4').all()
-
-    # get the video with the highest resolution:
-    d_video = mp4_streams[-1]
-
-    try:
-        d_video.download(YOUTUBE_FILE_PATH)  # where SAVE_PATH is global
-            # d_video = yt.get(mp4files[-1].extension,mp4files[-1].resolution)
-        print('>>> Video downloaded successfully!')
-
-    except Exception as err:
-        print(f">>> Unexpected {err=}, {type(err)=}")
-        return f">>> Error!", None
+        print(f"*** ERROR: {err}")
 
 
 def download_several(read_list_path):
@@ -75,7 +61,7 @@ def download_several(read_list_path):
             yt = YouTube(i)
         except:
             # TODO: handle exception
-            print("Connection Error")
+            print("*** Connection Error")
 
         #filters out all the files with "mp4" extension
         mp4files = yt.filter('mp4')
@@ -86,25 +72,56 @@ def download_several(read_list_path):
 
 
 #### Main:
-#
-#### Audit parameters:
-if SAVE_PATH == "":
-    SAVE_PATH=os.getcwd()  # cwd=current working directory.
-    print(">>> SAVE_PATH is blank!")
+if __name__ == "__main__":
 
-if os.path.isdir(SAVE_PATH):
-    print(">>> Downloading to:  ",SAVE_PATH)
-else:
-    print(">>> Folder",SAVE_PATH," does not exist!")
-    exit()
+    # Path to save downloaded videos:
+    SAVE_PATH = "/Users/johndoe/Downloads"
+    # On Linux: //mount/?to_do
+    # Blank = current path (program-samples)
 
+    if SAVE_PATH == "":
+        SAVE_PATH=os.getcwd()  # cwd=current working directory.
+        print("*** SAVE_PATH is blank from os.getcwd()!")
 
-if READ_LIST_PATH == "":
-    # On Linux & Macos:
-    YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
-    print(">>> Downloading file:",YOUTUBE_FILE_PATH)
-    download_a_file(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
-else:
-    print(">>> Downloading a several files from list at ",READ_LIST_PATH)
-    download_several(READ_LIST_PATH)
+    if os.path.isdir(SAVE_PATH):  # Confirmed a directory:
+        print("*** Downloading to:  ",SAVE_PATH)
+    else:
+        print("*** Folder",SAVE_PATH," does not exist!")
+        exit()
 
+    if READ_LIST_PATH == "":
+        YOUTUBE_PREFIX = "google-colab"
+        YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
+        # YOUTUBE_ID = "ix9cRaBkVe0"  # Python Full Course for free 🐍 (2024) by Bro Code
+        # YOUTUBE_ID = "fDAPJ7rvcUw"  # How AI Discovered a Faster Matrix Multiplication Algorithm
+        # = "qrnjYfs-xVw"  # CS50x 2024 - Cybersecurity
+        # YouTube URL to download (with time start and playlist):
+        URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=" + YOUTUBE_ID
+
+        now = datetime.now()
+        formatted_datetime = now.strftime("%Y%m%dT%H%M%SZ")
+        YOUTUBE_FILE_NAME = YOUTUBE_PREFIX + "-" YOUTUBE_ID + "-" + formatted_datetime + ".mp4"
+        # TODO: Add local time zone to local timezone instead of Z for UTC.
+
+        # On Linux & Macos:
+        YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
+        # print("*** Downloading file:",YOUTUBE_FILE_PATH)
+
+        download_video(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
+        # *** SAVE_PATH is blank!
+        # *** Downloading to:   /Users/johndoe/github-wilsonmar/python-samples
+        # *** Downloading file: /Users/johndoe/github-wilsonmar/python-samples/whatever-20241104T211954.mp4
+        # [youtube] Extracting URL: https://www.youtube.com/watch?v=fDAPJ7rvcUw
+        # [youtube] fDAPJ7rvcUw: Downloading webpage
+        # [youtube] fDAPJ7rvcUw: Downloading ios player API JSON
+        # [youtube] fDAPJ7rvcUw: Downloading mweb player API JSON
+        # [youtube] fDAPJ7rvcUw: Downloading player 4e23410d
+        # [youtube] fDAPJ7rvcUw: Downloading m3u8 information
+        # [info] fDAPJ7rvcUw: Downloading 1 format(s): 251
+        # [download] Destination: How AI Discovered a Faster Matrix Multiplication Algorithm.webm
+        # [download] 100% of   13.27MiB in 00:00:02 at 6.16MiB/s
+        # *** Download completed successfully.
+
+    else:
+        print("*** Downloading several files from list at ",READ_LIST_PATH)
+        download_several(READ_LIST_PATH)
