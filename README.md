@@ -9,6 +9,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * dijkstra-yt.py to calculate shortest path using heapq library
 * endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
 * num2words.py simply converts a number input to its word.
+* otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
 * perf-ns.py obtains timings in nanosecond-level resolution.
