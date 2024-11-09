@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v008 + disk size :youtube-download.py"
+git commit -m "v008 + file bytes :youtube-download.py"
 
 ./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
 
@@ -12,16 +12,16 @@ Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-vi
 
 # pip install argparse
 import argparse
-# NOTE: pytube.io had errors.
+
 # pip3 install yt_dlp because with Conda a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
 import yt_dlp  # yt_dlp-2024.11.4
+   # NOTE: Alternative pytube.io had errors.
 
 # Defaults:
 import os
 from datetime import datetime
 from time import perf_counter_ns
-import time  # for sleep.
-import platform
+import time
 
 
 # Globals:
