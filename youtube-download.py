@@ -3,21 +3,54 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v006 + YOUTUBE_PREFIX :youtube-download.py"
+git commit -m "v007 + argparse :youtube-download.py"
+
+./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw 
 
 Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-videos/
 """
 
-import os
-
+# pip install argparse
+import argparse
 # NOTE: pytube.io had errors.
 # pip3 install yt_dlp because with Conda a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
-import yt_dlp
+import yt_dlp  # yt_dlp-2024.11.4
+
+# Defaults:
+import os
 from datetime import datetime
 
 
 # Globals:
+# Path to save downloaded videos:
+SAVE_PATH = "/Users/johndoe/Downloads"
+# On Linux: //mount/?to_do
+# Blank = current path (program-samples)
+
+parser = argparse.ArgumentParser(description="YouTube download")
+parser.add_argument("-d", "--desc", help="Description (file prefix)")
+parser.add_argument("-vid", "--vid", help="YouTube Video ID")
+parser.add_argument("-f", "--file", help="Input file name")
+#parser.add_argument("-v","--vid", action="store_true", help="Increase output verbosity")
 READ_LIST_PATH = ""  # On Linux: //mount/?to_do
+INCLUDE_DATE_OUT = False
+
+args = parser.parse_args()
+
+YOUTUBE_PREFIX = args.desc
+YOUTUBE_ID = args.vid
+READ_LIST_PATH = args.file
+print(f"*** -desc {args.desc}, -vid {args.vid} -file  {args.file}")
+
+if SAVE_PATH == "":
+    SAVE_PATH=os.getcwd()  # cwd=current working directory.
+    print("*** SAVE_PATH is blank from os.getcwd()!")
+
+if os.path.isdir(SAVE_PATH):  # Confirmed a directory:
+    print("*** Downloading to:  ",SAVE_PATH)
+else:
+    print("*** Folder",SAVE_PATH," does not exist!")
+    exit()
 
 
 def download_video(url,out_path):
@@ -74,24 +107,10 @@ def download_several(read_list_path):
 #### Main:
 if __name__ == "__main__":
 
-    # Path to save downloaded videos:
-    SAVE_PATH = "/Users/johndoe/Downloads"
-    # On Linux: //mount/?to_do
-    # Blank = current path (program-samples)
-
-    if SAVE_PATH == "":
-        SAVE_PATH=os.getcwd()  # cwd=current working directory.
-        print("*** SAVE_PATH is blank from os.getcwd()!")
-
-    if os.path.isdir(SAVE_PATH):  # Confirmed a directory:
-        print("*** Downloading to:  ",SAVE_PATH)
-    else:
-        print("*** Folder",SAVE_PATH," does not exist!")
-        exit()
-
-    if READ_LIST_PATH == "":
-        YOUTUBE_PREFIX = "google-colab"
-        YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
+    if READ_LIST_PATH == None:
+        # https://www.youtube.com/watch?v=rISzLipRm7Y spin-right-mag-drives
+        #YOUTUBE_PREFIX = "google-colab"
+        # YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
         # YOUTUBE_ID = "ix9cRaBkVe0"  # Python Full Course for free 🐍 (2024) by Bro Code
         # YOUTUBE_ID = "fDAPJ7rvcUw"  # How AI Discovered a Faster Matrix Multiplication Algorithm
         # = "qrnjYfs-xVw"  # CS50x 2024 - Cybersecurity
@@ -100,8 +119,11 @@ if __name__ == "__main__":
 
         now = datetime.now()
         formatted_datetime = now.strftime("%Y%m%dT%H%M%SZ")
-        YOUTUBE_FILE_NAME = YOUTUBE_PREFIX + "-" YOUTUBE_ID + "-" + formatted_datetime + ".mp4"
-        # TODO: Add local time zone to local timezone instead of Z for UTC.
+            # TODO: Add local time zone to local timezone instead of Z for UTC.
+        YOUTUBE_FILE_NAME = YOUTUBE_PREFIX + "-" + YOUTUBE_ID
+        if INCLUDE_DATE_OUT:
+            YOUTUBE_FILE_NAME = YOUTUBE_FILE_NAME + "-" + formatted_datetime
+        YOUTUBE_FILE_NAME = YOUTUBE_FILE_NAME + ".mp4"
 
         # On Linux & Macos:
         YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
@@ -121,7 +143,6 @@ if __name__ == "__main__":
         # [download] Destination: How AI Discovered a Faster Matrix Multiplication Algorithm.webm
         # [download] 100% of   13.27MiB in 00:00:02 at 6.16MiB/s
         # *** Download completed successfully.
-
     else:
         print("*** Downloading several files from list at ",READ_LIST_PATH)
         download_several(READ_LIST_PATH)
