@@ -3,9 +3,9 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v007 + argparse :youtube-download.py"
+git commit -m "v008 + disk size :youtube-download.py"
 
-./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw 
+./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
 
 Based on https://www.geeksforgeeks.org/pytube-python-library-download-youtube-videos/
 """
@@ -19,38 +19,57 @@ import yt_dlp  # yt_dlp-2024.11.4
 # Defaults:
 import os
 from datetime import datetime
+from time import perf_counter_ns
+import time  # for sleep.
+import platform
 
 
 # Globals:
-# Path to save downloaded videos:
-SAVE_PATH = "/Users/johndoe/Downloads"
-# On Linux: //mount/?to_do
-# Blank = current path (program-samples)
+start_time = time.time()  # start the program-level timer.
+
+if os.name == "nt":  # Windows operating system
+    SLASH_CHAR = "\\"
+else:
+    SLASH_CHAR = "/"
+
 
 parser = argparse.ArgumentParser(description="YouTube download")
 parser.add_argument("-d", "--desc", help="Description (file prefix)")
 parser.add_argument("-vid", "--vid", help="YouTube Video ID")
 parser.add_argument("-f", "--file", help="Input file name")
-#parser.add_argument("-v","--vid", action="store_true", help="Increase output verbosity")
-READ_LIST_PATH = ""  # On Linux: //mount/?to_do
-INCLUDE_DATE_OUT = False
-
+parser.add_argument("-o", "--folder", help="Folder output to user Home path")
+parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
 args = parser.parse_args()
 
 YOUTUBE_PREFIX = args.desc
 YOUTUBE_ID = args.vid
-READ_LIST_PATH = args.file
-print(f"*** -desc {args.desc}, -vid {args.vid} -file  {args.file}")
+READ_LIST_PATH = args.file  # On Linux: //mount/?to_do
+SHOW_VERBOSE = args.verbose
+# print(f"*** -desc {args.desc}, -vid {args.vid} -file {args.file} {args.verbose}")
 
-if SAVE_PATH == "":
-    SAVE_PATH=os.getcwd()  # cwd=current working directory.
-    print("*** SAVE_PATH is blank from os.getcwd()!")
+SAVE_FOLDER = args.folder
+# SAVE_PATH = os.getcwd()  # cwd=current working directory.
+SAVE_PATH = os.path.expanduser("~")  # user home folder path
+# On Linux: //mount/?to_do
+if SAVE_FOLDER == None:
+    SAVE_PATH = SAVE_PATH + SLASH_CHAR + "Downloads"
+else:
+    SAVE_PATH = SAVE_PATH + SLASH_CHAR + SAVE_FOLDER
 
 if os.path.isdir(SAVE_PATH):  # Confirmed a directory:
-    print("*** Downloading to:  ",SAVE_PATH)
+    if SHOW_VERBOSE:
+        print(f"*** INFO: Downloading to folder: {SAVE_PATH}")
 else:
-    print("*** Folder",SAVE_PATH," does not exist!")
+    print(f"*** ERROR: Folder {SAVE_PATH} does not exist. Exiting.")
     exit()
+
+if SHOW_VERBOSE == None:
+    SHOW_VERBOSE = True
+else:
+    SHOW_VERBOSE = False
+
+INCLUDE_DATE_OUT = False
+
 
 
 def download_video(url,out_path):
@@ -75,7 +94,6 @@ def download_video(url,out_path):
     try:  # Use yt-dlp to download the video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download(url)
-        print("*** Download completed successfully.")
     except Exception as err:
         print(f"*** ERROR: {err}")
 
@@ -101,7 +119,18 @@ def download_several(read_list_path):
 
         download_a_file(URL_TO_DOWNLOAD)
 
-    print('Task Completed!')
+
+
+def get_file_size_on_disk(file_path):
+    try:
+        stat_result = os.stat(file_path)
+        return stat_result.st_blocks * 512  # st_blocks is in 512-byte units
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return None
+    except Exception as e:
+        print(f"Error getting file size: {e}")
+        return None
 
 
 #### Main:
@@ -127,22 +156,40 @@ if __name__ == "__main__":
 
         # On Linux & Macos:
         YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
-        # print("*** Downloading file:",YOUTUBE_FILE_PATH)
+        if SHOW_VERBOSE:
+            print(f"*** YOUTUBE_FILE_PATH = {YOUTUBE_FILE_PATH}")
 
+        t_ns_start = perf_counter_ns()  # Start task time stamp
         download_video(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
-        # *** SAVE_PATH is blank!
-        # *** Downloading to:   /Users/johndoe/github-wilsonmar/python-samples
-        # *** Downloading file: /Users/johndoe/github-wilsonmar/python-samples/whatever-20241104T211954.mp4
-        # [youtube] Extracting URL: https://www.youtube.com/watch?v=fDAPJ7rvcUw
-        # [youtube] fDAPJ7rvcUw: Downloading webpage
-        # [youtube] fDAPJ7rvcUw: Downloading ios player API JSON
-        # [youtube] fDAPJ7rvcUw: Downloading mweb player API JSON
-        # [youtube] fDAPJ7rvcUw: Downloading player 4e23410d
-        # [youtube] fDAPJ7rvcUw: Downloading m3u8 information
-        # [info] fDAPJ7rvcUw: Downloading 1 format(s): 251
-        # [download] Destination: How AI Discovered a Faster Matrix Multiplication Algorithm.webm
-        # [download] 100% of   13.27MiB in 00:00:02 at 6.16MiB/s
-        # *** Download completed successfully.
+            # *** Downloading to:   /Users/johndoe/github-wilsonmar/python-samples
+            # *** Downloading file: /Users/johndoe/github-wilsonmar/python-samples/whatever-20241104T211954.mp4
+            # [youtube] Extracting URL: https://www.youtube.com/watch?v=fDAPJ7rvcUw
+            # [youtube] fDAPJ7rvcUw: Downloading webpage
+            # [youtube] fDAPJ7rvcUw: Downloading ios player API JSON
+            # [youtube] fDAPJ7rvcUw: Downloading mweb player API JSON
+            # [youtube] fDAPJ7rvcUw: Downloading player 4e23410d
+            # [youtube] fDAPJ7rvcUw: Downloading m3u8 information
+            # [info] fDAPJ7rvcUw: Downloading 1 format(s): 251
+            # [download] Destination: How AI Discovered a Faster Matrix Multiplication Algorithm.webm
+            # [download] 100% of   13.27MiB in 00:00:02 at 6.16MiB/s
+        # End timing
+        # Log:
+        t_ns_stop = time.perf_counter_ns()  # Stop task time stamp
+        t_ns_duration_ns = (t_ns_stop - t_ns_start)      # naonseconds (ns)
+        t_ns_duration_µs = t_ns_duration_ns / 1000      # microseconds (µs)
+        t_ns_duration_ms = t_ns_duration_µs / 1000      # milliseconds (ms)
+        t_ns_duration_secs = t_ns_duration_ms / 1000    #      seconds (secs)
+        t_ns_duration_mins = t_ns_duration_secs / 1000  #      minutes (mins)
+        file_bytes = get_file_size_on_disk(YOUTUBE_FILE_PATH)
+        print(f"*** INFO: {YOUTUBE_FILE_NAME} % {t_ns_duration_secs:,.3f} secs % {file_bytes:,} bytes.")
     else:
         print("*** Downloading several files from list at ",READ_LIST_PATH)
         download_several(READ_LIST_PATH)
+
+
+# STEP: Calculate the execution time:
+end_time = time.time()
+execution_time = end_time - start_time
+if SHOW_VERBOSE == True:
+    print(f"*** PERF: Program took {execution_time:.4f} seconds to run all tasks.")
+      # *** PERF: Program took 0.5052 seconds to run all tasks.
