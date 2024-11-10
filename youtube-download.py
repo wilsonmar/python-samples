@@ -6,6 +6,7 @@ CURRENT STATUS: WORKING for single file.
 git commit -m "v009 + LOGGER :youtube-download.py"
 
 ./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
+./youtube-download.py -f youtube-downloads.csv -v
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -24,6 +25,7 @@ This program has a full set of features:
 
 12. Positive and negative unit tests for each function (PyTest?)
 13. Read CSV file for multiple iterations.
+14. Maintain a count of tasks performed (for normalizing ops times).
 
 NOT APPLICABLE:
 12. Define OpenTelemetry (OTel) spans for tracing.
@@ -62,7 +64,7 @@ else:
 parser = argparse.ArgumentParser(description="YouTube download")
 parser.add_argument("-d", "--desc", help="Description (file prefix)")
 parser.add_argument("-vid", "--vid", help="YouTube Video ID")
-parser.add_argument("-f", "--file", help="Input file name")
+parser.add_argument("-f", "--file", help="Input CSV to create files")
 parser.add_argument("-o", "--folder", help="Folder output to user Home path")
 parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
 args = parser.parse_args()
@@ -95,7 +97,7 @@ LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
 LOGGER_NAME = os.path.basename(__file__)  # program script name.py
 
 INCLUDE_DATE_OUT = False
-
+LOG_DOWNLOADS = False
 ISSUE_ERROR = True
 
 
@@ -104,7 +106,7 @@ def display_run_env():
     print(f"*** Python version: {sys.version}")
 
 
-def download_video(url,out_path):
+def download_video(in_url,out_path):
     """ Download a YouTube based on URL See https://ostechnix.com/yt-dlp-tutorial/
     """
     ydl_opts = {
@@ -126,7 +128,7 @@ def download_video(url,out_path):
     try:  # Use yt-dlp to download the video
         ns_start = perf_counter_ns()  # Start task time stamp
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.download(url)
+            result = ydl.download(in_url)
         ns_stop = time.perf_counter_ns()  # Stop task time stamp
         ns_duration_ns = (ns_stop - ns_start)      # naonseconds (ns)
         ns_duration_µs = ns_duration_ns / 1000      # microseconds (µs)
@@ -147,24 +149,17 @@ def download_video(url,out_path):
 
 def download_several(read_list_path):
 
-    # link of the video to be downloaded
-    # opening the file
     link=open(read_list_path,'r')
-    # get YOUTUBE_FILE_NAME
-
     for i in link:
+        # TODO: Collect a row from file:
+        in_url=">"
+        out_path="?"
         try:
-            # object creation using YouTube
-            # which was imported in the beginning
-            yt = YouTube(i)
-        except:
-            # TODO: handle exception
-            print("*** Connection Error")
-
-        #filters out all the files with "mp4" extension
-        mp4files = yt.filter('mp4')
-
-        download_a_file(URL_TO_DOWNLOAD)
+            results = download_video(in_url,out_path)
+            return results
+        except Exception as e:
+            print(f"*** {i} Error {e}")
+            return None
 
 
 def get_file_size_on_disk(file_path):
@@ -238,15 +233,10 @@ def main():
             logger.exception("**** ERROR: %s", str(e))
 
 
-#### Main:
-if __name__ == "__main__":
 
-    logger = setup_logger()
-    if SHOW_VERBOSE: display_run_env()
-
-    if READ_LIST_PATH == None:
-        # https://www.youtube.com/watch?v=rISzLipRm7Y spin-right-mag-drives
-        #YOUTUBE_PREFIX = "google-colab"
+def setup_one_video(YOUTUBE_PREFIX,YOUTUBE_ID):
+        # https://www.youtube.com/watch?v=rISzLipRm7Y hd-spin-right
+        # YOUTUBE_PREFIX = "google-colab"
         # YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
         # YOUTUBE_ID = "ix9cRaBkVe0"  # Python Full Course for free 🐍 (2024) by Bro Code
         # YOUTUBE_ID = "fDAPJ7rvcUw"  # How AI Discovered a Faster Matrix Multiplication Algorithm
@@ -254,29 +244,66 @@ if __name__ == "__main__":
         # YouTube URL to download (with time start and playlist):
         URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=" + YOUTUBE_ID
 
-        now = datetime.now()
+        # Build: /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4
         YOUTUBE_FILE_NAME = YOUTUBE_PREFIX + "-" + YOUTUBE_ID
         if INCLUDE_DATE_OUT:
             # Add local time zone to local timezone instead of Z for UTC:
-            formatted_datetime = now.strftime("%Y%m%dT%H%M%SZ")
-            YOUTUBE_FILE_NAME = YOUTUBE_FILE_NAME + "-" + formatted_datetime
-        YOUTUBE_FILE_NAME = YOUTUBE_FILE_NAME + ".mp4"
+            now = datetime.now()
+            YOUTUBE_FILE_NAME += "-" + now.strftime("%Y%m%dT%H%M%SZ")+".mp4"
+        else:
+            YOUTUBE_FILE_NAME += ".mp4"
 
-        # On Linux & Macos:
-        YOUTUBE_FILE_PATH=SAVE_PATH+"/"+YOUTUBE_FILE_NAME
+        YOUTUBE_FILE_PATH = SAVE_PATH + SLASH_CHAR + YOUTUBE_FILE_NAME
         if SHOW_VERBOSE:
             print(f"*** YOUTUBE_FILE_PATH = {YOUTUBE_FILE_PATH}")
 
         result = download_video(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
-        if result:  # any text returned = good:
-            perf_log_text = f"{result}"
-        else:
-            perf_log_text = f"EXISTS"
+        if not result.find("EXISTS"):  # if result NOT contains "EXISTS":
+            downloads_count += 1
         if SHOW_VERBOSE:
-            print(f"*** {perf_log_text}")
-        log_event(logger, "INFO", perf_log_text)
+            print(f"*** {result}")
+        if LOG_DOWNLOADS:
+            log_event(logger, "INFO", result)
+
+#### Main:
+if __name__ == "__main__":
+
+    logger = setup_logger()
+    if SHOW_VERBOSE: display_run_env()
+    downloads_count = 0
+
+    if READ_LIST_PATH == None:
+        # https://www.youtube.com/watch?v=rISzLipRm7Y hd-spin-right
+        # YOUTUBE_PREFIX = "google-colab"
+        # YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
+        # YOUTUBE_ID = "ix9cRaBkVe0"  # Python Full Course for free 🐍 (2024) by Bro Code
+        # YOUTUBE_ID = "fDAPJ7rvcUw"  # How AI Discovered a Faster Matrix Multiplication Algorithm
+        # = "qrnjYfs-xVw"  # CS50x 2024 - Cybersecurity
+        # YouTube URL to download (with time start and playlist):
+        URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=" + YOUTUBE_ID
+
+        # Build: /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4
+        YOUTUBE_FILE_NAME = YOUTUBE_PREFIX + "-" + YOUTUBE_ID
+        if INCLUDE_DATE_OUT:
+            # Add local time zone to local timezone instead of Z for UTC:
+            now = datetime.now()
+            YOUTUBE_FILE_NAME += "-" + now.strftime("%Y%m%dT%H%M%SZ")+".mp4"
+        else:
+            YOUTUBE_FILE_NAME += ".mp4"
+
+        YOUTUBE_FILE_PATH = SAVE_PATH + SLASH_CHAR + YOUTUBE_FILE_NAME
+        if SHOW_VERBOSE:
+            print(f"*** YOUTUBE_FILE_PATH = {YOUTUBE_FILE_PATH}")
+
+        result = download_video(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
+        if not result.find("EXISTS"):  # if result NOT contains "EXISTS":
+            downloads_count += 1
+        if SHOW_VERBOSE:
+            print(f"*** {result}")
+        if LOG_DOWNLOADS:
+            log_event(logger, "INFO", result)
     else:
-        print("*** Downloading several files from list at ",READ_LIST_PATH)
+        print("*** Downloading files from list at ",READ_LIST_PATH)
         download_several(READ_LIST_PATH)
 
 
@@ -284,8 +311,12 @@ if __name__ == "__main__":
 end_time = time.time()
 execution_time = end_time - start_time
 if SHOW_VERBOSE == True:
-    print(f"*** INFO: {os.path.basename(__file__)} took {execution_time:.4f} seconds to run all tasks.")
-      # *** PERF: Program took 0.5052 seconds to run all tasks.
+    summary = (f"{os.path.basename(__file__)}" +
+               f" took {execution_time:.4f} seconds" +
+               f" for {downloads_count} downloads.")
+    print(f"*** SUMMARY: {summary}")
+    if LOG_DOWNLOADS:
+        log_event(logger, "SUMMARY", summary)
 
 
 """ OUTPUT:
@@ -298,9 +329,9 @@ if SHOW_VERBOSE == True:
 [youtube] 4SnvMieJiuw: Downloading mweb player API JSON
 [youtube] 4SnvMieJiuw: Downloading m3u8 information
 [info] 4SnvMieJiuw: Downloading 1 format(s): 18
-[download] /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 has already been downloaded
-[download] 100% of   45.78MiB
+[download] Destination: /Users/johndoe/Downloads/hd-spin-right-rISzLipRm7Y.mp4
+[download] 100% of   35.21MiB in 00:00:04 at 8.01MiB/s
 *** /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 - 48,001,024 bytes - EXISTS
 2024-11-09 18:19:28,932 - INFO - INFO: /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 - 48,001,024 bytes - EXISTS
-*** INFO: youtube-download.py took 2.6612 seconds to run all tasks.
+*** SUMMARY: youtube-download.py took 2.1658 seconds for 1 downloads.
 """
