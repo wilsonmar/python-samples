@@ -23,6 +23,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
 * sklearn-sample calculates
 * try-accept.py to show usage of try/except/else/finally exceptions
+* unittest_calculator.py is an example of how to use Python's Unit Test feature.
 * variables.py to experiment with defining and viewing objects of various data types.
 * youtube-download.py downloads videos based on its URL.
 

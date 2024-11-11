@@ -25,6 +25,7 @@ TODO: Matplotlib advanced features:
 * 3D plotting
 * Animations https://www.youtube.com/watch?v=bNbN9yoEOdU
 
+TODO: Add nanosecond resolution timer like perf-ns.py 
 TODO: Use https://seaborn.pydata.org/installing.html
 See https://www.youtube.com/watch?v=ooqXQ37XHMM for Seaborn
 """
@@ -37,6 +38,8 @@ import scienceplots  # https://github.com/garrettj403/SciencePlots
 
 # Globals:
 SAVE_PNG = False  # FIXME: png files created with blanks.
+
+# TODO: Define the list of charts to generate in the order specified.
 
 
 # STAGE: Define sample data:
@@ -56,11 +59,12 @@ plt.rcParams.update({'figure.dpi': '100'})    # dots per inch for IEEE publicati
 # DEFINITION: A density plot normalizes the area of the histogram sums to 1.
 res = np.random.randn(1000)*0.2 + 0.4
 
+# TUTORIAL: https://www.youtube.com/watch?v=cTJBJH8hacc&t=12m
 plt.suptitle('Sample Density Histogram')
 plt.ylabel('Frequency')
 plt.xlabel('X-axis')
 #plt.figure(figsize=(8,3))
-plt.hist(res, bins=5, density=True)
+plt.hist(res, bins=5, density=True, histtype='step')
 plt.show()
 if SAVE_PNG:
     plt.savefig('my_histogram.png')

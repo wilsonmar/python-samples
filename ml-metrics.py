@@ -483,7 +483,7 @@ for i in range(10):
 end_time = time.time()
 execution_time = end_time - start_time
 # PROTIP: Output run time with input for correlation:
-print(f"*** LOG: Program took {execution_time:.4f} seconds for {device} to run {EPOCHS} epochs on {NUM_CLASSES} classes with {test_dataloader_len} / {train_dataloader_len} items within {batch_size} batches.")
+print(f"*** PERF: Program took {execution_time:.4f} seconds for {device} to run {EPOCHS} epochs on {NUM_CLASSES} classes with {test_dataloader_len} / {train_dataloader_len} items within {batch_size} batches.")
       # TODO: Add out_features
 
 

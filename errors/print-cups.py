@@ -11,6 +11,7 @@ Before running this program:
 brew install miniconda
 conda create -n py312
 conda activate py312
+conda config --set solver classic
 # conda install -c conda-forge python=3.12 matplotlib numpy scienceplots
    # ModuleNotFoundError: No module named 'pycups'
 pip install pycups  docx  docx2pdf  

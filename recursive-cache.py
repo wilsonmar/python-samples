@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ recursive-cache.py at https://github.com/wilsonmar/python-samples/blob/main/recursive-cache.py
 STATUS: WORKING.
-"v002 + flake8 fixes :recursive-cache.py"
+git commit +m"v003 + base case :recursive-cache.py"
 
 This program runs recursively a Fibonacci sequence (see https://en.wikipedia.org/wiki/Fibonacci_sequence#Binet's_formula), 
 where each number is the sum of the two preceding ones.
@@ -85,6 +85,7 @@ def speed_decorator(func):
 def fib(n):
     try:
         if n <= 1:
+            # Base case: factorial of 0 is 1
             return n
         if SHOW_EACH_ITERATION:
             print(f"{fib.__name__} {n}...")

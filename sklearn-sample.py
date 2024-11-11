@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-""" sklearn-sample.py
+""" sklearn-sample.py at https://github.com/wilsonmar/python-samples/blob/main/sklearn-sample.py
+STATUS: Working on macOS M2 14.5 (23F79) using Python 3.12.7.
+git commit -m "v002 + links to medium article :sklearn-sample.py"
 
 This generates random then uses Sklean to calculate 
 the average squared difference between predicted and actual values.
@@ -12,9 +14,9 @@ which gives more weight to larger errors than smaller ones, thus penalizing outl
 But it can also make MSE sensitive to noise and skewness in the data
 MAE is robust to outliers, providing a stable average error measure.
 See https://www.linkedin.com/advice/0/what-difference-between-mean-squared-error-tz1mc
+and https://medium.com/@jscvcds/a-step-by-step-guide-to-model-evaluation-in-python-3a72dee92560
 
 TODO: Add confusion Matrix & Evaluation Metrics?
-
 """
 
 # conda install --name py313 numpy scikit-learn

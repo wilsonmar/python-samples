@@ -3,7 +3,7 @@
 """ otel-flask.py at https://github.com/wilsonmar/python-samples/blob/main/otel-flask.py
 
 STATUS: NOT TESTED on macOS M2 14.5 (23F79) using Python 3.12.7.
-git commit -m "v001 + README :otel-flask.py"
+git commit -m "v002 + opentelemetry-distro :otel-flask.py"
 
 This is a simple Flask app with automatic 
 OpenTelemetry instrumentation custom spans 
@@ -17,19 +17,28 @@ cd ; cd "$RUN_FOLDER"
 python3 -m venv venv
 source venv/bin/activate
 pip install flask
-pip install opentelemetry-api
-pip install opentelemetry-sdk
-pip install opentelemetry-exporter-otlp
-pip install opentelemetry-instrumentation-flask
+# (https://www.youtube.com/watch?v=R8BYnL-Yp1w by Tom Eastman at Kiwi PyCon)
+pip install opentelemetry-distro  # instead 
+    pip install opentelemetry-api
+    pip install opentelemetry-sdk
+    pip install opentelemetry-exporter-otlp
+    pip install opentelemetry-instrumentation-flask
+opentelemetry-bootstrap   # detects instrumentations
+opentelemetry-instrument \
+    --metrics_exporter console \
+    --logs_export console \
+    --traces_export console \
+    ./manager.py runserver
 
 chmod +x otel-flask.py
 ./otel-flask.py  # or python app.py
 visit http://localhost:5000/ and 
 visit http://localhost:5000/api/data to generate telemetry data to
-Visit http://localhost:4317  # OTLP_RECEIVER_URL
+Visit http://localhost:4317  # Otel default OTLP_RECEIVER_URL 
 TODO: Setup observIQ cloud to receive spans for distribution
 TODO: Setup the backend system that receives and visualizes this data,
 such as Jaeger, Zipkin, or cloud-based observability platform 
+TODO: FastAPI https://www.youtube.com/watch?v=5GdWixsopeg&t=17s
 TODO: Grafana Cloud (https://grafana.com/blog/2023/12/18/opentelemetry-best-practices-a-users-guide-to-getting-started-with-opentelemetry/)
 TODO: To better identify this app among all telemetry data,
 pre-set a service name and other resource attributes based on:
@@ -39,15 +48,21 @@ TODO: Config OpenTelemetry Collector for data processing & forwarding
 """
 
 from flask import Flask
+
+import opentelemetry
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 
+import os
+# from typing import Iterable
+
 
 # Globals:
 OLTP_RECEIVER_URL = "http://localhost:4317"
+
 
 # Set up OpenTelemetry
 trace.set_tracer_provider(TracerProvider())

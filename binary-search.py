@@ -24,3 +24,24 @@ while l <= r:
     else:
         print("m=",m)
         break
+
+"""
+https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
+
+function binary_search(list, item):
+    low = 0
+    high = length of list - 1
+
+    while low <= high:
+        mid = (low + high) / 2
+        guess = list[mid]
+
+        if guess is item:
+            return mid
+        if guess > item:
+            high = mid - 1
+        else:
+            low = mid + 1
+
+    return None
+"""
