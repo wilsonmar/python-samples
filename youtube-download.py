@@ -3,37 +3,44 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v011 + download CSV :youtube-download.py"
+git commit -m "v013 + SLEEP-SECS :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
 2. Define github URL where program is located in docstring
 3. STATUS of program defined (WORKING or not)
-4. Latest changed defined in docstring.
+4. Latest change defined in docstring.
 
-5. Get parameters as arguments specified in call within CLI.
-6. Default for production values.
-7. Read secrets from .env file outside the program and GitHub, cloud (akeyless.com)
-8. Display (Python operating system versions) environmnet being used.
+5. Read secrets from .env file outside the program and GitHub, cloud (akeyless.com)
 
-9. Use flags to display status of progress (using Flagsmith?)
-10. Measure duration of each function call for process scope.
-11. Output log entries with duration (and file bytes) for process scope.
-12. Define a unique code for each message.
+6. Get parameters as arguments specified in call within CLI.
+7. Set default attributes for production usage (minimal lines to STDOUT)
+8. Enable attributes to be set for verbosity for each type of output (DEBUG).
+9. Use feature flags for A/B testing (using Flagsmith?).
 
-13. Positive and negative unit tests for each function (PyTest?)
-14. Read CSV file for multiple iterations.
+10. Display (Python operating system versions) environmnet being used.
+11. Display status of progress within long tasks.
+
+12. Measure the duration of each function call and its processing scope.
+13. Define OpenTelemetry (OTel) spans for tracing time across several tasks.
+14. Output log entries with duration (and file bytes) for processing scope.
 15. Maintain a count of tasks performed (for normalizing ops times).
+16. Output a summary log of total time, disk used to correlate with count of tasks.
 
-NOT APPLICABLE:
-16. Define OpenTelemetry (OTel) spans for tracing.
+17. Define a unique code for each message output.
+18. Run positive and negative unit tests for each function (PyTest?)
+
+19. Read CSV file for multiple iterations.
+20. Set sleep time between each iteration to avoid overwhelming the server.
+21. Use KeyboardInterrupt.
 
 Before running this program:
 brew install miniconda
 conda create -n py312
 conda activate py312
 conda config --set solver classic   # ModuleNotFoundError: No module named 'pycups'
-conda install -c conda-forge python=3.12 argparse yt_dlp logging
+conda install -c conda-forge python=3.12 argparse logging
+brew install yt-dlp
 chmod +x youtube-download.py
     python -m venv
     source venv/bin/activate
@@ -51,9 +58,11 @@ chmod +x youtube-download.py
 # yl argparse
 import argparse
 
-# pip3 install yt_dlp because with Conda a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
-import yt_dlp  # yt_dlp-2024.11.4
-   # NOTE: Alternative pytube.io had errors.
+# brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
+# which issues a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
+import yt_dlp  # yt_dlp-2024.11.4 at https://pypi.org/project/yt-dlp/
+    # See https://www.perplexity.ai/search/what-about-the-yt-dlp-python-l-RPFKoI3yTrqsC8w.cI4NtQ
+    # NOTE: Alternative pytube.io had errors.
 # pip install logging
 import logging  # error.
 from logging.handlers import RotatingFileHandler
@@ -102,8 +111,9 @@ if SHOW_DEBUG:
     print(f"*** -desc {args.desc}, -vid {args.vid} -file {args.file} {args.verbose}")
     print(f"*** SHOW_VERBOSE={SHOW_VERBOSE} SHOW_DEBUG={SHOW_DEBUG} SHOW_DOWNLOAD_DETAILS={SHOW_DOWNLOAD_DETAILS}")
 
-INCLUDE_DATE_OUT = False
-ISSUE_ERROR = True
+INCLUDE_DATE_OUT = False  # date/time stamp within file name
+ISSUE_ERROR = True  #
+SLEEP_SECS = 0.5  # average seconds to wait between tasks to not overwhelm server.
 
 SAVE_FOLDER = args.folder
 # SAVE_PATH = os.getcwd()  # cwd=current working directory.
@@ -114,7 +124,7 @@ if SAVE_FOLDER == None:
 else:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + SAVE_FOLDER
 
-LOG_DOWNLOADS = False
+LOG_DOWNLOADS = False  # write logs outside the program
 if not os.path.isdir(SAVE_PATH):  # Confirmed a directory:
     print(f"*** ERROR: Folder {SAVE_PATH} does not exist. Exiting.")
     exit()
@@ -267,14 +277,16 @@ def download_youtube_from_csv(read_list_path):
             if SHOW_DEBUG:
                 print(f"*** header = {header}")   # list
                       # *** header = ['_sel', '_vid', '_desc', '_len', '_notes']
-            # Iterate through rows, each with a line_number:
             downloads_count = 0
+            # Iterate through rows, each with a line_number:
             for line_number, line in enumerate(file, start=1):
                 row = line.strip().split(',')
                   # = ['N', '4SnvMieJiuw', 'i-database-ops', '19:07', '']
                 row_sel = row[0]
                 youtube_id = row[1]
                 youtube_prefix = row[2]
+                if line_number > 1:
+                    time.sleep(SLEEP_SECS)  # to avoid inundating the server.
                 if row_sel.upper() == "N":
                     if SHOW_VERBOSE:
                         print(f"*** ROW {line_number}: {row_sel} vid={youtube_id} desc={youtube_prefix} SKIPPED.")
@@ -291,9 +303,12 @@ def download_youtube_from_csv(read_list_path):
                 if SHOW_VERBOSE:
                     print(f"*** ROW {line_number}: {result}")
         return line_number, downloads_count
+    except KeyboardInterrupt:
+        print(f"*** CANCELLED by KeyboardInterrupt.")
+        return None, None
     except Exception as e:
         print(f"*** ERROR {read_list_path} {e}")
-        return None
+        return None, None
 
 
 def main():
@@ -334,14 +349,14 @@ if __name__ == "__main__":
     # STEP: Calculate the program execution time:
     end_time = time.time()
     execution_time = end_time - start_time
+    summary = (f"{os.path.basename(__file__)}" +
+            f" took {execution_time:.4f} seconds" +
+            f" for {downloads_count} downloads" +
+            f" in {rows_count} rows.")
     if SHOW_SUMMARY:
-        summary = (f"{os.path.basename(__file__)}" +
-                f" took {execution_time:.4f} seconds" +
-                f" for {downloads_count} downloads" +
-                f" in {rows_count} rows.")
-        print(f"*** SUMMARY: {summary}")
-        if LOG_DOWNLOADS:
-            log_event(logger, "SUMMARY", summary)
+        print(f"*** RUN SUMMARY: {summary}")
+    if LOG_DOWNLOADS:
+        log_event(logger, "SUMMARY", summary)
 
 
 """ OUTPUT:
