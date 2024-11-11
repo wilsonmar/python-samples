@@ -5,10 +5,6 @@
 CURRENT STATUS: WORKING for single file.
 git commit -m "v011 + download CSV :youtube-download.py"
 
-USAGE ON CLI:
-./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
-./youtube-download.py -f youtube-downloads.csv -v
-
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
 2. Define github URL where program is located in docstring
@@ -36,12 +32,16 @@ Before running this program:
 brew install miniconda
 conda create -n py312
 conda activate py312
-conda config --set solver classic
-conda install -c conda-forge python=3.12 matplotlib numpy scienceplots
-   # ModuleNotFoundError: No module named 'pycups'
-pip install pycups  docx  docx2pdf  
-chmod +x print-cups.py  # pycups-2.0.4
-./print-cups.py
+conda config --set solver classic   # ModuleNotFoundError: No module named 'pycups'
+conda install -c conda-forge python=3.12 argparse yt_dlp logging
+chmod +x youtube-download.py
+    python -m venv
+    source venv/bin/activate
+# WITH (venv):
+    python3 -m pip install argparse yt_dlp logging
+# USAGE ON CLI:
+./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
+./youtube-download.py -f youtube-downloads.csv -v
 
 """
 
@@ -114,7 +114,7 @@ if SAVE_FOLDER == None:
 else:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + SAVE_FOLDER
 
-LOG_DOWNLOADS = True
+LOG_DOWNLOADS = False
 if not os.path.isdir(SAVE_PATH):  # Confirmed a directory:
     print(f"*** ERROR: Folder {SAVE_PATH} does not exist. Exiting.")
     exit()
@@ -317,7 +317,8 @@ def main():
 
 if __name__ == "__main__":
 
-    logger = setup_logger()
+    if LOG_DOWNLOADS:
+        logger = setup_logger()
     if SHOW_DEBUG: display_run_env()
     downloads_count = 0
 
