@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v014 + SystemExit :youtube-download.py"
+git commit -m "v017 + sleep_duration fix :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -19,7 +19,7 @@ This program has a full set of features:
 9. Use feature flags for A/B testing (using Flagsmith?).
 
 10. Display (Python operating system versions) environmnet being used.
-11. Display status of progress within long tasks.
+11. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
 
 12. Measure the duration of each function call and its processing scope.
 13. Define OpenTelemetry (OTel) spans for tracing time across several tasks.
@@ -52,15 +52,13 @@ chmod +x youtube-download.py
 
 """
 
-# pip instaly
-#
-# y
-# yl argparse
+# import external library (from outside this program):
 import argparse
 
 # brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
 # which issues a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
 import yt_dlp  # yt_dlp-2024.11.4 at https://pypi.org/project/yt-dlp/
+    # Import "yt_dlp" could not be resolvedPylancereportMissingImports
     # See https://www.perplexity.ai/search/what-about-the-yt-dlp-python-l-RPFKoI3yTrqsC8w.cI4NtQ
     # NOTE: Alternative pytube.io had errors.
 # pip install logging
@@ -68,20 +66,20 @@ import logging  # error.
 from logging.handlers import RotatingFileHandler
 
 
-# Built-in libraries (no pip install needed):
+# Built-in libraries (no pip/conda install needed):
+from datetime import datetime
+from contextlib import redirect_stdout
+import io
+import os
 import signal
 import sys
-import os
-from datetime import datetime
 from time import perf_counter_ns
 import time
 import platform
-import io
-from contextlib import redirect_stdout
-
-# Globals:
+import random
 
 
+# Globals to vary program run behavior:
 start_time = time.time()  # start the program-level timer.
 
 if os.name == "nt":  # Windows operating system
@@ -95,26 +93,20 @@ parser = argparse.ArgumentParser(description="YouTube download")
 parser.add_argument("-d", "--desc", help="Description (file prefix)")
 parser.add_argument("-vid", "--vid", help="YouTube Video ID")
 parser.add_argument("-f", "--file", help="Input CSV to create files")
+
 parser.add_argument("-o", "--folder", help="Folder output to user Home path")
-parser.add_argument("-s", "--summary", action="store_true", help="Show summary")
+parser.add_argument("-l", "--log", help="Log to external file")
+parser.add_argument("-m", "--summary", action="store_true", help="Show summary")
+parser.add_argument("-s", "--sleepsecs", action="store_true", help="Sleep seconds average")
 parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
-parser.add_argument("-x", "--debug", action="store_true", help="Show debug")
+parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
+# -h = --help (list arguments)
 args = parser.parse_args()
 
 YOUTUBE_PREFIX = args.desc
 YOUTUBE_ID = args.vid
-READ_LIST_PATH = args.file  # On Linux: //mount/?to_do
-SHOW_SUMMARY = args.summary
-SHOW_VERBOSE = args.verbose
-SHOW_DEBUG = args.debug
-SHOW_DOWNLOAD_DETAILS = False
-if SHOW_DEBUG:
-    print(f"*** -desc {args.desc}, -vid {args.vid} -file {args.file} {args.verbose}")
-    print(f"*** SHOW_VERBOSE={SHOW_VERBOSE} SHOW_DEBUG={SHOW_DEBUG} SHOW_DOWNLOAD_DETAILS={SHOW_DOWNLOAD_DETAILS}")
 
-INCLUDE_DATE_OUT = False  # date/time stamp within file name
-ISSUE_ERROR = True  #
-SLEEP_SECS = 0.5  # average seconds to wait between tasks to not overwhelm server.
+READ_LIST_PATH = args.file  # On Linux: //mount/?to_do
 
 SAVE_FOLDER = args.folder
 # SAVE_PATH = os.getcwd()  # cwd=current working directory.
@@ -124,20 +116,43 @@ if SAVE_FOLDER == None:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + "Downloads"
 else:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + SAVE_FOLDER
-
-LOG_DOWNLOADS = False  # write logs outside the program
 if not os.path.isdir(SAVE_PATH):  # Confirmed a directory:
     print(f"*** ERROR: Folder {SAVE_PATH} does not exist. Exiting.")
     exit()
+INCLUDE_DATE_OUT = False  # date/time stamp within file name
+
 LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
 LOGGER_NAME = os.path.basename(__file__)  # program script name.py
+LOG_DOWNLOADS = args.log
+if SAVE_FOLDER == None:  # write logs outside the program
+    LOG_DOWNLOADS = False  # hard-coded default
+
+SHOW_SUMMARY = args.summary
+
+SHOW_VERBOSE = args.verbose
+if SHOW_VERBOSE:  # -vv
+    SHOW_DOWNLOAD_PROGRESS = True
+else:
+    SHOW_DOWNLOAD_PROGRESS = False
+
+SHOW_DEBUG = args.debug  # print metadata before use by code during troubleshooting
+if SHOW_DEBUG:  # -vv
+    SHOW_DOWNLOAD_PROGRESS = True
+    print(f"*** -desc {args.desc}, -vid {args.vid} -file {args.file} {args.verbose}")
+    print(f"*** SHOW_VERBOSE={SHOW_VERBOSE} SHOW_DEBUG={SHOW_DEBUG} SHOW_DOWNLOAD_PROGRESS={SHOW_DOWNLOAD_PROGRESS}")
+
+SLEEP_SECS = args.sleepsecs  # average seconds to wait between tasks to not overwhelm server.
+if SLEEP_SECS == None:
+   SLEEP_SECS = 0.5  # hard-coded default
+
+SHOW_VERBOSE = args.verbose
 
 
 # Functions:
 
 
 def signal_handler(sig, frame):
-    print("*** Manual Interrupt received. Cleaning up...")
+    print("\n*** Manual Interrupt control+C or ctrl+C received.")
     sys.exit(0)
 
 
@@ -188,6 +203,11 @@ def setup_logger(log_file=LOGGER_FILE_PATH, console_level=logging.INFO, file_lev
 
 def log_event(logger, event_type, message, level='info'):
     """Log an event with the specified type and message."""
+    #    if SHOW_VERBOSE:  # Log some example events
+    #        log_event(logger, 'USER_LOGIN', 'User John Doe logged in successfully')
+    #        log_event(logger, 'FILE_UPLOAD', 'File "document.pdf" uploaded', 'debug')
+    #        log_event(logger, 'SYSTEM_ERROR', 'Database connection failed', 'error')
+    #        log_event(logger, 'SECURITY_ALERT', 'Multiple failed login attempts detected', 'warning')
     log_levels = {
         'debug': logger.debug,
         'info': logger.info,
@@ -229,7 +249,8 @@ def download_one_video(youtube_prefix,youtube_id):
 
 
 def download_video(in_url,out_path):
-    """ Download a YouTube based on URL See https://ostechnix.com/yt-dlp-tutorial/
+    """ Download a YouTube based on URL.
+    See https://ostechnix.com/yt-dlp-tutorial/
     """
     ydl_opts = {
         'format': 'best',  # Download the 'bestaudio/best' available quality
@@ -248,7 +269,7 @@ def download_video(in_url,out_path):
 
     try:  # Use yt-dlp to download the video
         ns_start = perf_counter_ns()  # Start task time stamp
-        if SHOW_DOWNLOAD_DETAILS:
+        if SHOW_DOWNLOAD_PROGRESS:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 result = ydl.download(in_url)
         else:
@@ -264,6 +285,8 @@ def download_video(in_url,out_path):
         ns_duration_mins = ns_duration_secs / 1000  #      minutes (mins)
 
         file_bytes = get_file_size_on_disk(out_path)  # type = number
+        if SHOW_DEBUG:
+            print(f"*** result = {result}")
         if result:  # True = good:
             return_text = f"{out_path} - {file_bytes:,} bytes in {t_ns_duration_secs:,.3f} secs."
         else:
@@ -291,8 +314,12 @@ def download_youtube_from_csv(read_list_path):
                 row_sel = row[0]
                 youtube_id = row[1]
                 youtube_prefix = row[2]
-                if line_number > 1:
-                    time.sleep(SLEEP_SECS)  # to avoid inundating the server.
+                if downloads_count > 1:  # after the first one:
+                    sleep_duration = int(SLEEP_SECS)
+                        # FIXME: divide by zero
+                        # sleep_duration = random.expovariate(SLEEP_SECS)
+                    print(f"*** DEBUG: {downloads_count} ROW:{line_number} sleep_duration={sleep_duration}")
+                    time.sleep(sleep_duration)  # to avoid inundating the server.
                 if row_sel.upper() == "N":
                     if SHOW_VERBOSE:
                         print(f"*** ROW {line_number}: {row_sel} vid={youtube_id} desc={youtube_prefix} SKIPPED.")
@@ -309,32 +336,13 @@ def download_youtube_from_csv(read_list_path):
                 if SHOW_VERBOSE:
                     print(f"*** ROW {line_number}: {result}")
         return line_number, downloads_count
-    except SystemExit:
-        print(f"*** SystemExit gracefully...")
-    except KeyboardInterrupt:
-        print(f"*** CANCELLED by KeyboardInterrupt.")
-        return None, None
+    # control+C on macOS or Ctrl+C on Windows.
+    except SystemExit:  # instead of KeyboardInterrupt
+        print(f"*** SystemExit gracefully after KeyboardInterrupt.")
+        return line_number, downloads_count
     except Exception as e:
         print(f"*** ERROR {read_list_path} {e}")
         return None, None
-
-
-def main():
-
-    logger = setup_logger()
-
-    if SHOW_VERBOSE:  # Log some example events
-        log_event(logger, 'USER_LOGIN', 'User John Doe logged in successfully')
-        log_event(logger, 'FILE_UPLOAD', 'File "document.pdf" uploaded', 'debug')
-        log_event(logger, 'SYSTEM_ERROR', 'Database connection failed', 'error')
-        log_event(logger, 'SECURITY_ALERT', 'Multiple failed login attempts detected', 'warning')
-
-    # Example of aZeroDivisionError exception being logged:
-    if ISSUE_ERROR:
-        try:
-            1 / 0
-        except Exception as e:
-            logger.exception("**** ERROR: %s", str(e))
 
 
 
@@ -347,13 +355,13 @@ if __name__ == "__main__":
     if SHOW_DEBUG: display_run_env()
     downloads_count = 0
 
-    if READ_LIST_PATH == None:
+    if SHOW_DEBUG:
+        print(f"*** READ_LIST_PATH={READ_LIST_PATH}")
+    if READ_LIST_PATH:
+        rows_count, downloads_count = download_youtube_from_csv(READ_LIST_PATH)
+    else:
         result = download_one_video( YOUTUBE_PREFIX,YOUTUBE_ID )
         rows_count = 1
-    else:
-        if SHOW_DEBUG:
-            print(f"*** Downloading file {READ_LIST_PATH}")
-        rows_count, downloads_count = download_youtube_from_csv(READ_LIST_PATH)
 
 
     # STEP: Calculate the program execution time:
