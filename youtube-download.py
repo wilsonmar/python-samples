@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v017 + sleep_duration fix :youtube-download.py"
+git commit -m "v019 + zerofill fix :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -22,17 +22,21 @@ This program has a full set of features:
 11. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
 
 12. Measure the duration of each function call and its processing scope.
-13. Define OpenTelemetry (OTel) spans for tracing time across several tasks.
+13. TODO: Define OpenTelemetry (OTel) spans for tracing time across several tasks.
 14. Output log entries with duration (and file bytes) for processing scope.
-15. Maintain a count of tasks performed (for normalizing ops times).
-16. Output a summary log of total time, disk used to correlate with count of tasks.
+15. Zero-fill incremented numbers in displays.
+16. Maintain a count of tasks performed (for normalizing ops times).
+17. Output a summary log of total time, disk used to correlate with count of tasks.
 
-17. Define a unique code for each message output.
-18. Run positive and negative unit tests for each function (PyTest?)
+18. TODO: Define a unique code for each message output.
+19. TODO: Define positive and negative unit tests for each function (PyTest?)
 
-19. Read CSV file for multiple iterations.
-20. Set sleep time between each iteration to avoid overwhelming the server.
-21. Stop after processing rather than KeyboardInterrupt which creates .part files.
+20. Read CSV file for multiple iterations.
+21. Set sleep time between each iteration to avoid overwhelming the server.
+22. Stop after processing rather than KeyboardInterrupt which creates .part files.
+
+23. List actions in CLI before running program.
+24. Define in docstrings actions sample usage commands in CLI to run program.
 
 Before running this program:
 brew install miniconda
@@ -46,9 +50,10 @@ chmod +x youtube-download.py
     source venv/bin/activate
 # WITH (venv):
     python3 -m pip install argparse yt_dlp logging
+
 # USAGE ON CLI:
 ./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
-./youtube-download.py -f youtube-downloads.csv -v
+./youtube-download.py -f youtube-downloads.csv -v -vv
 
 """
 
@@ -128,10 +133,10 @@ if SAVE_FOLDER == None:  # write logs outside the program
     LOG_DOWNLOADS = False  # hard-coded default
 
 SHOW_SUMMARY = args.summary
-
 SHOW_VERBOSE = args.verbose
 if SHOW_VERBOSE:  # -vv
     SHOW_DOWNLOAD_PROGRESS = True
+    SHOW_SUMMARY = True
 else:
     SHOW_DOWNLOAD_PROGRESS = False
 
@@ -322,10 +327,10 @@ def download_youtube_from_csv(read_list_path):
                     time.sleep(sleep_duration)  # to avoid inundating the server.
                 if row_sel.upper() == "N":
                     if SHOW_VERBOSE:
-                        print(f"*** ROW {line_number}: {row_sel} vid={youtube_id} desc={youtube_prefix} SKIPPED.")
+                        print(f"*** ROW {str(line_number).zfill(4)}: {row_sel} vid={youtube_id} desc={youtube_prefix} SKIPPED.")
                     continue  # to next row.
                 if SHOW_DEBUG:
-                    print(f"*** ROW {line_number}: {row_sel} vid={youtube_id} desc={youtube_prefix}")
+                    print(f"*** ROW {str(line_number).zfill(4)}: {row_sel} vid={youtube_id} desc={youtube_prefix}")
                 result = download_one_video(youtube_prefix,youtube_id)
                 if not result.find("EXISTS"):  # if result NOT contains "EXISTS":
                     downloads_count += 1
@@ -334,7 +339,7 @@ def download_youtube_from_csv(read_list_path):
                 if LOG_DOWNLOADS:
                     log_event(logger, "INFO", result)
                 if SHOW_VERBOSE:
-                    print(f"*** ROW {line_number}: {result}")
+                    print(f"*** ROW {str(line_number).zfill(4)}: {result}")
         return line_number, downloads_count
     # control+C on macOS or Ctrl+C on Windows.
     except SystemExit:  # instead of KeyboardInterrupt
