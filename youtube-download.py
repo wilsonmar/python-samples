@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v013 + SLEEP-SECS :youtube-download.py"
+git commit -m "v014 + SystemExit :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -32,7 +32,7 @@ This program has a full set of features:
 
 19. Read CSV file for multiple iterations.
 20. Set sleep time between each iteration to avoid overwhelming the server.
-21. Use KeyboardInterrupt.
+21. Stop after processing rather than KeyboardInterrupt which creates .part files.
 
 Before running this program:
 brew install miniconda
@@ -67,14 +67,15 @@ import yt_dlp  # yt_dlp-2024.11.4 at https://pypi.org/project/yt-dlp/
 import logging  # error.
 from logging.handlers import RotatingFileHandler
 
-# Defaults:
+
+# Built-in libraries (no pip install needed):
+import signal
 import sys
 import os
 from datetime import datetime
 from time import perf_counter_ns
 import time
 import platform
-
 import io
 from contextlib import redirect_stdout
 
@@ -133,6 +134,11 @@ LOGGER_NAME = os.path.basename(__file__)  # program script name.py
 
 
 # Functions:
+
+
+def signal_handler(sig, frame):
+    print("*** Manual Interrupt received. Cleaning up...")
+    sys.exit(0)
 
 
 def display_run_env():
@@ -303,6 +309,8 @@ def download_youtube_from_csv(read_list_path):
                 if SHOW_VERBOSE:
                     print(f"*** ROW {line_number}: {result}")
         return line_number, downloads_count
+    except SystemExit:
+        print(f"*** SystemExit gracefully...")
     except KeyboardInterrupt:
         print(f"*** CANCELLED by KeyboardInterrupt.")
         return None, None
@@ -331,6 +339,8 @@ def main():
 
 
 if __name__ == "__main__":
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     if LOG_DOWNLOADS:
         logger = setup_logger()
