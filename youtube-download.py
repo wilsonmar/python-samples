@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v019 + zerofill fix :youtube-download.py"
+git commit -m "v020 + colors & icons for msgs :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -16,27 +16,28 @@ This program has a full set of features:
 6. Get parameters as arguments specified in call within CLI.
 7. Set default attributes for production usage (minimal lines to STDOUT)
 8. Enable attributes to be set for verbosity for each type of output (DEBUG).
-9. Use feature flags for A/B testing (using Flagsmith?).
+9. TODO: Use different icons and colors to highlight each severity of message, etc.
+10. TODO: Use feature flags for A/B testing (using Flagsmith?).
 
-10. Display (Python operating system versions) environmnet being used.
-11. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
+11. Display (Python operating system versions) environmnet being used.
+12. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
 
-12. Measure the duration of each function call and its processing scope.
-13. TODO: Define OpenTelemetry (OTel) spans for tracing time across several tasks.
-14. Output log entries with duration (and file bytes) for processing scope.
-15. Zero-fill incremented numbers in displays.
-16. Maintain a count of tasks performed (for normalizing ops times).
-17. Output a summary log of total time, disk used to correlate with count of tasks.
+13. Measure the duration of each function call and its processing scope.
+14. TODO: Define OpenTelemetry (OTel) spans for tracing time across several tasks.
+15. Output log entries with duration (and file bytes) for processing scope.
+16. Zero-fill incremented numbers in displays.
+17. Maintain a count of tasks performed (for normalizing ops times).
+18. Output a summary log of total time, disk used to correlate with count of tasks.
 
-18. TODO: Define a unique code for each message output.
-19. TODO: Define positive and negative unit tests for each function (PyTest?)
+19. TODO: Define a unique code for each message output.
+20. TODO: Define positive and negative unit tests for each function (PyTest?)
 
-20. Read CSV file for multiple iterations.
-21. Set sleep time between each iteration to avoid overwhelming the server.
-22. Stop after processing rather than KeyboardInterrupt which creates .part files.
+21. Read CSV file for multiple iterations.
+22. Set sleep time between each iteration to avoid overwhelming the server.
+23. Stop after processing rather than KeyboardInterrupt which creates .part files.
 
-23. List actions in CLI before running program.
-24. Define in docstrings actions sample usage commands in CLI to run program.
+24. List actions in CLI before running program.
+25. Define in docstrings actions sample usage commands in CLI to run program.
 
 Before running this program:
 brew install miniconda
@@ -48,8 +49,8 @@ brew install yt-dlp
 chmod +x youtube-download.py
     python -m venv
     source venv/bin/activate
-# WITH (venv):
-    python3 -m pip install argparse yt_dlp logging
+source venv/activate
+python3 -m pip install argparse yt_dlp logging pytz
 
 # USAGE ON CLI:
 ./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
@@ -58,6 +59,7 @@ chmod +x youtube-download.py
 """
 
 # import external library (from outside this program):
+from colorama import init, Fore, Style  # to style messages
 import argparse
 
 # brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
@@ -74,8 +76,10 @@ from logging.handlers import RotatingFileHandler
 # Built-in libraries (no pip/conda install needed):
 from datetime import datetime
 from contextlib import redirect_stdout
+from datetime import datetime
 import io
 import os
+from pytz import timezone
 import signal
 import sys
 from time import perf_counter_ns
@@ -156,6 +160,107 @@ SHOW_VERBOSE = args.verbose
 # Functions:
 
 
+class bcolors:  # ANSI escape sequences:
+    BOLD = '\033[1m'       # Begin bold text
+    UNDERLINE = '\033[4m'  # Begin underlined text
+
+    HEADING = '\033[37m'   # [37 white
+    FAIL = '\033[91m'      # [91 red
+    ERROR = '\033[91m'     # [91 red
+    WARNING = '\033[93m'   # [93 yellow
+    INFO = '\033[92m'      # [92 green
+    VERBOSE = '\033[95m'   # [95 purple
+    TRACE = '\033[96m'     # [96 blue/green
+                 # [94 blue (bad on black background)
+    CVIOLET = '\033[35m'
+    CBEIGE = '\033[36m'
+    CWHITE = '\033[37m'
+
+    RESET = '\033[0m'   # switch back to default color
+
+def print_separator():
+    """ A function to print a blank line."""
+    print(" ")
+
+def print_heading(text_in):
+    if show_heading:
+        if str(show_dates_in_logs) == "True":
+            print('\n***', get_log_datetime(), bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+        else:
+            print('\n***', bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+
+def print_fail(text_in):  # when program should stop
+    if show_fail:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+
+def print_error(text_in):  # when a programming error is evident
+    if show_fail:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+
+def print_warning(text_in):
+    if show_warning:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
+
+def print_todo(text_in):
+    if show_todo:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+
+def print_info(text_in):
+    if show_info:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+
+def print_verbose(text_in):
+    if show_verbose:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+
+def print_trace(text_in):  # displayed as each object is created in pgm:
+    if show_trace:
+        if str(show_dates_in_logs) == "True":
+            print('***',get_log_datetime(), bcolors.TRACE, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
+
+def print_secret(secret_in):
+    """ Outputs only the first few characters (like Git) with dots replacing the rest 
+    """
+    # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
+    if show_secrets:  # program parameter
+        if str(show_dates_in_logs) == "True":
+            now_utc=datetime.now(timezone('UTC'))
+            print('*** ',now_utc,bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+    else:
+        # same length regardless of secret length to reduce ability to guess:
+        secret_len = 32
+        if len(secret_in) >= 20:  # slice
+            secret_out = secret_in[0:4] + "."*(secret_len-4)
+        else:
+            secret_out = secret_in[0:4] + "."*(secret_len-1)
+            if str(show_dates_in_logs) == "True":
+                print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+            else:
+                print('***', bcolors.CBEIGE, " SECRET: ", f'{secret_out}', bcolors.RESET)
+
+
 def signal_handler(sig, frame):
     print("\n*** Manual Interrupt control+C or ctrl+C received.")
     sys.exit(0)
@@ -166,16 +271,66 @@ def display_run_env():
     print(f"*** Python version: {sys.version}")
 
 
+#  if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
+def get_log_datetime() -> str:
+
+    # getting the current time in UTC timezone
+    now_utc = datetime.now(timezone('UTC'))
+
+    # TODO: Give datetime the user or system defined LOCALE:
+    MY_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
+    # Format the above DateTime using the strftime() https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
+    time_str=datetime.utcnow().strftime('%F %T.%f')
+       # ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
+    # time_str=now_utc.strftime(MY_DATE_FORMAT)
+
+    # TODO: Converting to Asia/Kolkata time zone using the .astimezone method:
+    # now_asia = now_utc.astimezone(timezone('Asia/Kolkata'))
+    # Format the above datetime using the strftime()
+    # print('Current Time in Asia/Kolkata TimeZone:',now_asia.strftime(format))
+
+    return time_str
+
+
+def file_creation_datetime(path_to_file):
+    """ Get the datetime stamp that a file was created, 
+    falling back to when it was last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
+    """
+    if path_to_file is None:
+        print_trace("path_to_file="+path_to_file)
+    # print_trace("platform.system="+platform.system())
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            timestamp = os.path.getmtime(path_to_file)
+            # Convert the timestamp to a human-readable datetime format:
+            mod_time = datetime.fromtimestamp(timestamp)
+            # Format the datetime to a string:
+            formatted_timestamp = mod_time.strftime("%Y-%m-%dT%H:%M:%S")
+            # if SHOW_DEBUG: print(f"formatted_timestamp={formatted_timestamp}")
+            #return stat.st_birthtime # epoch datestamp like 1696898774.0
+            return formatted_timestamp
+        except AttributeError as e:
+            print(f"*** ERROR: {e}")
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
+
+
 def get_file_size_on_disk(file_path):
     """Returns integer bytes from the OS for a file path """
     try:
         stat_result = os.stat(file_path)
         return stat_result.st_blocks * 512  # st_blocks is in 512-byte units
     except FileNotFoundError:
-        print(f"File not found: {file_path}")
+        print(f"*** File not found: {file_path}")
         return None
     except Exception as e:
-        print(f"Error getting file size: {e}")
+        print(f"*** Error getting file size: {e}")
         return None
 
 
@@ -220,6 +375,12 @@ def log_event(logger, event_type, message, level='info'):
         'error': logger.error,
         'critical': logger.critical
     }
+        # Success	Green	Checkmark or thumbs up
+        # Error	Red	Exclamation mark or cross
+        # Warning	Yellow	Triangle with an exclamation point
+        # Informational	Blue	Information symbol (i)
+        # Neutral/Draft	Gray	Document icon
+
     log_func = log_levels.get(level.lower(), logger.info)
     log_func(f'{event_type}: {message}')
 
@@ -289,13 +450,15 @@ def download_video(in_url,out_path):
         ns_duration_secs = ns_duration_ms / 1000    #      seconds (secs)
         ns_duration_mins = ns_duration_secs / 1000  #      minutes (mins)
 
+        file_create_datetime = file_creation_datetime(out_path)
         file_bytes = get_file_size_on_disk(out_path)  # type = number
         if SHOW_DEBUG:
             print(f"*** result = {result}")
+        return_text = f"{out_path} {file_create_datetime} - {file_bytes:,} bytes"
         if result:  # True = good:
-            return_text = f"{out_path} - {file_bytes:,} bytes in {t_ns_duration_secs:,.3f} secs."
+            return_text += f" in {t_ns_duration_secs:,.3f} secs."
         else:
-            return_text = f"{out_path} - {file_bytes:,} bytes - EXISTS"
+            return_text += f" - EXISTS"
         return return_text
     except Exception as err:
         print(f"*** ERROR: {err}")
@@ -373,7 +536,7 @@ if __name__ == "__main__":
     end_time = time.time()
     execution_time = end_time - start_time
     summary = (f"{os.path.basename(__file__)}" +
-            f" took {execution_time:.4f} seconds" +
+            f" took {execution_time:.4f} secs" +
             f" for {downloads_count} downloads" +
             f" in {rows_count} rows.")
     if SHOW_SUMMARY:
@@ -394,7 +557,7 @@ if __name__ == "__main__":
 [info] 4SnvMieJiuw: Downloading 1 format(s): 18
 [download] Destination: /Users/johndoe/Downloads/hd-spin-right-rISzLipRm7Y.mp4
 [download] 100% of   35.21MiB in 00:00:04 at 8.01MiB/s
-*** /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 - 48,001,024 bytes - EXISTS
+FIXME: *** /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 - 48,001,024 bytes - EXISTS
 2024-11-09 18:19:28,932 - INFO - INFO: /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4 - 48,001,024 bytes - EXISTS
-*** SUMMARY: youtube-download.py took 2.7077 seconds for 0 downloads in 2 rows.
+FIXNE: *** SUMMARY: youtube-download.py took 2.7077 seconds for 0 downloads in 2 rows.
 """
