@@ -3,41 +3,41 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v020 + colors & icons for msgs :youtube-download.py"
+git commit -m "v021 + colors & icons for msgs :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
 2. Define github URL where program is located in docstring
-3. STATUS of program defined (WORKING or not)
-4. Latest change defined in docstring.
+3. Latest change defined in docstring.
+4. STATUS of program defined (WORKING or not)
+5. Each function works for Windows, macOS, and Debian Linux.
+6. List actions in CLI before running program.
+7. Define in docstrings actions sample usage commands in CLI to run program.
 
-5. Read secrets from .env file outside the program and GitHub, cloud (akeyless.com)
+8. Read secrets from .env file outside the program and GitHub, cloud (akeyless.com)
+9. Get parameters as arguments specified in call within CLI.
+10. Set default attributes for production usage (minimal lines to STDOUT)
+11. Enable attributes to be set for verbosity for each type of output (DEBUG).
+12. TODO: Use different icons and colors to highlight each severity of message, etc.
+13. TODO: Use feature flags for A/B testing (using Flagsmith?).
 
-6. Get parameters as arguments specified in call within CLI.
-7. Set default attributes for production usage (minimal lines to STDOUT)
-8. Enable attributes to be set for verbosity for each type of output (DEBUG).
-9. TODO: Use different icons and colors to highlight each severity of message, etc.
-10. TODO: Use feature flags for A/B testing (using Flagsmith?).
+14. Display (Python operating system versions) environmnet being used.
+15. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
 
-11. Display (Python operating system versions) environmnet being used.
-12. Display status of progress within long tasks (SHOW_DOWNLOAD_PROGRESS).
+16. Measure the duration of each function call and its processing scope.
+17. TODO: Define OpenTelemetry (OTel) spans for tracing time across several tasks.
+18. Output log entries with duration (and file bytes) for processing scope.
+19. Zero-fill incremented numbers in displays.
+20. Maintain a count of tasks performed (for normalizing ops times).
+21. Output a summary log of total time, disk used to correlate with count of tasks.
 
-13. Measure the duration of each function call and its processing scope.
-14. TODO: Define OpenTelemetry (OTel) spans for tracing time across several tasks.
-15. Output log entries with duration (and file bytes) for processing scope.
-16. Zero-fill incremented numbers in displays.
-17. Maintain a count of tasks performed (for normalizing ops times).
-18. Output a summary log of total time, disk used to correlate with count of tasks.
+22. TODO: Define a unique code for each message output.
+23. TODO: Define positive and negative unit tests for each function (PyTest?)
 
-19. TODO: Define a unique code for each message output.
-20. TODO: Define positive and negative unit tests for each function (PyTest?)
+24. Read CSV file for multiple iterations.
+25. Set sleep time between each iteration to avoid overwhelming the server.
+26. Stop after processing rather than KeyboardInterrupt which creates .part files.
 
-21. Read CSV file for multiple iterations.
-22. Set sleep time between each iteration to avoid overwhelming the server.
-23. Stop after processing rather than KeyboardInterrupt which creates .part files.
-
-24. List actions in CLI before running program.
-25. Define in docstrings actions sample usage commands in CLI to run program.
 
 Before running this program:
 brew install miniconda
@@ -59,7 +59,6 @@ python3 -m pip install argparse yt_dlp logging pytz
 """
 
 # import external library (from outside this program):
-from colorama import init, Fore, Style  # to style messages
 import argparse
 
 # brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
