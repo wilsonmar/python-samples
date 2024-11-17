@@ -2,7 +2,7 @@
 """ it-media.py at https://github.com/wilsonmar/python-samples/blob/main/it-media.py
 
 STATUS: WORKING 
-git commit -m "v001 new :it-media.py"
+git commit -m "v003 + list by title :it-media.py"
 
 This program maintains a database of movies, YouTube videos, articles, etc. about 
 IT (Information Technology), (not just sci-fi) related to
@@ -53,7 +53,7 @@ def display_menu():
     print("d = Delete a movie")
     print("x = Exit")
 
-def view_movies(movies, sorted_by_rating=False, sorted_by_year=False):
+def view_movies(movies, sorted_by_rating=False, sorted_by_year=False, sorted_by_title=False):
     if not movies:
         print("No movies in the database.")
     else:
@@ -64,7 +64,7 @@ def view_movies(movies, sorted_by_rating=False, sorted_by_year=False):
             sorted_movies = sorted(movies, key=lambda x: x['year'], reverse=True)
             print("\n==== IT Movie List (Sorted by Year) ====")
         elif sorted_by_title:
-            sorted_movies = sorted(movies, key=lambda x: x['title'], reverse=True)
+            sorted_movies = sorted(movies, key=lambda x: x['title'], reverse=False)
             print("\n==== IT Movie List (Sorted by Title) ====")
         else:
             sorted_movies = movies
@@ -87,7 +87,7 @@ def add_movie(movies):
                 print("*** Rating must be between 0 and 10.")
 
         except ValueError:
-        movies.append({
+            movies.append({
             "title": title,
             "year": year,
             "description": description,
