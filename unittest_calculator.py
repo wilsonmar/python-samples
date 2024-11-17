@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-""" unittest_calculator.py
-git commit -m "v001 new :unittest_calculator.py"
-STATUS: Testing
+""" unittest_calculator.py at https://github.com/wilsonmar/python-samples/blob/main/unittest_calculator.py
 
-This is an example of how to use Python's Unit Test feature.
+STATUS: Testing
+git commit -m "v002 + description :unittest_calculator.py"
+
+This is a simple calculator as an example of 
+how to use Python's Unit Test feature.
+
 """
 
 # Globals: TODO: Specify in program attributes when calling it.
