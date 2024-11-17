@@ -8,6 +8,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * dijkstras.py to compare calculations of shortest path on a graph
 * dijkstra-yt.py to calculate shortest path using heapq library
 * endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
+* it-media.py to create a database of IT movies and sort them by rating, year, or title.
 * num2words.py simply converts a number input to its word.
 * otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
