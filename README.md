@@ -4,6 +4,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 ## Programs alphabetically
 
 * argparse-samples.py shows how to specify command line arguments into this program.
+* bookmarks_export.py to export bookmarks from Chrome to a HTML file.
 * calculator-tk.py is a calculator created using the Tk GUI library.
 * dijkstras.py to compare calculations of shortest path on a graph
 * dijkstra-yt.py to calculate shortest path using heapq library
