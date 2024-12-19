@@ -1,5 +1,11 @@
 .DS_Store
 
+# IntelliJ IDE settings
+/.idea/
+
+# VS Code settings
+/.vscode/
+
 logs
 payload.json
 
@@ -75,6 +81,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# virtualenv
+/venv/
+
 # pyenv
 .python-version
 
@@ -86,10 +95,6 @@ celerybeat-schedule
 
 # dotenv
 .env
-
-# virtualenv
-.venv
-venv/
 ENV/
 
 # Spyder project settings
