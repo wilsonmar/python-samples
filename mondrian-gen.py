@@ -3,7 +3,7 @@
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
 This program creates a PNG file of art in the style of Piet Mondrian.
 CURRENT STATUS: WORKING for multiple files.
-git commit -m"v001 + new :mondrian-gen.py"
+git commit -m"v002 + SHOW_SUMMARY_COUNTS :mondrian-gen.py"
 
 Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
 Tested on macOS 14.5 (23F79) using Python 3.13.
@@ -12,7 +12,7 @@ flake8  E501 line too long, E222 multiple spaces after operator
 Before running this:
 python3 -m venv venv
 source venv/bin/activate
-python3 -m pip install pycairo Pillow pytz tzlocal timezone
+python3 -m pip install pycairo Pillow pytz tzlocal
    # Downloading pycairo-1.27.0.tar.gz (661 kB)
    * Downloading pillow-11.1.0-cp312-cp312-macosx_11_0_arm64.whl (3.1 MB)
    * Downloading tzlocal-5.2-py3-none-any.whl.metadata (7.8 kB)
@@ -61,6 +61,7 @@ OPEN_OUTPUT_FILE = True
 PRINT_OUTPUT_FILE_LOG = True
 PRINT_OUTPUT_COUNT = True
 DELETE_OUTPUT_FILE = True
+SHOW_SUMMARY_COUNTS = True
 
 # User preferences:
 USER_FOLDER = ""  # args.folder (like a mount)
@@ -276,7 +277,8 @@ if __name__ == "__main__":
             if SHOW_DEBUG:
                 print(f"*** DEBUG: file {output_file_path} deleted.")
 
-#    if PRINT_OUTPUT_COUNT == 1:
-#        print(f"*** SUMMARY: 1 file generated.")
-#    else:
-#        print(f"*** SUMMARY: {gened_count} files generated.")
+    if SHOW_SUMMARY_COUNTS:
+       if PRINT_OUTPUT_COUNT == 1:
+           print(f"*** SUMMARY: 1 file generated.")
+       else:
+           print(f"*** SUMMARY: {gened_count} files generated.")
