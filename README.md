@@ -1,4 +1,5 @@
-# python-samples
+# python-samples/README
+
 Sample Python coding with a lot of security and technical features, all in one rep for easy adoption.
 
 ## Programs alphabetically
@@ -10,6 +11,8 @@ Sample Python coding with a lot of security and technical features, all in one r
 * dijkstra-yt.py to calculate shortest path using heapq library
 * endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
 * it-media.py to create a database of IT movies and sort them by rating, year, or title.
+* mondrian-gen.py to generate a png art in the style of Mondrian.
+
 * num2words.py simply converts a number input to its word.
 * otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
 * openweather.py to obtain from API calls and format weather data as fuzzy tokens
@@ -28,6 +31,13 @@ Sample Python coding with a lot of security and technical features, all in one r
 * unittest_calculator.py is an example of how to use Python's Unit Test feature.
 * variables.py to experiment with defining and viewing objects of various data types.
 * youtube-download.py downloads videos based on its URL.
+
+## Experiments being built
+
+https://codepen.io/freeCodeCamp/pen/dNVazZ
+Recipe Box app in JavaScript for
+<a target="_blank" href="https://www.freecodecamp.org/learn/coding-interview-prep/take-home-projects/build-a-recipe-box">
+a Take Home Project</a>.
 
 NOTE: Other pograms are in the https://github.com/bomonike organization:
 * https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
