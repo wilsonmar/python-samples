@@ -3,9 +3,6 @@
 # IntelliJ IDE settings
 /.idea/
 
-# VS Code settings
-/.vscode/
-
 logs
 payload.json
 

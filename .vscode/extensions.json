@@ -1,0 +1,13 @@
+{
+    // See https://vxlabs.com/2023/12/09/minimal-vscode-settings-and-extensions-configuration-for-python-with-ruff/
+    // See https://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
+    // List of extensions which should be recommended for users of this workspace.
+    "recommendations": [
+        // formatting (replaces black), linting (replaces flake8), sorting imports!
+        // See https://github.com/astral-sh/ruff by
+        // https://github.com/charliermarsh who also developed the uv package mgr
+        "charliermarsh.ruff"
+    ],
+    // Extensions recommended by VS Code that should not be recommended for users of this workspace.
+    "unwantedRecommendations": []
+}
