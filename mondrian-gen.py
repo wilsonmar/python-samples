@@ -10,6 +10,7 @@ vertical lines of rectangular boxes filled with primary colors
 compare with the intuitive beauty of manually-created works, such as
 https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnum3-268x266_hceym9.png
 
+// SPDX-License-Identifier: MIT
 CURRENT STATUS: NOT WORKING for env file retrieve.
 git commit -m"v005 + API vals in Keyring :mondrian-gen.py"
 
@@ -33,12 +34,14 @@ python3 -m pip install envcloak keyring OpenAI pycairo python-dotenv Pillow psut
    * Downloading psutil-6.1.1-cp36-abi3-macosx_11_0_arm64.whl (248 kB)
    * shutil ???
    * Downloading tzlocal-5.2-py3-none-any.whl.metadata (7.8 kB)
-
+python3 -m pip install web3 eth_account solcx 
 5. Scan Python program using flake8, etc.
 6. Edit the program to define run parameters.
 7. Run this program:
 chmod +x mondrian-gen.py
 ./mondrian-gen.py
+8. Lint: Pylint, Flake8, Xenon and Radon
+   within VSCode install Ruff (from Astral Software).
 
 TODO: Other tools to generate art:
 <a target="_blank" href="https://www.youtube.com/watch?v=Vgcr6VOwHf0">VIDEO</a>
@@ -53,6 +56,8 @@ TODO: Other tools to generate art:
 * https://github.com/unsettledgames/mondrian-generator 
 
 """
+
+#### SECTION 1 - imports
 
 # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
 import cairo
@@ -87,21 +92,39 @@ import time
 from timeit import default_timer as timer
 import tzlocal
 
+# To mint NFT: python3 -m pip install web3 eth_account solcx
+from web3 import Web3
+from eth_account import Account
+from solcx import compile_standard, install_solc
+    # ERROR: Ignored the following versions that require a different python version: 6.0.0b1 Requires-Python >=3.7,<3.11; 6.0.0b2 Requires-Python >=3.7,<3.11; 6.0.0b3 Requires-Python >=3.7.2,<3.11; 6.0.0b4 Requires-Python >=3.7.2,<3.11
+    # ERROR: Could not find a version that satisfies the requirement solcx (from versions: none)
+    # ERROR: No matching distribution found for solcx
+
+
+#### SECTION 2 - Global starter constants
+
+start_time = time.time()  # start the program-level timer.
 # Start with program name (without ".py" file extension) such as "modrian-gen":
 PROGRAM_NAME = Path(__file__).stem
     # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
     # Instead of os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
+if os.name == "nt":  # Windows operating system
+    SLASH_CHAR = "\\"
+    # if platform.system() == "Windows":
+    print(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
+else:
+    SLASH_CHAR = "/"
+
+
+#### SECTION 3 - default (hard-coded) variables & values:
+
 # Obtain variables (API key, etc.) from .env file:
-use_env_file = True    # -env "python-samples.env"
-global ENV_FILE_PATH
-ENV_FILE_PATH="python-samples.env"
-global global_env_path
-USER_FOLDER = ""  # args.folder (like a mount)
 
 # Console display option defaults:
 clear_cli = True
 SHOW_DEBUG = True
+show_info = True
 show_trace = True
 show_fail = True
 show_dates_in_logs = False
@@ -116,8 +139,9 @@ keyring_account_name = "johndoe"
 USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
 
 # For programmatic creation code:
-WIDTH, HEIGHT = 500, 500
-# TODO: Vary size and format of file to generate locally:
+WIDTH = 500
+HEIGHT = 500
+   # TODO: Vary size (ratio) of file to generate locally:
 WIDTHxHEIGHT = str(WIDTH)+"x"+str(HEIGHT)  # for "500x500"
 # For ref. by generate_mondrian(), mondrian_flood_fill(), draw_mondrian()
 TILE_SIZE = 10
@@ -130,6 +154,10 @@ FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
 SLEEP_SECONDS = 1.0  # between files created in a loop
 
 DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
+ADD_WATERMARK = True  # watermark2png()
+watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+MINT_NFT = True
+
 OPEN_OUTPUT_FILE = True
 CLOSE_OUTPUT_FILE = True
 PRINT_OUTPUT_FILE_LOG = True
@@ -138,69 +166,33 @@ PRINT_OUTPUT_COUNT = True
 DELETE_OUTPUT_FILE = False  # If True, recover files from Trash
 SHOW_SUMMARY_COUNTS = True
 
-# Global Constants:
-# This is the pallette of primary RBG colors:
+
+#### SECTION 4 - parse_args() to override defaults with run-time parms:
+
+import argparse
+parser = argparse.ArgumentParser(description="Mondrian Generator")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
+parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
+parser.add_argument("-f", "--parmspath", help="Path to env specs")
+parser.add_argument("-l", "--log", help="Log to external file")
+parser.add_argument("-m", "--summary", action="store_true", help="Show summary")
+parser.add_argument("-s", "--sleepsecs", action="store_true", help="Sleep seconds average")
+# -h = --help (list arguments)
+args = parser.parse_args()
+
+# def parse_args():
+
+
+
+#### SECTION 5 - Static Global working constants:
+
+# The pallette of primary RBG colors:
 # COLORS = [(1, 1, 1), (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1)]
 # Plus green, orange, and purple:
 COLORS = [(1, 1, 1), (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1), (0, 1, 0), (1, 0.5, 0), (0.5, 0, 0.5)]
     # See https://www.schoolofmotion.com/blog/10-tools-to-help-you-design-a-color-palette
 
-
-if os.name == "nt":  # Windows operating system
-    SLASH_CHAR = "\\"
-    # if platform.system() == "Windows":
-    print(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
-else:
-    SLASH_CHAR = "/"
-
-# SAVE_PATH = os.getcwd()  # cwd=current working directory (python-examples code folder)
-SAVE_PATH = os.path.expanduser("~")  # user home folder path like "/User/johndoe"
-if SHOW_DEBUG:
-    print(f"*** DEBUG: SAVE_PATH={SAVE_PATH}")
-
-if USER_FOLDER == "":
-    # No prefix (mount) specified:
-    OUTPUT_PATH_PREFIX = SAVE_PATH + SLASH_CHAR + "Downloads"
-else:
-    OUTPUT_PATH_PREFIX = SAVE_PATH + SLASH_CHAR + USER_FOLDER
-if SHOW_DEBUG:
-    print(f"*** DEBUG: OUTPUT_PATH_PREFIX={OUTPUT_PATH_PREFIX}")
-
-# Check to make sure folder exists:
-if not os.path.isdir(OUTPUT_PATH_PREFIX):  # Confirmed a directory:
-    try:
-        print(f"*** WARNING: Folder {OUTPUT_PATH_PREFIX} does not exist. Creating.")
-        os.mkdirs(OUTPUT_PATH_PREFIX)
-    except FileExistsError:
-        print(f"*** FileExistsError creating {OUTPUT_PATH_PREFIX}. Exiting.")
-        exit()
-
-
-def local_datetime_stamp():
-    """Assemble date stamp (with a time zone offset)
-    """
-    # Assemble output file name onto path:
-    local_time = time.localtime()
-    TZ_OFFSET = time.strftime("%z", local_time)
-        # returns "-0700" for MST "America/Denver"
-    # SYS_TIMEZONE = tzlocal.get_localzone()
-        # returns "America/Denver"
-    # TZ_OFFSET = datetime.now(timezone.utc).astimezone().tzinfo.utcoffset(None)
-        # returns timedelta object representing the offset from UTC.
-    # TZ_CODE = time.tzname[0]   # returns "MST"
-
-    if DATE_OUT_Z:  # from user preferences
-        # Add using local time zone Z (Zulu) for UTC (GMT):
-        now = datetime.now(timezone.utc)
-        file_date_stamp = now.strftime("%Y%m%dT%H%M%SZ")
-    else:
-        # Add using local time zone offset:
-        now = datetime.now()
-        file_date_stamp = now.strftime("%Y%m%dT%H%M%S")+TZ_OFFSET
-    return file_date_stamp
-
-
-# Colors
+# Colors:
 RED = '\033[31m'
 GREEN = '\033[32m'
 YELLOW = '\033[33m'
@@ -227,10 +219,39 @@ class bcolors:  # ANSI escape sequences:
 
     RESET = '\033[0m'   # switch back to default color
 
+
+
+#### SECTION 6 - Utility functions:
+
 def get_time() -> str:
     """ Generate the current local datetime. """
     now: datetime = datetime.now()
     return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d}'
+
+
+def local_datetime_stamp():
+    """Assemble date stamp (with a time zone offset)
+    """
+    # Assemble output file name onto path:
+    local_time = time.localtime()
+    TZ_OFFSET = time.strftime("%z", local_time)
+        # returns "-0700" for MST "America/Denver"
+    # SYS_TIMEZONE = tzlocal.get_localzone()
+        # returns "America/Denver"
+    # TZ_OFFSET = datetime.now(timezone.utc).astimezone().tzinfo.utcoffset(None)
+        # returns timedelta object representing the offset from UTC.
+    # TZ_CODE = time.tzname[0]   # returns "MST"
+
+    if DATE_OUT_Z:  # from user preferences
+        # Add using local time zone Z (Zulu) for UTC (GMT):
+        now = datetime.now(timezone.utc)
+        date_stamp = now.strftime("%Y%m%dT%H%M%SZ")
+    else:
+        # Add using local time zone offset:
+        now = datetime.now()
+        date_stamp = now.strftime("%Y%m%dT%H%M%S")+TZ_OFFSET
+    return date_stamp
+
 
 def print_separator():
     """ Put a blank line in CLI output. Used in case the technique changes throughout this code. """
@@ -292,7 +313,6 @@ def print_trace(text_in):  # displayed as each object is created in pgm:
         else:
             print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
 
-
 def do_clear_cli():
     if clear_cli:
         import os
@@ -308,295 +328,9 @@ def display_memory():
     print_verbose("memory used="+str(mem)+" MiB at "+local_datetime_stamp())
 
 
-def sys_info():
-    if not show_sys_info:   # defined among CLI arguments
-        return None
-    print_heading("In sys_info()")
-
-    from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-        # example: /users/john_doe
-    print_trace("user_home_dir_path="+user_home_dir_path)
-    # the . in .secrets tells Linux that it should be a hidden file.
-
-    import platform # https://docs.python.org/3/library/platform.html
-    platform_system = platform.system()
-       # 'Linux', 'Darwin', 'Java', 'Win32'
-    print_trace("platform_system="+str(platform_system))
-
-    # my_os_platform=localize_blob("version")
-    print_trace("my_os_version="+str(platform.release()))
-    #           " = "+str(macos_version_name(my_os_version)))
-
-    my_os_process = str(os.getpid())
-    print_trace("my_os_process="+my_os_process)
-
-    display_memory()
-
-        # or socket.gethostname()
-    my_platform_node = platform.node()
-    print_trace("my_platform_node="+my_platform_node)
-
-    my_os_uname = str(os.uname())
-    print_trace("my_os_uname="+my_os_uname)
-        # MacOS version=%s 10.14.6 # posix.uname_result(sysname='Darwin',
-        # nodename='NYC-192850-C02Z70CMLVDT', release='18.7.0', version='Darwin
-        # Kernel Version 18.7.0: Thu Jan 23 06:52:12 PST 2020;
-        # root:xnu-4903.278.25~1/RELEASE_X86_64', machine='x86_64')
-
-    # Permissions?
-    cmd = "ioreg -c IOPlatformExpertDevice -d 2 | awk -F\\\" '/IOPlatformSerialNumber/{print $(NF-1)}'"
-    my_mac_serial_number = subprocess.check_output(cmd, shell=True).decode('utf-8').strip()
-    print_trace("My Mac Serial Number="+my_mac_serial_number)
-
-    # import psutil
-    # TODO: pwuid_shell = pwd.getpwuid(os.getuid()).pw_shell     # like "/bin/zsh" on MacOS
-    # preferred over os.getuid())[0]
-    # Instead of: conda install psutil   # found
-    # machine_uid_pw_name = psutil.Process().username()
-    # print_trace("pwuid_shell="+pwuid_shell)
-
-    # Obtain machine login name:
-    # This handles situation when user is in su mode.
-    # See https://docs.python.org/3/library/pwd.html
-    # TODO: pwuid_gid = pwd.getpwuid(os.getuid()).pw_gid         # Group number datatype
-    # TODO: print_trace("pwuid_gid="+str(pwuid_gid)+" (process group ID number)")
-
-    # TODO: pwuid_uid = pwd.getpwuid(os.getuid()).pw_uid
-    # TODO: print_trace("pwuid_uid="+str(pwuid_uid)+" (process user ID number)")
-
-    # TODO: pwuid_name = pwd.getpwuid(os.getuid()).pw_name
-    # TODO: print_trace("pwuid_name="+pwuid_name)
-
-    # TODO: pwuid_dir = pwd.getpwuid(os.getuid()).pw_dir         # like "/Users/johndoe"
-    # TODO: print_trace("pwuid_dir="+pwuid_dir)
-
-    # Several ways to obtain:
-    # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
-    # this_pgm_name = sys.argv[0]                     # = ./python-samples.py
-    # this_pgm_name = os.path.basename(sys.argv[0])   # = python-samples.py
-    # this_pgm_name = os.path.basename(__file__)      # = python-samples.py
-    # this_pgm_path = os.path.realpath(sys.argv[0])   # = python-samples.py
-    # Used by display_run_stats() at bottom:
-    this_pgm_name = os.path.basename(os.path.normpath(sys.argv[0]))
-    print_trace("this_pgm_name="+this_pgm_name)
-
-    # TODO: this_pgm_last_commit = __last_commit__
-        # Adapted from https://www.python-course.eu/python3_formatted_output.php
-    #print_trace("this_pgm_last_commit="+this_pgm_last_commit)
-
-    this_pgm_os_path = os.path.realpath(sys.argv[0])
-    print_trace("this_pgm_os_path="+this_pgm_os_path)
-    # Example: this_pgm_os_path=/Users/wilsonmar/github-wilsonmar/python-samples/python-samples.py
-
-    # TODO: site_packages_path = site.getsitepackages()[0]
-    # TODO: print_trace("site_packages_path="+site_packages_path)
-
-    this_pgm_last_modified_epoch = os.path.getmtime(this_pgm_os_path)
-    print_trace("this_pgm_last_modified_epoch="+str(this_pgm_last_modified_epoch))
-
-    #this_pgm_last_modified_datetime = datetime.fromtimestamp(
-    #    this_pgm_last_modified_epoch)
-    #print_trace("this_pgm_last_modified_datetime=" +
-    #            str(this_pgm_last_modified_datetime)+" (local time)")
-        # Default like: 2021-11-20 07:59:44.412845  (with space between date & time)
-
-    # Obtain to know whether to use new interpreter features:
-    python_ver = platform.python_version()
-        # 3.8.12, 3.9.16, etc.
-    print_trace("python_ver="+python_ver)
-
-    ### python_info():
-    python_version = sys.version
-        # 3.9.16 (main, Dec  7 2022, 10:16:11) [Clang 14.0.0 (clang-1400.0.29.202)]
-        # 3.8.3 (default, Jul 2 2020, 17:30:36) [MSC v.1916 64 bit (AMD64)]
-    print_trace("python_version="+python_version)
-
-    print_trace("python_version_info="+str(sys.version_info))
-        # Same as on command line: python -c "print_trace(__import__('sys').version)"
-        # 2.7.16 (default, Mar 25 2021, 03:11:28)
-        # [GCC 4.2.1 Compatible Apple LLVM 11.0.3 (clang-1103.0.29.20) (-macos10.15-objc-
-
-    if sys.version_info.major == 3 and sys.version_info.minor <= 6:
-            # major, minor, micro, release level, and serial: for sys.version_info.major, etc.
-            # Version info sys.version_info(major=3, minor=7, micro=6,
-            # releaselevel='final', serial=0)
-        print_fail("Python 3.6 or higher is required for this program. Please upgrade.")
-        sys.exit(1)
-
-    venv_base_prefix = sys.base_prefix
-    venv_prefix = sys.prefix
-    if venv_base_prefix == venv_prefix:
-        print_trace("venv at " + venv_base_prefix)
-    else:
-        print_fail("venv is different from venv_prefix "+venv_prefix)
-
-    print_trace("__name__="+__name__)  # = __main__
-
-
-    # TODO: Make this function for call before & after run:
-    #    disk_list = about_disk_space()
-    #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
-    #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
-        # left-to-right order of fields are re-arranged from the function's output.
-
-
-def list_macos_volumes():
-    """ Like Bash CLI: diskutil list
-    STATUS: NOT WORKING
-    volumes_path = '/Volumes'
-    volumes = os.listdir(volumes_path)
-    """
-    print("*** Drive Volumes:")
-    removable_volumes = []
-    import psutil
-    partitions = psutil.disk_partitions(all=True)
-
-    for partition in partitions:
-        if partition.mountpoint.startswith('/Volumes/'):
-            # Check if the volume is removable
-            cmd = f"diskutil info {partition.device}"
-            output = subprocess.check_output(cmd, shell=True).decode('utf-8')
-            if "Removable Media: Yes" in output:
-                removable_volumes.append(partition.mountpoint)
-
-    for volume in volumes:
-        print(f"Removable volume: {volume}")
-
-        volume_path = os.path.join(volumes_path, volume)
-        if os.path.ismount(volume_path):
-            print(f"- {volume}")
-
-
-def write_file_to_removable_drive(drive_path, file_name, content):
-    """
-    Write content (text) to a file_name on a removable drive on macOS.
-    :param drive_path: The path to the removable drive
-    See https://www.kingston.com/en/blog/personal-storage/using-usb-drive-on-mac
-    """
-    # Verify that the drive is mounted and the path exists:
-    if not os.path.exists(drive_path):
-        # mount point = drive_path = '/Volumes/YourDriveName'
-        print(f"Drive path {drive_path} not found. Please check if it's properly connected.")
-        raise FileNotFoundError(f"The drive path {drive_path} does not exist.")
-        # Perhaps permission error?
-        list_macos_volumes()
-        exit()
-
-    try:
-        # Write the content to the file
-        with open(file_path, 'w') as file:
-            file.write(content)
-        print(f"File '{file_name}' has been successfully written to {drive_path}")
-    except PermissionError:
-        print(f"Permission denied. Unable to write to {drive_path}")
-    except IOError as e:
-        print(f"An error occurred while writing the file: {e}")
-
-
-#def read_file_from_removable_drive(drive_path, file_name, content):
-
-
-def eject_drive(drive_path):
-    """Safely eject removeable drive after use, where
-    drive_path = '/Volumes/YourDriveName'
-    """
-    try:
-        # import subprocess
-        subprocess.run(["diskutil", "eject", drive_path], check=True)
-        print(f"Successfully ejected {drive_path}")
-    except subprocess.CalledProcessError:
-        print(f"Failed to eject {drive_path}")
-
-
-# See https://wilsonmar.github.io/python-samples/#envFile
-def open_env_file(env_file) -> str:
-    """Return a file path obtained from .env file based on the path provided
-    in env_file coming in.
-    """
-    # from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-
-    drive_path = "Volume/DriveName"
-    write_file_to_removable_drive(drive_path, env_file, content)
-
-    # Find the user's $HOME path:
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
-
-    # PROTIP: Check if .env file on global_env_path is readable:
-    if not os.path.isfile(global_env_path):
-        print("*** global_env_path "+global_env_path+" not found!")
-    else:
-        print_info("*** global_env_path "+global_env_path+" is readable.")
-
-    path = pathlib.Path(global_env_path)
-    # Based on: pip3 install python-dotenv
-    # from dotenv import load_dotenv
-       # See https://www.python-engineer.com/posts/dotenv-python/
-       # See https://pypi.org/project/python-dotenv/
-    load_dotenv(global_env_path)  # using load_dotenv
-
-    # Wait until variables for print_trace are retrieved:
-    #print_trace("env_file="+env_file)
-    #print_trace("user_home_dir_path="+user_home_dir_path)
-
-    # After pip install envcload
-    # from envcloak import load_encrypted_env
-    load_encrypted_env('.env.enc', key_file='mykey.key').to_os_env()
-        # Now os.environ contains the decrypted variables
-
-    return global_env_path
-
-
-def get_str_from_env_file(key_in) -> str:
-    """Return a value of string data type from OS environment or .env file
-    (using pip python-dotenv)
-    """
-    # FIXME:
-    env_var = os.environ.get(key_in)
-    print(f"*** DEBUG: key_in={key_in} env_var={env_var}")
-    exit()
-    if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE_PATH)
-        return None
-    else:
-        # PROTIP: Display only first 5 characters of a potentially secret long string:
-        if len(env_var) > 5:
-            print_trace(key_in + "=\"" + str(env_var[:5]) +" (remainder removed)")
-        else:
-            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
-        return str(env_var)
-
-
-def get_from_macos_keyring(service, account):
-    """Read API Key from MacOS built-in Keyring/Passwords.app
-    : service ("OpenAI")
-    : account ("johndoe@gmail.com")
-    for password = API key value
-    """
-    # import keyring
-    return keyring.get_password(service, account)
-
-
-def read_env_file(env_path):
-    """Read .env file containing variables and values.
-    See https://wilsonmar.github.io/python-samples/#envLoad
-    """
-    # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
-
-    global openai_api_key
-    openai_api_key = get_str_from_env_file('OPENAI_API_KEY')
-    if openai_api_key == None:
-        print_error("openai_api_key="+openai_api_key+" not in "+env_path)
-    else:
-        print_error("openai_api_key="+openai_api_key+" in "+env_path)
-
-    return
+def list_to_string(input_list):
+    # Using the join() method to concatenate list elements
+    return ', '.join(map(str, input_list))
 
 
 def get_file_timezone(file_path):
@@ -659,6 +393,315 @@ def get_file_size_on_disk(file_path):
         print(f"*** Error getting file size: {e}")
         return None
 
+
+def sys_info():
+    if not show_sys_info:   # defined among CLI arguments
+        return None
+
+    local_datetime = local_datetime_stamp()
+    print_trace("local_datetime_stamp="+local_datetime)
+
+    this_pgm_name = os.path.basename(os.path.normpath(sys.argv[0]))
+    print_trace("this_pgm_name="+this_pgm_name)
+
+    this_pgm_os_path = os.path.realpath(sys.argv[0])
+    print_trace("this_pgm_os_path="+this_pgm_os_path)
+    # Example: this_pgm_os_path=/Users/wilsonmar/github-wilsonmar/python-samples/python-samples.py
+
+    last_modified_epoch = os.path.getmtime(this_pgm_os_path)
+    # FEATURE: Convert unix epoch time (from 1970) to human-readable datetime:
+    last_modified_datetime = datetime.fromtimestamp(last_modified_epoch)
+        # Default like: 2021-11-20 07:59:44.412845  (with space between date & time)
+    # FIXME:
+    local_time_zone = "-0700"
+    print_trace("program_created_datetime=" + str(last_modified_datetime) +
+        " "+ local_time_zone +
+        " epoch="+str(last_modified_epoch))
+
+    from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+        # example: /users/john_doe
+    print_trace("user_home_dir_path="+user_home_dir_path)
+    # the . in .secrets tells Linux that it should be a hidden file.
+
+    import platform # https://docs.python.org/3/library/platform.html
+    platform_system = platform.system()
+       # 'Linux', 'Darwin', 'Java', 'Win32'
+    print_trace("platform_system="+str(platform_system))
+
+    # my_os_platform=localize_blob("version")
+    print_trace("my_os_version="+str(platform.release()))
+    #           " = "+str(macos_version_name(my_os_version)))
+
+    my_os_process = str(os.getpid())
+    print_trace("my_os_process="+my_os_process)
+
+    display_memory()
+
+        # or socket.gethostname()
+    my_platform_node = platform.node()
+    print_trace("my_platform_node="+my_platform_node)
+
+    my_os_uname = str(os.uname())
+    print_trace("my_os_uname="+my_os_uname)
+        # MacOS version=%s 10.14.6 # posix.uname_result(sysname='Darwin',
+        # nodename='NYC-192850-C02Z70CMLVDT', release='18.7.0', version='Darwin
+        # Kernel Version 18.7.0: Thu Jan 23 06:52:12 PST 2020;
+        # root:xnu-4903.278.25~1/RELEASE_X86_64', machine='x86_64')
+
+    # Permissions?
+    cmd = "ioreg -c IOPlatformExpertDevice -d 2 | awk -F\\\" '/IOPlatformSerialNumber/{print $(NF-1)}'"
+    my_mac_serial_number = subprocess.check_output(cmd, shell=True).decode('utf-8').strip()
+       # Alternative: ioreg -c IOPlatformExpertDevice -d 2 | awk -F\\\" '/IOPlatformSerialNumber/{print $(NF-1)}'
+    print_trace("my_mac_serial_number="+my_mac_serial_number)
+       # Example: DFJXAJ09M1
+
+    # Several ways to obtain:
+    # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
+    # this_pgm_name = sys.argv[0]                     # = ./python-samples.py
+    # this_pgm_name = os.path.basename(sys.argv[0])   # = python-samples.py
+    # this_pgm_name = os.path.basename(__file__)      # = python-samples.py
+    # this_pgm_path = os.path.realpath(sys.argv[0])   # = python-samples.py
+    # Used by display_run_stats() at bottom:
+
+    # Obtain to know whether to use new interpreter features:
+    python_ver = platform.python_version()
+        # 3.8.12, 3.9.16, etc.
+    print_trace("python_ver="+python_ver)
+
+    ### python_info():
+    python_version = sys.version
+        # 3.9.16 (main, Dec  7 2022, 10:16:11) [Clang 14.0.0 (clang-1400.0.29.202)]
+        # 3.8.3 (default, Jul 2 2020, 17:30:36) [MSC v.1916 64 bit (AMD64)]
+    print_trace("python_version="+python_version)
+
+    print_trace("python_version_info="+str(sys.version_info))
+        # Same as on command line: python -c "print_trace(__import__('sys').version)"
+        # 2.7.16 (default, Mar 25 2021, 03:11:28)
+        # [GCC 4.2.1 Compatible Apple LLVM 11.0.3 (clang-1103.0.29.20) (-macos10.15-objc-
+
+    if sys.version_info.major == 3 and sys.version_info.minor <= 6:
+            # major, minor, micro, release level, and serial: for sys.version_info.major, etc.
+            # Version info sys.version_info(major=3, minor=7, micro=6,
+            # releaselevel='final', serial=0)
+        print_fail("Python 3.6 or higher is required for this program. Please upgrade.")
+        sys.exit(1)
+
+    venv_base_prefix = sys.base_prefix
+    venv_prefix = sys.prefix
+    if venv_base_prefix == venv_prefix:
+        print_trace("venv at " + venv_base_prefix)
+    else:
+        print_fail("venv is different from venv_prefix "+venv_prefix)
+
+    # print_trace("__name__="+__name__)  # = __main__
+
+    import uuid
+    mac = uuid.getnode()
+    import re
+    mac_address = ':'.join(re.findall('..', '%012x' % mac))
+    print_trace("mac_address=" + mac_address)
+
+    import socket
+    hostname = socket.gethostname()
+    # sudo: Allow Python to find devices on local networks?
+    ip_addresses_list = socket.gethostbyname_ex(hostname)[2]
+    ip_addresses_str = ', '.join(map(str, ip_addresses_list))
+    print_trace("hostname="+hostname+" ip_addresses="+ip_addresses_str)
+    # for ip in ip_addresses: print(ip)
+
+
+#def disk_space
+    # TODO: Make this function for call before & after run:
+    #    disk_list = about_disk_space()
+    #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
+    #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
+        # left-to-right order of fields are re-arranged from the function's output.
+
+
+def list_macos_volumes():
+    """ Like Bash CLI: diskutil list
+    STATUS: NOT WORKING
+    volumes_path = '/Volumes'
+    volumes = os.listdir(volumes_path)
+    """
+    print("*** Drive Volumes:")
+    removable_volumes = []
+    import psutil
+    partitions = psutil.disk_partitions(all=True)
+
+    for partition in partitions:
+        if partition.mountpoint.startswith('/Volumes/'):
+            # Check if the volume is removable
+            cmd = f"diskutil info {partition.device}"
+            output = subprocess.check_output(cmd, shell=True).decode('utf-8')
+            if "Removable Media: Yes" in output:
+                removable_volumes.append(partition.mountpoint)
+
+    for volume in removable_volumes:
+        print(f"Removable volume: {volume}")
+
+        volume_path = os.path.join(volumes_path, volume)
+        if os.path.ismount(volume_path):
+            print(f"- {volume}")
+
+
+def write_file_to_removable_drive(drive_path, file_name, content):
+    """
+    Write content (text) to a file_name on a removable drive on macOS.
+    :param drive_path: The path to the removable drive
+    See https://www.kingston.com/en/blog/personal-storage/using-usb-drive-on-mac
+    """
+    # Verify that the drive is mounted and the path exists:
+    if not os.path.exists(drive_path):
+        # mount point = drive_path = '/Volumes/YourDriveName'
+        print(f"Drive path {drive_path} not found. Please check if it's properly connected.")
+        raise FileNotFoundError(f"The drive path {drive_path} does not exist.")
+        # Perhaps permission error?
+        list_macos_volumes()
+        exit()
+
+    try:
+        # Write the content to the file
+        with open(file_path, 'w') as file:
+            file.write(content)
+        print(f"File '{file_name}' has been successfully written to {drive_path}")
+    except PermissionError:
+        print(f"Permission denied. Unable to write to {drive_path}")
+    except IOError as e:
+        print(f"An error occurred while writing the file: {e}")
+
+
+def read_file_from_removable_drive(drive_path, file_name, content):
+    drive_path = "Volume/DriveName"
+    write_file_to_removable_drive(drive_path, env_file, content)
+
+    # Find the user's $HOME path:
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
+
+    # PROTIP: Check if .env file on global_env_path is readable:
+    if not os.path.isfile(global_env_path):
+        print_error("global_env_path "+global_env_path+" not found!")
+    else:
+        print_info("global_env_path "+global_env_path+" is readable.")
+
+    path = pathlib.Path(global_env_path)
+    # Based on: pip3 install python-dotenv
+    # from dotenv import load_dotenv
+       # See https://www.python-engineer.com/posts/dotenv-python/
+       # See https://pypi.org/project/python-dotenv/
+    load_dotenv(global_env_path)  # using load_dotenv
+
+    # Wait until variables for print_trace are retrieved:
+    #print_trace("env_file="+env_file)
+    #print_trace("user_home_dir_path="+user_home_dir_path)
+
+    # After pip install envcload
+    # from envcloak import load_encrypted_env
+    load_encrypted_env('.env.enc', key_file='mykey.key').to_os_env()
+        # Now os.environ contains the decrypted variables
+
+    return global_env_path
+
+
+def eject_drive(drive_path):
+    """Safely eject removeable drive after use, where
+    drive_path = '/Volumes/YourDriveName'
+    """
+    try:
+        # import subprocess
+        subprocess.run(["diskutil", "eject", drive_path], check=True)
+        print(f"Successfully ejected {drive_path}")
+    except subprocess.CalledProcessError:
+        print(f"Failed to eject {drive_path}")
+
+
+#### SECTION 7 - .env override functions:
+
+# See https://wilsonmar.github.io/python-samples/#envFile
+def open_env_file(env_file) -> str:
+    """Return a file path obtained from .env file based on the path provided
+    in env_file coming in.
+    """
+    from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+
+    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
+
+    # PROTIP: Check if .env file on global_env_path is readable:
+    if not os.path.isfile(global_env_path):
+        print_trace(global_env_path+" (global_env_path) not found!")
+    else:
+        print_info(global_env_path+" (global_env_path) readable.")
+
+    path = pathlib.Path(global_env_path)
+    # Based on: pip3 install python-dotenv
+    from dotenv import load_dotenv
+       # See https://www.python-engineer.com/posts/dotenv-python/
+       # See https://pypi.org/project/python-dotenv/
+    load_dotenv(global_env_path)  # using load_dotenv
+
+    # Wait until variables for print_trace are retrieved:
+    #print_trace("env_file="+env_file)
+    #print_trace("user_home_dir_path="+user_home_dir_path)
+
+
+def get_str_from_env_file(key_in) -> str:
+    """Return a value of string data type from OS environment or .env file
+    (using pip python-dotenv)
+    """
+    # FIXME:
+    env_var = os.environ.get(key_in)
+    print_trace("DEBUG: EXIT: key_in="+key_in+" env_var="+env_var)
+    # exit()
+
+    if not env_var:  # yes, defined=True, use it:
+        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE_PATH)
+        return None
+    else:
+        # PROTIP: Display only first 5 characters of a potentially secret long string:
+        if len(env_var) > 5:
+            print_trace(key_in + "=\"" + str(env_var[:5]) +" (remainder removed)")
+        else:
+            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
+        return str(env_var)
+
+
+def get_from_macos_keyring(service, account):
+    """Read API Key from MacOS built-in Keyring/Passwords.app
+    : service ("OpenAI")
+    : account ("johndoe@gmail.com")
+    for password = API key value
+    """
+    # import keyring
+    return keyring.get_password(service, account)
+
+
+def read_env_file(env_path):
+    """Read .env file containing variables and values.
+    See https://wilsonmar.github.io/python-samples/#envLoad
+    """
+    # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
+
+    global openai_api_key
+    openai_api_key = get_str_from_env_file('OPENAI_API_KEY')
+    if openai_api_key == None:
+        print_error("openai_api_key="+openai_api_key+" not in "+env_path)
+    else:
+        print_error("openai_api_key="+openai_api_key+" in "+env_path)
+
+    return
+
+
+#### SECTION 8 - functional app functions:
 
 def generate_mondrian():
     """Create a grid and adds random horizontal and vertical lines
@@ -723,17 +766,28 @@ def draw_mondrian(grid, filename):
     surface.write_to_png(filename)
 
 
-def get_file_size_on_disk(file_path):
-    """Returns integer bytes from the OS for a file path """
-    try:
-        stat_result = os.stat(file_path)
-        return stat_result.st_blocks * 512  # st_blocks is in 512-byte units
-    except FileNotFoundError:
-        print(f"*** File not found: {file_path}")
-        return None
-    except Exception as e:
-        print(f"*** Error getting file size: {e}")
-        return None
+def define_output_path(USER_FOLDER):
+    # from user preferences:
+    save_path_prefix=""
+
+    if USER_FOLDER:  # blank inside, from user preferences:
+        OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + USER_FOLDER
+        print_trace("USER_FOLDER="+USER_FOLDER+" instead of Downloads")
+    else:
+        # No prefix (mount) specified:
+        OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + "Downloads"
+        print_trace("OUTPUT_PATH_PREFIX="+OUTPUT_PATH_PREFIX)
+
+    # Check to make sure folder exists:
+    if not os.path.isdir(OUTPUT_PATH_PREFIX):  # Confirmed a directory:
+        try:
+            print(f"*** WARNING: Folder {OUTPUT_PATH_PREFIX} does not exist. Creating.")
+            os.mkdirs(OUTPUT_PATH_PREFIX)
+        except FileExistsError:
+            print(f"*** FileExistsError creating {OUTPUT_PATH_PREFIX}. Exiting.")
+            exit()
+
+    return OUTPUT_PATH_PREFIX
 
 
 # def setup_logger(log_file=LOGGER_FILE_PATH, console_level=logging.INFO, file_level=logging.DEBUG):
@@ -748,22 +802,20 @@ def gen_one_file(in_seq,path_prefix):
     mondrian_grid = generate_mondrian()
     func_end_timer = timer()
     func_duration = func_end_timer - func_start_timer
-    if SHOW_DEBUG:
-        print(f"*** DEBUG: func_duration={func_duration}.")
 
     file_date_stamp = local_datetime_stamp()
-    output_file_path = path_prefix + SLASH_CHAR + file_date_stamp +"-"+str(in_seq)+".png"
-    if SHOW_DEBUG:
-       print(f"*** DEBUG: output_file_path = {output_file_path}")
+    gened_file_path = path_prefix + SLASH_CHAR +PROGRAM_NAME+"-"+file_date_stamp +"-"+str(in_seq)+".png"
+    #if SHOW_DEBUG:
+    #   print(f"*** DEBUG: gened_file_path = {gened_file_path}")
 
     # Output to a PNG file:
-    draw_mondrian(mondrian_grid, output_file_path )
-    file_create_datetime = file_creation_datetime(output_file_path)
-    file_bytes = get_file_size_on_disk(output_file_path)  # type = number
+    draw_mondrian(mondrian_grid, gened_file_path )
+    file_create_datetime = file_creation_datetime(gened_file_path)
+    file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
     if PRINT_OUTPUT_FILE_LOG:
-        print(f"*** LOG: {output_file_path},{file_bytes},{func_duration:.5f}")
+        print(f"*** LOG: {gened_file_path},{file_bytes},{func_duration:.5f}")
            # *** LOG: /Users/johndoe/Downloads/mondrian-gen-20250105T061101-0700-3.png,1912
-    return output_file_path
+    return gened_file_path
 
 
 def gen_dalle_file(in_seq,path_prefix):
@@ -806,28 +858,137 @@ def gen_dalle_file(in_seq,path_prefix):
     )
     func_end_timer = timer()
     func_duration = func_end_timer - func_start_timer
-    if SHOW_DEBUG:
-        print(f"*** DEBUG: func_duration={func_duration}.")
+    print_trace("func_duration="+func_duration)
 
-    print(f"*** INFO: response.data[0].url={response.data[0].url}")
+    print_info("response.data[0].url"+response.data[0].url)
        # Example: https://oaidalleapiprodscus.blob.core.windows.net/private/org-4...
     response = requests.get(response.data[0].url)
     if response.status_code == 200:
         file_date_stamp = local_datetime_stamp()
-        output_file_path = path_prefix + SLASH_CHAR + file_date_stamp +"-"+str(in_seq)+".png"
+        gened_file_path = path_prefix +SLASH_CHAR +PROGRAM_NAME+"-"+file_date_stamp +"-"+str(in_seq)+".png"
         if SHOW_DEBUG:
-            print(f"*** DEBUG: output_file_path = {output_file_path}")
-        with open(output_file_path, 'wb') as file:
+            print(f"*** DEBUG: gened_file_path = {gened_file_path}")
+        with open(gened_file_path, 'wb') as file:
             file.write(response.content)
 
-        file_bytes = get_file_size_on_disk(output_file_path)  # type = number
+        file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
         if PRINT_OUTPUT_FILE_LOG:
-            print(f"*** LOG: {output_file_path},{file_bytes},{func_duration:.5f}")
+            print(f"*** LOG: {gened_file_path},{file_bytes},{func_duration:.5f}")
     else:
         print('*** ERROR: Failed to download file')
         exit()
 
-    return output_file_path
+    return gened_file_path
+
+
+def mint_nft():
+    # Mint a non-fungible token (NFT) on Metamask Ethereum wallet using the OpenZeppelin library
+    # which simplifies the development process by implementing the ERC721 Metadata Schema
+    # smart contract defined at https://eips.ethereum.org/EIPS/eip-721
+    # Alchemy.com nodes-as-a-service
+    # like at https://www.freecodecamp.org/news/how-to-make-an-nft/
+    # See https://docs.alchemy.com/alchemy/tutorials/how-to-create-an-nft/how-to-mint-a-nft#step-4-configure-the-metadata-for-your-nft-using-ipfs
+    # The token created can be displayed and sold by a dApp per
+    # https://www.youtube.com/watch?v=M576WGiDBdQ
+    # See https://ethereum.org/en/developers/docs/intro-to-ethereum/
+    # Alt: https://xrpl.org/docs/tutorials/python/nfts/mint-and-burn-nfts
+    # To be like https://www.fastcompany.com/91214372/botto-ai-artwork-sothebys-auction
+
+    from web3 import Web3
+    from eth_account import Account
+    from solcx import compile_standard, install_solc
+
+    # Install Solidity compiler
+    install_solc("0.8.0")
+
+    # Compile the smart contract
+    compiled_sol = compile_standard({
+        "language": "Solidity",
+        "sources": {
+            "NFT.sol": {
+                "content": '''
+                    pragma solidity ^0.8.0;
+
+                    import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+                    import "@openzeppelin/contracts/utils/Counters.sol";
+
+                    contract MyNFT is ERC721 {
+                        using Counters for Counters.Counter;
+                        Counters.Counter private _tokenIds;
+
+                        constructor() ERC721("MyNFT", "MNFT") {}
+
+                        function createNFT(address recipient, string memory tokenURI) public returns (uint256) {
+                            _tokenIds.increment();
+                            uint256 newItemId = _tokenIds.current();
+                            _mint(recipient, newItemId);
+                            _setTokenURI(newItemId, tokenURI);
+                            return newItemId;
+                        }
+                    }
+                '''
+            }
+        },
+        "settings": {
+            "outputSelection": {
+                "*": {
+                    "*": ["abi", "metadata", "evm.bytecode", "evm.sourceMap"]
+                }
+            }
+        }
+    })
+
+    # Deploy the contract
+    w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/YOUR-PROJECT-ID'))
+    account = Account.from_key('YOUR-PRIVATE-KEY')
+    contract = w3.eth.contract(abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'],
+                            bytecode=compiled_sol['contracts']['NFT.sol']['MyNFT']['evm']['bytecode']['object'])
+
+    tx_hash = contract.constructor().transact({'from': account.address})
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    # Create an NFT
+    nft_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'])
+    tx_hash = nft_contract.functions.createNFT(account.address, 'https://example.com/nft/1').transact({'from': account.address})
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print("NFT created successfully!")
+
+
+def add_watermark2png(input_image, output_image, watermark_text):
+    # See https://www.geeksforgeeks.org/python-pillow-creating-a-watermark/
+    # Alt: cv2 (OpenCV), Filetools (China), pythonwatermark
+         # see https://www.youtube.com/watch?v=Yu8z0Lg53zk
+
+    from PIL import Image, ImageDraw, ImageFont
+    # Open the original image
+    image = Image.open(input_image)
+
+    # Create a copy of the image
+    watermarked = image.copy()
+
+    # Create a draw object
+    draw = ImageDraw.Draw(watermarked)
+
+    # Choose a font and size
+    font = ImageFont.truetype("arial.ttf", 36)
+
+    # Get image size
+    width, height = image.size
+
+    # Calculate text size
+    text_width, text_height = draw.textsize(watermark_text, font)
+
+    # Calculate text position (bottom right corner)
+    margin = 10
+    x = width - text_width - margin
+    y = height - text_height - margin
+
+    # Add the watermark text
+    draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, 128))
+
+    # Save the watermarked image
+    watermarked.save(output_image, "PNG")
 
 
 def show_summary(in_seq):
@@ -839,14 +1000,18 @@ def show_summary(in_seq):
             print(f"*** SUMMARY: {processing_count} files generated.")
 
 
+#### SECTION 9 - Main calling function:
+
 if __name__ == "__main__":
 
     # start_time = timeit.default_timer()  # start the program-level timer.
 
     do_clear_cli()
     sys_info()
-    # list_macos_volumes()
-    # open_env_file(ENV_FILE_PATH)
+    output_path = define_output_path("")
+
+    list_macos_volumes()
+    #open_env_file(ENV_FILE_PATH)
     # read_env_file(ENV_FILE_PATH)  # calls print_samples()
     # eject_drive(removable_drive_path)
 
@@ -854,13 +1019,13 @@ if __name__ == "__main__":
     while True:
         processing_count += 1
 
-        if USE_DALLE_API:  # Using text-to-image AI:
-            output_file_path = gen_dalle_file(processing_count,OUTPUT_PATH_PREFIX)
+        if USE_DALLE_API:  # Using text-to-image OpenAI DALL-E service:
+            gened_file_path = gen_dalle_file(processing_count,OUTPUT_PATH_PREFIX)
         else:              # Programmatic:
-            output_file_path = gen_one_file(processing_count,OUTPUT_PATH_PREFIX)
+            gened_file_path = gen_one_file(processing_count,OUTPUT_PATH_PREFIX)
 
         if OPEN_OUTPUT_FILE:
-            img = Image.open(output_file_path)
+            img = Image.open(gened_file_path)
             # Display the image:
             img.show()
 
@@ -884,10 +1049,19 @@ if __name__ == "__main__":
             # Alternative C: use UI automation pyautogui or pyobjc to control Preview app.
             # See https://stackoverflow.com/questions/16928021/mac-python-close-window
 
+
         if DELETE_OUTPUT_FILE:
-            os.remove(output_file_path)
+            os.remove(gened_file_path)
             if SHOW_DEBUG:
-                print(f"*** DEBUG: file {output_file_path} deleted.")
+                print(f"*** DEBUG: file {gened_file_path} deleted.")
+        else:
+            #mint_nft()
+               # Create a non-fungible token (NFT) using the ERC721 standard:
+            if ADD_WATERMARK:
+                add_watermark2png(gened_file_path, waternarked_file_path, watermark_text)
+            #read_watermark()
+            #password_protect_pdf()
+            #patron_sentiment_eval()
 
         if FILES_TO_GEN > 0:   # Not infinite loop:
             if processing_count >= FILES_TO_GEN:
@@ -896,6 +1070,7 @@ if __name__ == "__main__":
 
 
 #        except KeyboardInterrupt:
+#            # Gracefully handle manual interruption:
 #            print("*** Infinite loop manually terminated by user using control+C.")
 
     # END While loop.
