@@ -1,0 +1,115 @@
+mondrian-gen.scraps to mondrian-gen.py
+
+## Security with run specifications
+
+Program mondrian-gen.py makes use of the built-in macOS Keyring.
+It's the simplest approach to store and retrieve secrets securely.
+Apple takes care of backing up to iCloud.
+
+If you don't want to use that, you would have to consider:
+1. Format a removeable drive as APFS with a Volume name & device password.
+2. Define a file path to a removeable drive:
+ENV_KEY_VOLUME="USBCHIP1111/drive"
+ENV_KEY_FILE="secretkey.key"
+ENV_KEY_PATH="USBCHIP1111/drive/.env.enc.key"
+3. Generate symmetric key (with a randomly generated salt) on the removeable drive:
+envcloak generate-key-from-password --password "$ENV_PASSWORD" --output "$ENV_KEY_PATH"
+envcloak generate-key --output secretkey.key
+4. Backup "USBCHIP1111/drive/secretkey.key", password, salt to a secrets vault in case the chip is lost.
+5. the ".env.enc" file stays in the ENV_ENC_FILE_PATH="$HOME/.env.enc"
+6. Each session: Decrypt:
+envcloak decrypt --input "$ENV_ENC_FILE_PATH" --output "$ENV_FILE_PATH" --key-file "$ENV_KEY_PATH"
+
+
+## Mint NFT
+
+https://www.investopedia.com/how-to-create-an-nft-6362495
+
+One approach to mint is:
+```
+NFT: python3 -m pip install web3 eth_account solcx
+```
+However, as of this writing, solcx is stuck on Python 3.10.
+```
+from web3 import Web3
+from eth_account import Account
+from solcx import compile_standard, install_solc
+    # ERROR: Ignored the following versions that require a different python version: 6.0.0b1 Requires-Python >=3.7,<3.11; 6.0.0b2 Requires-Python >=3.7,<3.11; 6.0.0b3 Requires-Python >=3.7.2,<3.11; 6.0.0b4 Requires-Python >=3.7.2,<3.11
+    # ERROR: Could not find a version that satisfies the requirement solcx (from versions: none)
+    # ERROR: No matching distribution found for solcx
+```
+
+
+def mint_nft():
+    # Mint a non-fungible token (NFT) on Metamask Ethereum wallet using the OpenZeppelin library
+    # which simplifies the development process by implementing the ERC721 Metadata Schema
+    # smart contract defined at https://eips.ethereum.org/EIPS/eip-721
+    # Alchemy.com nodes-as-a-service
+    # like at https://www.freecodecamp.org/news/how-to-make-an-nft/
+    # See https://docs.alchemy.com/alchemy/tutorials/how-to-create-an-nft/how-to-mint-a-nft#step-4-configure-the-metadata-for-your-nft-using-ipfs
+    # The token created can be displayed and sold by a dApp per
+    # https://www.youtube.com/watch?v=M576WGiDBdQ
+    # See https://ethereum.org/en/developers/docs/intro-to-ethereum/
+    # Alt: https://xrpl.org/docs/tutorials/python/nfts/mint-and-burn-nfts
+    # To be like https://www.fastcompany.com/91214372/botto-ai-artwork-sothebys-auction
+
+    from web3 import Web3
+    from eth_account import Account
+    from solcx import compile_standard, install_solc
+
+    # Install Solidity compiler
+    install_solc("0.8.0")
+
+    # Compile the smart contract
+    compiled_sol = compile_standard({
+        "language": "Solidity",
+        "sources": {
+            "NFT.sol": {
+                "content": '''
+                    pragma solidity ^0.8.0;
+
+                    import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+                    import "@openzeppelin/contracts/utils/Counters.sol";
+
+                    contract MyNFT is ERC721 {
+                        using Counters for Counters.Counter;
+                        Counters.Counter private _tokenIds;
+
+                        constructor() ERC721("MyNFT", "MNFT") {}
+
+                        function createNFT(address recipient, string memory tokenURI) public returns (uint256) {
+                            _tokenIds.increment();
+                            uint256 newItemId = _tokenIds.current();
+                            _mint(recipient, newItemId);
+                            _setTokenURI(newItemId, tokenURI);
+                            return newItemId;
+                        }
+                    }
+                '''
+            }
+        },
+        "settings": {
+            "outputSelection": {
+                "*": {
+                    "*": ["abi", "metadata", "evm.bytecode", "evm.sourceMap"]
+                }
+            }
+        }
+    })
+
+    # Deploy the contract
+    w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/YOUR-PROJECT-ID'))
+    account = Account.from_key('YOUR-PRIVATE-KEY')
+    contract = w3.eth.contract(abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'],
+                            bytecode=compiled_sol['contracts']['NFT.sol']['MyNFT']['evm']['bytecode']['object'])
+
+    tx_hash = contract.constructor().transact({'from': account.address})
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    # Create an NFT
+    nft_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'])
+    tx_hash = nft_contract.functions.createNFT(account.address, 'https://example.com/nft/1').transact({'from': account.address})
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print("NFT created successfully!")
+
