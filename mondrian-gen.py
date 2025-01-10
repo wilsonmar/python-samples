@@ -12,14 +12,14 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 
 // SPDX-License-Identifier: MIT
 CURRENT STATUS: NOT WORKING for env file retrieve.
-git commit -m"v005 + API vals in Keyring :mondrian-gen.py"
+git commit -m"v007 + SHA256 hash :mondrian-gen.py"
 
 Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
 
 Tested on macOS 24.1.0 using Python 3.12.7 (main, Oct  1 2024, 02:05:46) [Clang 15.0.0 (clang-1500.3.9.4)] 
 flake8  E501 line too long, E222 multiple spaces after operator
 
-# Before running this:
+# Before running this program:
 1. Create a Secret Key for ChatGPT API calls at https://platform.openai.com/api-keys and 
 2. Open the Keyring Access.app. Click iCloud then Login. Click the add icon at the top.
 3. Fill in the Item Name "OpenAI", Account Name "johndoe", Password (the API key). Click Add.
@@ -34,14 +34,18 @@ python3 -m pip install envcloak keyring OpenAI pycairo python-dotenv Pillow psut
    * Downloading psutil-6.1.1-cp36-abi3-macosx_11_0_arm64.whl (248 kB)
    * shutil ???
    * Downloading tzlocal-5.2-py3-none-any.whl.metadata (7.8 kB)
-python3 -m pip install web3 eth_account solcx 
+python3 -m pip install hashlib
+   # FIXME: ERROR: Ignored the following yanked versions: 20081119
+   # ERROR: Could not find a version that satisfies the requirement hashlib (from versions: none)
+python3 -m pip install web3 eth_account
 5. Scan Python program using flake8, etc.
 6. Edit the program to define run parameters.
-7. Run this program:
+7. # USAGE: Run this program:
 chmod +x mondrian-gen.py
 ./mondrian-gen.py
-8. Lint: Pylint, Flake8, Xenon and Radon
-   within VSCode install Ruff (from Astral Software).
+8. Within VSCode install Ruff (from Astral Software), written in Rust
+   to lint Python code. 
+   Ruff replaces Flake8, Pylint, Xenon, Radon, Black, isort, pyupgrade, etc.
 
 TODO: Other tools to generate art:
 <a target="_blank" href="https://www.youtube.com/watch?v=Vgcr6VOwHf0">VIDEO</a>
@@ -81,6 +85,7 @@ import requests
 
 # import Pillow to convert SVG to PNG file format:
 from PIL import Image
+import hashlib
 
 import os
 import shutil
@@ -92,13 +97,6 @@ import time
 from timeit import default_timer as timer
 import tzlocal
 
-# To mint NFT: python3 -m pip install web3 eth_account solcx
-from web3 import Web3
-from eth_account import Account
-from solcx import compile_standard, install_solc
-    # ERROR: Ignored the following versions that require a different python version: 6.0.0b1 Requires-Python >=3.7,<3.11; 6.0.0b2 Requires-Python >=3.7,<3.11; 6.0.0b3 Requires-Python >=3.7.2,<3.11; 6.0.0b4 Requires-Python >=3.7.2,<3.11
-    # ERROR: Could not find a version that satisfies the requirement solcx (from versions: none)
-    # ERROR: No matching distribution found for solcx
 
 
 #### SECTION 2 - Global starter constants
@@ -156,6 +154,7 @@ SLEEP_SECONDS = 1.0  # between files created in a loop
 DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 ADD_WATERMARK = True  # watermark2png()
 watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+GEN_SHA256 = True
 MINT_NFT = True
 
 OPEN_OUTPUT_FILE = True
@@ -766,17 +765,18 @@ def draw_mondrian(grid, filename):
     surface.write_to_png(filename)
 
 
-def define_output_path(USER_FOLDER):
-    # from user preferences:
-    save_path_prefix=""
+def define_output_path():
 
-    if USER_FOLDER:  # blank inside, from user preferences:
-        OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + USER_FOLDER
-        print_trace("USER_FOLDER="+USER_FOLDER+" instead of Downloads")
-    else:
+    # SAVE_PATH = os.getcwd()  # cwd=current working directory.
+    save_path_prefix = os.path.expanduser("~")  # user home folder path
+
+    #if USER_FOLDER:  # blank inside, from user preferences:
+    #    OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + USER_FOLDER
+    #    print_trace("USER_FOLDER="+USER_FOLDER+" instead of default")
+    #else:
         # No prefix (mount) specified:
-        OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + "Downloads"
-        print_trace("OUTPUT_PATH_PREFIX="+OUTPUT_PATH_PREFIX)
+    OUTPUT_PATH_PREFIX = save_path_prefix + SLASH_CHAR + "Desktop"
+    print_trace("OUTPUT_PATH_PREFIX="+OUTPUT_PATH_PREFIX)
 
     # Check to make sure folder exists:
     if not os.path.isdir(OUTPUT_PATH_PREFIX):  # Confirmed a directory:
@@ -791,6 +791,7 @@ def define_output_path(USER_FOLDER):
 
 
 # def setup_logger(log_file=LOGGER_FILE_PATH, console_level=logging.INFO, file_level=logging.DEBUG):
+   # See https://docs.python.org/3/library/logging.html#module-logging
 # def log_event(logger, event_type, message, level='info'):
 
 
@@ -881,80 +882,6 @@ def gen_dalle_file(in_seq,path_prefix):
     return gened_file_path
 
 
-def mint_nft():
-    # Mint a non-fungible token (NFT) on Metamask Ethereum wallet using the OpenZeppelin library
-    # which simplifies the development process by implementing the ERC721 Metadata Schema
-    # smart contract defined at https://eips.ethereum.org/EIPS/eip-721
-    # Alchemy.com nodes-as-a-service
-    # like at https://www.freecodecamp.org/news/how-to-make-an-nft/
-    # See https://docs.alchemy.com/alchemy/tutorials/how-to-create-an-nft/how-to-mint-a-nft#step-4-configure-the-metadata-for-your-nft-using-ipfs
-    # The token created can be displayed and sold by a dApp per
-    # https://www.youtube.com/watch?v=M576WGiDBdQ
-    # See https://ethereum.org/en/developers/docs/intro-to-ethereum/
-    # Alt: https://xrpl.org/docs/tutorials/python/nfts/mint-and-burn-nfts
-    # To be like https://www.fastcompany.com/91214372/botto-ai-artwork-sothebys-auction
-
-    from web3 import Web3
-    from eth_account import Account
-    from solcx import compile_standard, install_solc
-
-    # Install Solidity compiler
-    install_solc("0.8.0")
-
-    # Compile the smart contract
-    compiled_sol = compile_standard({
-        "language": "Solidity",
-        "sources": {
-            "NFT.sol": {
-                "content": '''
-                    pragma solidity ^0.8.0;
-
-                    import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-                    import "@openzeppelin/contracts/utils/Counters.sol";
-
-                    contract MyNFT is ERC721 {
-                        using Counters for Counters.Counter;
-                        Counters.Counter private _tokenIds;
-
-                        constructor() ERC721("MyNFT", "MNFT") {}
-
-                        function createNFT(address recipient, string memory tokenURI) public returns (uint256) {
-                            _tokenIds.increment();
-                            uint256 newItemId = _tokenIds.current();
-                            _mint(recipient, newItemId);
-                            _setTokenURI(newItemId, tokenURI);
-                            return newItemId;
-                        }
-                    }
-                '''
-            }
-        },
-        "settings": {
-            "outputSelection": {
-                "*": {
-                    "*": ["abi", "metadata", "evm.bytecode", "evm.sourceMap"]
-                }
-            }
-        }
-    })
-
-    # Deploy the contract
-    w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/YOUR-PROJECT-ID'))
-    account = Account.from_key('YOUR-PRIVATE-KEY')
-    contract = w3.eth.contract(abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'],
-                            bytecode=compiled_sol['contracts']['NFT.sol']['MyNFT']['evm']['bytecode']['object'])
-
-    tx_hash = contract.constructor().transact({'from': account.address})
-    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-    # Create an NFT
-    nft_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=compiled_sol['contracts']['NFT.sol']['MyNFT']['abi'])
-    tx_hash = nft_contract.functions.createNFT(account.address, 'https://example.com/nft/1').transact({'from': account.address})
-    w3.eth.wait_for_transaction_receipt(tx_hash)
-
-    print("NFT created successfully!")
-
-
 def add_watermark2png(input_image, output_image, watermark_text):
     # See https://www.geeksforgeeks.org/python-pillow-creating-a-watermark/
     # Alt: cv2 (OpenCV), Filetools (China), pythonwatermark
@@ -991,6 +918,22 @@ def add_watermark2png(input_image, output_image, watermark_text):
     watermarked.save(output_image, "PNG")
 
 
+def hash_file_sha256(filename) -> str:
+    # A hash is a fixed length one way string from input data. Change of even one bit would change the hash.
+    # A hash cannot be converted back to the input data (unlike encryption).
+    # https://stackoverflow.com/questions/22058048/hashing-a-file-in-python
+
+    import hashlib
+    sha256_hash = hashlib.sha256()
+    # There are also md5(), sha224(), sha384(), sha512()
+    BUF_SIZE = 65536
+    with open(filename, "rb") as f: # read entire file as bytes
+        # Read and update hash string value in blocks of 64K:
+        for byte_block in iter(lambda: f.read(BUF_SIZE),b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+
 def show_summary(in_seq):
 
     if SHOW_SUMMARY_COUNTS:
@@ -1008,9 +951,9 @@ if __name__ == "__main__":
 
     do_clear_cli()
     sys_info()
-    output_path = define_output_path("")
+#    list_macos_volumes()
+    OUTPUT_PATH_PREFIX = define_output_path()
 
-    list_macos_volumes()
     #open_env_file(ENV_FILE_PATH)
     # read_env_file(ENV_FILE_PATH)  # calls print_samples()
     # eject_drive(removable_drive_path)
@@ -1029,6 +972,10 @@ if __name__ == "__main__":
             # Display the image:
             img.show()
 
+        if GEN_SHA256:
+            hash_str = hash_file_sha256(gened_file_path) # from step above
+            print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
+        exit()
         if CLOSE_OUTPUT_FILE:  # if FILES_TO_GEN == 0:   # Not infinite loop:
             # For running in kiosk mode where images appear and disappear:
             time.sleep(SLEEP_SECONDS)  # give user some time to appreciate the art.
