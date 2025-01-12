@@ -11,12 +11,12 @@ compare with the intuitive beauty of manually-created works, such as
 https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnum3-268x266_hceym9.png
 
 // SPDX-License-Identifier: MIT
-CURRENT STATUS: NOT WORKING for env file retrieve.
-git commit -m"v007 + SHA256 hash :mondrian-gen.py"
+CURRENT STATUS: WORKING but no env file retrieve.
+git commit -m"v009 + psutil hash :mondrian-gen.py"
 
 Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
 
-Tested on macOS 24.1.0 using Python 3.12.7 (main, Oct  1 2024, 02:05:46) [Clang 15.0.0 (clang-1500.3.9.4)] 
+Tested on macOS 24.1.0 using Python 3.12.8
 flake8  E501 line too long, E222 multiple spaces after operator
 
 # Before running this program:
@@ -86,6 +86,7 @@ import requests
 # import Pillow to convert SVG to PNG file format:
 from PIL import Image
 import hashlib
+import psutil
 
 import os
 import shutil
@@ -152,7 +153,7 @@ FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
 SLEEP_SECONDS = 1.0  # between files created in a loop
 
 DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
-ADD_WATERMARK = True  # watermark2png()
+ADD_WATERMARK = False  # watermark2png()
 watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
 GEN_SHA256 = True
 MINT_NFT = True
@@ -217,7 +218,6 @@ class bcolors:  # ANSI escape sequences:
     CWHITE = '\033[37m'
 
     RESET = '\033[0m'   # switch back to default color
-
 
 
 #### SECTION 6 - Utility functions:
@@ -327,9 +327,11 @@ def display_memory():
     print_verbose("memory used="+str(mem)+" MiB at "+local_datetime_stamp())
 
 
-def list_to_string(input_list):
-    # Using the join() method to concatenate list elements
-    return ', '.join(map(str, input_list))
+def display_disk_free():
+    import os, psutil  #  psutil-5.9.5
+    disk = psutil.disk_usage('/')
+    free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
+    print_verbose(f'disk space free={free_space_gb:.2f} GB at '+local_datetime_stamp())
 
 
 def get_file_timezone(file_path):
@@ -437,8 +439,6 @@ def sys_info():
     my_os_process = str(os.getpid())
     print_trace("my_os_process="+my_os_process)
 
-    display_memory()
-
         # or socket.gethostname()
     my_platform_node = platform.node()
     print_trace("my_platform_node="+my_platform_node)
@@ -488,12 +488,19 @@ def sys_info():
         print_fail("Python 3.6 or higher is required for this program. Please upgrade.")
         sys.exit(1)
 
-    venv_base_prefix = sys.base_prefix
-    venv_prefix = sys.prefix
-    if venv_base_prefix == venv_prefix:
-        print_trace("venv at " + venv_base_prefix)
+    #import sys
+    is_python_venv = (hasattr(sys, 'real_prefix') or
+        (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
+    if is_python_venv:
+        print_info("Running inside venv at "+os.environ.get('VIRTUAL_ENV'))
+        venv_base_prefix = sys.base_prefix
+        venv_prefix = sys.prefix
+        print_trace("venv_base_prefix=" + venv_base_prefix)
+        print_trace(" sys.base_prefix=" + sys.base_prefix)
     else:
-        print_fail("venv is different from venv_prefix "+venv_prefix)
+        print_error("Not running inside a virtual environment!")
+        exit()
+
 
     # print_trace("__name__="+__name__)  # = __main__
 
@@ -512,12 +519,52 @@ def sys_info():
     # for ip in ip_addresses: print(ip)
 
 
-#def disk_space
-    # TODO: Make this function for call before & after run:
-    #    disk_list = about_disk_space()
-    #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
-    #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
-        # left-to-right order of fields are re-arranged from the function's output.
+def list_macos_partitions():
+    """ List each partition (separate sections (logical division) of a physical drive, 
+    each of which can be formatted with its own file system and used independently.
+    """
+    # import psutil
+    partitions = psutil.disk_partitions(all=True)
+    #print_trace("partitions="+str(partitions)+"\n")
+    removable_drives = []
+    print_heading("Logical Disk Device Partitions (sdiskpart):\n"+
+        "/device        fstype  /mountpoint                 opts")
+    for partition in partitions:
+        # RESPONSE: sdiskpart(device='devfs', mountpoint='/dev', fstype='devfs', opts='rw,local,dontbrowse,multilabel')
+        # PROTIP: ljust(16) makes the string take up a fixed number of spaces
+        print(partition.device.ljust(15) +
+            partition.fstype.ljust(8) +
+            partition.mountpoint.ljust(28) +partition.opts)
+    return partitions
+
+
+def list_disk_space_by_device():
+    """ List each physical drive (storage device hardware), such as an internal hard disk drive (HDD) or solid-state drive (SSD)
+    """
+    print_heading("Logical Disk Device Partitions (sdiskpart):\n"+
+        "/mountpoint                 /device        fstype  opts (options)")
+    print("    Total size:   Used:       Free: ")
+    partitions = psutil.disk_partitions()
+    for partition in partitions:
+        print(partition.mountpoint.ljust(28) +
+            partition.device.ljust(15) +
+            partition.fstype.ljust(8) +
+            partition.opts)
+        if partition.mountpoint.startswith('/Volumes/'):
+            # Check if the volume is removable
+            cmd = f"diskutil info {partition.device}"
+            output = subprocess.check_output(cmd, shell=True).decode('utf-8')
+            if "Removable Media: Yes" in output:
+                removable_volumes.append(partition.mountpoint)
+        try:
+            usage = psutil.disk_usage(partition.mountpoint)
+            print("   "+f"{usage.total / (1024 * 1024 * 1024):.2f} GB".rjust(10) +
+                f"{usage.used / (1024 * 1024 * 1024):.2f} GB".rjust(12) +
+                f"{usage.free / (1024 * 1024 * 1024):.2f} GB".rjust(12) )
+        except PermissionError:
+            print_error("Permission denied to access usage information")
+
+        print()
 
 
 def list_macos_volumes():
@@ -545,6 +592,31 @@ def list_macos_volumes():
         volume_path = os.path.join(volumes_path, volume)
         if os.path.ismount(volume_path):
             print(f"- {volume}")
+
+
+
+def list_files_by_mountpoint():
+    """ List files within get all disk partitions
+    """
+    #import os
+    #import psutil
+    partitions = psutil.disk_partitions()
+    print("Listing first 5 files by mountpoint:")
+    for partition in partitions:
+        mountpoint = partition.mountpoint
+        print(f"\n{mountpoint}")
+        print("        Files:")
+        try:
+            # List files in the mountpoint
+            files = os.listdir(mountpoint)
+            for file in files[:5]:  # Limit to first 5 files for brevity
+                print(f"        - {file}")
+            if len(files) > 5:
+                print("        ...")
+        except PermissionError:
+            print("Permission denied to access this mountpoint")
+        except Exception as e:
+            print(f"Error: {str(e)}")
 
 
 def write_file_to_removable_drive(drive_path, file_name, content):
@@ -752,6 +824,7 @@ def mondrian_flood_fill(grid, x, y, old_color, new_color):
 def draw_mondrian(grid, filename):
     """Use the Cairo graphics library to render the grid as an image2.
     """
+    print_trace("draw filename="+filename)
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, WIDTH, HEIGHT)
     ctx = cairo.Context(surface)
 
@@ -819,7 +892,7 @@ def gen_one_file(in_seq,path_prefix):
     return gened_file_path
 
 
-def gen_dalle_file(in_seq,path_prefix):
+def gen_dalle_file(in_seq,path_prefix) -> str:
 
     # Pull OPENAI_API_KEY as password from macOS Keyring file (and other password manager):
     print("keyring_service_name="+keyring_service_name+" "+keyring_account_name)
@@ -867,6 +940,7 @@ def gen_dalle_file(in_seq,path_prefix):
     if response.status_code == 200:
         file_date_stamp = local_datetime_stamp()
         gened_file_path = path_prefix +SLASH_CHAR +PROGRAM_NAME+"-"+file_date_stamp +"-"+str(in_seq)+".png"
+        watermarked_file_path = path_prefix +SLASH_CHAR +PROGRAM_NAME+"-"+file_date_stamp +"-"+str(in_seq)+".png"
         if SHOW_DEBUG:
             print(f"*** DEBUG: gened_file_path = {gened_file_path}")
         with open(gened_file_path, 'wb') as file:
@@ -875,8 +949,11 @@ def gen_dalle_file(in_seq,path_prefix):
         file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
         if PRINT_OUTPUT_FILE_LOG:
             print(f"*** LOG: {gened_file_path},{file_bytes},{func_duration:.5f}")
+
+        file_bytes = get_file_size_on_disk(watermarked_file_path)  # type = number
+
     else:
-        print('*** ERROR: Failed to download file')
+        print_error('Download file fail with HTTP status '+response.status_code)
         exit()
 
     return gened_file_path
@@ -898,12 +975,12 @@ def add_watermark2png(input_image, output_image, watermark_text):
     draw = ImageDraw.Draw(watermarked)
 
     # Choose a font and size
-    font = ImageFont.truetype("arial.ttf", 36)
+    font = ImageFont.truetype("Arial.ttf", 36)
 
     # Get image size
     width, height = image.size
 
-    # Calculate text size
+    # Calculate text size FIXME: AttributeError: 'ImageDraw' object has no attribute 'textsize'
     text_width, text_height = draw.textsize(watermark_text, font)
 
     # Calculate text position (bottom right corner)
@@ -943,16 +1020,20 @@ def show_summary(in_seq):
             print(f"*** SUMMARY: {processing_count} files generated.")
 
 
+
 #### SECTION 9 - Main calling function:
 
 if __name__ == "__main__":
 
     # start_time = timeit.default_timer()  # start the program-level timer.
 
-    do_clear_cli()
     sys_info()
-#    list_macos_volumes()
+    display_disk_free()
+    list_disk_space_by_device()
+    display_memory()
+
     OUTPUT_PATH_PREFIX = define_output_path()
+    WATERMARKED_PATH_PREFIX = OUTPUT_PATH_PREFIX # + "-wm-"
 
     #open_env_file(ENV_FILE_PATH)
     # read_env_file(ENV_FILE_PATH)  # calls print_samples()
@@ -975,7 +1056,7 @@ if __name__ == "__main__":
         if GEN_SHA256:
             hash_str = hash_file_sha256(gened_file_path) # from step above
             print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
-        exit()
+
         if CLOSE_OUTPUT_FILE:  # if FILES_TO_GEN == 0:   # Not infinite loop:
             # For running in kiosk mode where images appear and disappear:
             time.sleep(SLEEP_SECONDS)  # give user some time to appreciate the art.
@@ -996,18 +1077,21 @@ if __name__ == "__main__":
             # Alternative C: use UI automation pyautogui or pyobjc to control Preview app.
             # See https://stackoverflow.com/questions/16928021/mac-python-close-window
 
-
         if DELETE_OUTPUT_FILE:
             os.remove(gened_file_path)
-            if SHOW_DEBUG:
-                print(f"*** DEBUG: file {gened_file_path} deleted.")
+            print_info(f"File {gened_file_path} deleted.")
         else:
-            #mint_nft()
-               # Create a non-fungible token (NFT) using the ERC721 standard:
             if ADD_WATERMARK:
-                add_watermark2png(gened_file_path, waternarked_file_path, watermark_text)
-            #read_watermark()
-            #password_protect_pdf()
+                print_info(f"File {WATERMARKED_PATH_PREFIX}")
+                if USE_DALLE_API:  # Using text-to-image OpenAI DALL-E service:
+                    watermarked_file_path = gen_dalle_file(processing_count,WATERMARKED_PATH_PREFIX)
+                else:              # Programmatic:
+                    watermarked_file_path = gen_one_file(processing_count,WATERMARKED_PATH_PREFIX)
+                add_watermark2png(gened_file_path, watermarked_file_path, watermark_text)
+            #TODO: read_watermark()
+            #TODO: password_protect_pdf()
+            #TODO: mint_nft()
+               # Create a non-fungible token (NFT) on a blockchain using the ERC721 standard
             #patron_sentiment_eval()
 
         if FILES_TO_GEN > 0:   # Not infinite loop:
