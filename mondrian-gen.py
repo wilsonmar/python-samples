@@ -12,7 +12,7 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 
 // SPDX-License-Identifier: MIT
 CURRENT STATUS: WORKING but no env file retrieve.
-git commit -m"v009 + psutil hash :mondrian-gen.py"
+git commit -m"v011 + set args :mondrian-gen.py"
 
 Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
 
@@ -61,7 +61,7 @@ TODO: Other tools to generate art:
 
 """
 
-#### SECTION 1 - imports
+#### SECTION 1 - imports of external modules
 
 # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
 import cairo
@@ -108,10 +108,11 @@ PROGRAM_NAME = Path(__file__).stem
     # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
     # Instead of os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
-if os.name == "nt":  # Windows operating system
+if os.name == "nt":  # Windows operating system:
     SLASH_CHAR = "\\"
     # if platform.system() == "Windows":
     print(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
+    print("*** WARNING: This program has not been tested on Windows yet.")
 else:
     SLASH_CHAR = "/"
 
@@ -121,27 +122,28 @@ else:
 # Obtain variables (API key, etc.) from .env file:
 
 # Console display option defaults:
+# User run preferences:
+# In SECTION 6 - Utility functions (which can be in a python module)
 clear_cli = True
 SHOW_DEBUG = True
-show_info = True
-show_trace = True
-show_fail = True
-show_dates_in_logs = False
-
-show_sys_info = True
-show_heading = True
 show_verbose = True
+show_heading = True
+show_info = True
+show_trace = False
+show_fail = True
 
-# User run preferences:
+show_sys_info = False
+PRINT_OUTPUT_FILE_LOG = False
+show_dates_in_logs = False
+DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
+
+USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
 keyring_service_name = "OpenAI"
 keyring_account_name = "johndoe"
-USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
 
 # For programmatic creation code:
 WIDTH = 500
 HEIGHT = 500
-   # TODO: Vary size (ratio) of file to generate locally:
-WIDTHxHEIGHT = str(WIDTH)+"x"+str(HEIGHT)  # for "500x500"
 # For ref. by generate_mondrian(), mondrian_flood_fill(), draw_mondrian()
 TILE_SIZE = 10
 # TODO: Vary borderWidth = 8; minDistanceBetweenLines = 50;
@@ -152,39 +154,101 @@ GRID_HEIGHT = HEIGHT // TILE_SIZE
 FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
 SLEEP_SECONDS = 1.0  # between files created in a loop
 
-DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 ADD_WATERMARK = False  # watermark2png()
 watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
-GEN_SHA256 = True
-MINT_NFT = True
+GEN_SHA256 = False
+MINT_NFT = False
 
-OPEN_OUTPUT_FILE = True
-CLOSE_OUTPUT_FILE = True
-PRINT_OUTPUT_FILE_LOG = True
-PRINT_OUTPUT_COUNT = True
-
+SHOW_OUTPUT_FILE = False
+KEEP_SHOWING = False
 DELETE_OUTPUT_FILE = False  # If True, recover files from Trash
-SHOW_SUMMARY_COUNTS = True
+SHOW_SUMMARY_COUNTS = False
 
 
 #### SECTION 4 - parse_args() to override defaults with run-time parms:
 
 import argparse
 parser = argparse.ArgumentParser(description="Mondrian Generator")
+parser.add_argument("-pf", "--parmspath", help="File Path string to env specs")
 parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
 parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
-parser.add_argument("-f", "--parmspath", help="Path to env specs")
-parser.add_argument("-l", "--log", help="Log to external file")
+
+parser.add_argument("-si", "--si", action="store_true", help="Show System Info")
+parser.add_argument("-l", "--log", action="store_true", help="Log to external file")
+parser.add_argument("-z", "--utc", action="store_true", help="Show Dates in UTC/GMT=Zulu timezone")
+
+parser.add_argument("-de", "--dalle", action="store_true", help="Gen Dall-E png file")
+parser.add_argument("-fg", "--filesgen", help="Files to generate integer number")
+parser.add_argument("-w", "--width", help="Width of output number (500)")
+parser.add_argument("-he", "--height", help="Height of output number (500)")
+parser.add_argument("-nft", "--nft", action="store_true", help="Mint NFT")
+
+parser.add_argument("-so", "--showout", action="store_true", help="Show output file")
+parser.add_argument("-ks", "--keepshow", action="store_true", help="Keep Showing output file (not kill preview)")
+parser.add_argument("-do", "--delout", action="store_true", help="Delete output file")
+parser.add_argument("-256", "--hash", action="store_true", help="Hash SHA256")
+
+parser.add_argument("-s", "--sleepsecs", help="Sleep seconds number")
 parser.add_argument("-m", "--summary", action="store_true", help="Show summary")
-parser.add_argument("-s", "--sleepsecs", action="store_true", help="Sleep seconds average")
-# -h = --help (list arguments)
+# Default -h = --help (list arguments)
 args = parser.parse_args()
 
 # def parse_args():
+if args.parmspath:     # -pf
+    SHOW_PARMSPATH = args.parmspath
+if args.verbose:       # -v
+    SHOW_VERBOSE = True
+    SHOW_DOWNLOAD_PROGRESS = True
+if args.debug:
+    show_trace = True
+if args.si:
+    show_sys_info = True
+
+if args.utc:           # -z = # Dates in UTC/GMT=Zulu timezone
+    DATE_OUT_Z = True  # save files with Z time (in UTC time zone now) instead of local time.
+
+if args.dalle:         # -de ="Gen Dall-E png file")
+    USE_DALLE_API = True  # if False, use programmatic Python. True = use DELL-E
+if args.filesgen:
+    FILES_TO_GEN = args.filesgen     # 0 = Infinite loop while in kiosk mode.
+# USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
+if args.width:  # Width of output number (500)"
+    WIDTH = args.width
+if args.height:  # Height of output number (500)"
+    HEIGHT = args.height
+
+if args.hash:
+    GEN_SHA256 = True
+if args.nft:
+    MINT_NFT = True
+
+    #ADD_WATERMARK = True  # watermark2png()
+    #watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+
+if args.showout:
+    SHOW_OUTPUT_FILE = True
+if args.keepshow:
+    KEEP_SHOWING = False
+
+if args.hash:  # "-256" ="Hash SHA256"
+    GEN_SHA256 = True
+if args.delout:  # Delete output file
+    DELETE_OUTPUT_FILE = True   # If True, recover files from Trash
+
+if args.log:     # -l
+    PRINT_OUTPUT_FILE_LOG = True
+
+if args.sleepsecs:     # -s
+    SLEEP_SECONDS = args.sleepsecs  # between files created in a loop
+if args.summary:
+    SHOW_SUMMARY_COUNTS = True
 
 
 
 #### SECTION 5 - Static Global working constants:
+
+# TODO: Vary size (ratio) of file to generate locally:
+WIDTHxHEIGHT = str(WIDTH)+"x"+str(HEIGHT)  # for "500x500"
 
 # The pallette of primary RBG colors:
 # COLORS = [(1, 1, 1), (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1)]
@@ -220,7 +284,8 @@ class bcolors:  # ANSI escape sequences:
     RESET = '\033[0m'   # switch back to default color
 
 
-#### SECTION 6 - Utility functions:
+#### SECTION 6 - Utility functions (which can be in a python module)
+
 
 def get_time() -> str:
     """ Generate the current local datetime. """
@@ -517,6 +582,10 @@ def sys_info():
     ip_addresses_str = ', '.join(map(str, ip_addresses_list))
     print_trace("hostname="+hostname+" ip_addresses="+ip_addresses_str)
     # for ip in ip_addresses: print(ip)
+
+    display_disk_free()
+    list_disk_space_by_device()
+    display_memory()
 
 
 def list_macos_partitions():
@@ -1028,9 +1097,6 @@ if __name__ == "__main__":
     # start_time = timeit.default_timer()  # start the program-level timer.
 
     sys_info()
-    display_disk_free()
-    list_disk_space_by_device()
-    display_memory()
 
     OUTPUT_PATH_PREFIX = define_output_path()
     WATERMARKED_PATH_PREFIX = OUTPUT_PATH_PREFIX # + "-wm-"
@@ -1048,7 +1114,7 @@ if __name__ == "__main__":
         else:              # Programmatic:
             gened_file_path = gen_one_file(processing_count,OUTPUT_PATH_PREFIX)
 
-        if OPEN_OUTPUT_FILE:
+        if SHOW_OUTPUT_FILE:
             img = Image.open(gened_file_path)
             # Display the image:
             img.show()
@@ -1057,7 +1123,7 @@ if __name__ == "__main__":
             hash_str = hash_file_sha256(gened_file_path) # from step above
             print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
 
-        if CLOSE_OUTPUT_FILE:  # if FILES_TO_GEN == 0:   # Not infinite loop:
+        if KEEP_SHOWING:  # if FILES_TO_GEN == 0:   # Not infinite loop:
             # For running in kiosk mode where images appear and disappear:
             time.sleep(SLEEP_SECONDS)  # give user some time to appreciate the art.
 
