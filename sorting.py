@@ -146,19 +146,16 @@ if __name__ == "__main__":
     my_list = [1, 9, 5, 2, 1, 8, 6, 6, 3, 4, 10, 7]
     # Output: [1, 1, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10]
     print("Unsorted list: "+str(my_list))
-
     sorted_list = quick_sort(my_list)
-    print("Quick sort:    "+ str(sorted_list))
+    print("  Sorted list: "+str(sorted_list) )
     elap_time_quick_sort = stop_time_quick_sort - strt_time_quick_sort
-    print(f"    elap_time:  {elap_time_quick_sort}")
+    print(f"Quick sort elap_time:   {elap_time_quick_sort}")
 
     sorted_list = bubble_sort(my_list)
-    print("Bubble sort:   "+str(sorted_list))
     elap_time_bubble_sort = stop_time_bubble_sort - strt_time_bubble_sort
-    print(f"    elap_time:  {elap_time_bubble_sort}")
+    print(f"Bubble sort elap_time:  {elap_time_bubble_sort}")
 
     sorted_list = merge_sort(my_list)
-    print("Merge sort:    "+str(sorted_list))
     elap_time_merge_sort = stop_time_merge_sort - strt_time_merge_sort
-    print(f"    elap_time:  {elap_time_merge_sort}")
+    print(f"Merge sort elap_time:   {elap_time_merge_sort}")
 
