@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-gas "v016 + weathermaps dashboard :openweather.py"
 STATUS: working
+git commit -m "v017 + import os :openweather.py"
+
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
 REST API calls to openweathermp.org. Response includes
@@ -42,7 +43,6 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 * weather.gov (free)
 * sunriseandsunset.io (free)
 
-
 """
 # STEP 1 = Setup. Before running this program: Installing Required Libraries & Importing Required Libraries
 # Buikt-in: import os
@@ -57,6 +57,7 @@ import pathlib
 import urllib.parse
 import requests
 import math
+import os
 
 # Based on: conda install -c conda-forge load_dotenv
 from dotenv import load_dotenv
