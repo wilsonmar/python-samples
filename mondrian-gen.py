@@ -13,7 +13,7 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 // SPDX-License-Identifier: MIT
 CURRENT STATUS: WORKING but no env file retrieve.
 
-git commit -m"v012 + gen_qrcode :mondrian-gen.py"
+git commit -m"v014 + parms fix :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
 flake8  E501 line too long, E222 multiple spaces after operator
@@ -72,6 +72,8 @@ import datetime as dt
 std_strt_datetimestamp = dt.datetime.now()
 
 # Standard Python library modules (no need to pip install):
+import argparse
+from argparse import ArgumentParser
 import hashlib
 import io
 import os
@@ -112,7 +114,7 @@ import google.generativeai as genai
 import keyring
 from openai import OpenAI
 # import Pillow to convert SVG to PNG file format:
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 import psutil
 import pytz  # for time zone handling
 import qrcode
@@ -169,13 +171,14 @@ pgm_strt_local_timestamp = time.localtime()
 # start_time = timeit.default_timer()  # start the program-level timer.
 
 
-#### SECTION 4 - default (hard-coded) run control variables that control program flow.
+#### SECTION 4 - TASK: Customize hard-coded values that control program flow.
 
 # These will be overridden by variables (API key, etc.) within .env file.
 
 def set_hard_coded_defaults() -> None:
-    global clear_cli
-    clear_cli = True
+
+    global CLEAR_CLI
+    CLEAR_CLI = True
     
     global show_todo
     show_todo = True
@@ -198,8 +201,6 @@ def set_hard_coded_defaults() -> None:
     global DATE_OUT_Z
     DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
-    global SHOW_SUMMARY_COUNTS
-    SHOW_SUMMARY_COUNTS = True
     global run_quiet
     run_quiet = False  # suppress show_heading, show_info, show_warning, show_error, show_fail
 
@@ -212,24 +213,6 @@ def set_hard_coded_defaults() -> None:
     show_sys_info = False
     global show_secrets
     show_secrets = False
-
-    global USE_GEMINI_API
-    USE_GEMINI_API = False
-
-    global USE_QR_CODE
-    USE_QR_CODE = False
-
-    global USE_NFT
-    USE_NFT = False
-
-    global USE_QISKIT
-    USE_QISKIT = False
-
-    global USE_IPFS
-    USE_IPFS = False
-
-    global USE_GOOGLE_GENERATIVE_AI
-    USE_GOOGLE_GENERATIVE_AI = False
 
     global DRIVE_PATH
     DRIVE_PATH = "NODE NAME"  # as in /Volumes/YourDriveName - the default from manufacturing.
@@ -246,6 +229,18 @@ def set_hard_coded_defaults() -> None:
     global dalle_keyring_account_name
     dalle_keyring_account_name = "johndoe"
 
+    # For creation of image files:
+    # Within Gemini, smaller images are scaled up to 768x768 and max. resolution is 3072x3072.
+    global WIDTH
+    WIDTH = 500
+    global HEIGHT
+    HEIGHT = 500
+    # For ref. by generate_mondrian(), mondrian_flood_fill(), draw_mondrian()
+    global TILE_SIZE
+    TILE_SIZE = 10
+    # TODO: Vary borderWidth = 8; minDistanceBetweenLines = 50;
+    # See https://github.com/unsettledgames/mondrian-generator/blob/master/mondri an_generator.pde
+
     # For creation of text : See https://www.youtube.com/watch?v=CaxPa1FuHx4 by Aaron Dunn.
     global USE_OPENAI
     USE_OPENAI = False  # if False, use programmatic Python. True = use OpenAI
@@ -255,7 +250,11 @@ def set_hard_coded_defaults() -> None:
     openai_keyring_account_name = "johndoe"
 
     # For creation of text : See https://www.youtube.com/watch?v=CaxPa1FuHx4 by Aaron Dunn.
+    global USE_GEMINI_API
     USE_GEMINI_API = False # Don't use unless requested by -dg parameter.
+    global USE_GOOGLE_GENERATIVE_AI
+    USE_GOOGLE_GENERATIVE_AI = False
+
     global gemini_keyring_service_name
     gemini_keyring_service_name = "Gemini5044"
     global gemini_keyring_account_name
@@ -280,7 +279,6 @@ def set_hard_coded_defaults() -> None:
         "max_output_tokens": 8192,
         "response_mime_type": "text/plain",
     }
-
     # Based on https://www.youtube.com/watch?v=ABCqfaTjNd4
     # "Your task is to explain science in a way that teenagers can understand."
     global gemini_system_prompt
@@ -295,24 +293,58 @@ def set_hard_coded_defaults() -> None:
     target_experience + " experience." + \
     "Suggest ways that these concepts can be related to the real world with observations and experiments."
 
-    # For creation of image files:
-    # Within Gemini, smaller images are scaled up to 768x768 and max. resolution is 3072x3072.
-    global WIDTH
-    WIDTH = 500
-    global HEIGHT
-    HEIGHT = 500
-    # For ref. by generate_mondrian(), mondrian_flood_fill(), draw_mondrian()
-    global TILE_SIZE
-    TILE_SIZE = 10
-    # TODO: Vary borderWidth = 8; minDistanceBetweenLines = 50;
-    # See https://github.com/unsettledgames/mondrian-generator/blob/master/mondri an_generator.pde
+    ### Processing controls:
 
+    global FILES_TO_GEN
+    FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
+    
+    global UPSCALE_IMAGE_FILE
+    UPSCALE_IMAGE_FILE = False
+
+    global ENCRYPT_FILE
+    ENCRYPT_FILE = False
+
+    global GEN_SHA256
+    GEN_SHA256 = False
+
+    global ENCRYPTION_KEY
+    ENCRYPTION_KEY = None
+
+    global USE_QISKIT  # for Quantum resistant encryption
+    USE_QISKIT = False
+
+    global GEN_NFT
+    GEN_NFT = False
+
+    global ADD_WATERMARK
+    ADD_WATERMARK = False  # watermark2png()
+    global WATERMARK_TEXT
+    WATERMARK_TEXT = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+    # Copyright issues: In the United States, only works created by humans can be copyrighted.
+    
+    global GEN_IPFS
+    GEN_IPFS = False
     global UPLOAD_TO_QUICKNODE
     UPLOAD_TO_QUICKNODE = False
     global quicknode_keyring_service_name
     quicknode_keyring_service_name = "QuickNode"
     global quicknode_keyring_account_name
     quicknode_keyring_account_name = "johndoe"
+
+    global MINT_NFT
+    MINT_NFT = False
+    global BLOCKCHAIN_NAME
+    BLOCKCHAIN_NAME = "Ethereum"
+    global NFT_MARKETPLACE
+    NFT_MARKETPLACE = "Opensea"
+    # global NFT_ACCOUNT_EMAIL   # from keyring
+    # Email from .env file loaded by open_env_file()
+
+    global GEN_QR_CODE
+    GEN_QR_CODE = False
+
+
+    ### Output controls:
 
     global cyphertext_file_path
     cyphertext_file_path = "path/to/your/file ???"
@@ -326,33 +358,8 @@ def set_hard_coded_defaults() -> None:
     global encrypted_file_path
     encrypted_file_path='your_file.txt'
 
-    global FILES_TO_GEN
-    FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
-    
-    global SLEEP_SECONDS
-    SLEEP_SECONDS = 1.0  # between files created in a loop
-
-    global ADD_WATERMARK
-    ADD_WATERMARK = False  # watermark2png()
-    
-    global WATERMARK_TEXT
-    watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
-    # Copyright issues: In the United States, only works created by humans can be copyrighted.
-    
-    global ENCRYPT_FILE
-    ENCRYPT_FILE = False
-
     global DECRYPT_FILE
     DECRYPT_FILE = False
-
-    global GEN_SHA256
-    GEN_SHA256 = False
-
-    global MINT_NFT
-    MINT_NFT = False
-
-    global GEN_QR_CODE
-    GEN_QR_CODE = False
 
     global SHOW_OUTPUT_FILE
     SHOW_OUTPUT_FILE = False
@@ -363,14 +370,24 @@ def set_hard_coded_defaults() -> None:
     global DELETE_OUTPUT_FILE
     DELETE_OUTPUT_FILE = False  # If True, recover files from Trash
 
+    global SHOW_SUMMARY_COUNTS
+    SHOW_SUMMARY_COUNTS = True
+
+    global SLEEP_SECONDS
+    SLEEP_SECONDS = 1.0  # between art created in a loop
+
     return
 
 
 #### SECTION 8 - Read custom command line arguments
 
 def read_cmd_args() -> None:
-    import argparse
-    parser = argparse.ArgumentParser(description="Mondrian Generator")
+    """Read command line arguments and set global variables.
+    See https://realpython.com/command-line-interfaces-python-argparse/
+    """
+    #import argparse
+    #from argparse import ArgumentParser
+    parser = argparse.ArgumentParser(allow_abbrev=True,description="Mondrian Generator")
     parser.add_argument("-pf", "--parmspath", help="File Path string to env specs")
     parser.add_argument("-q", "--quiet", action="store_true", help="Run without output")
     parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
@@ -395,100 +412,136 @@ def read_cmd_args() -> None:
     parser.add_argument("-so", "--showout", action="store_true", help="Show output file")
     parser.add_argument("-ks", "--keepshow", action="store_true", help="Keep Showing output file (not kill preview)")
 
-    parser.add_argument("-wm", "--watermark", action="store_true", help="Insert Watermark in png file")
+    parser.add_argument("-wm", "--watermark", help="Insert Watermark textin png file")
     parser.add_argument("-e", "--encrypt", action="store_true", help="Encrypt file")
     parser.add_argument("-key", "--key", help="Encryption key")
+                       # -key --key "J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM="
     parser.add_argument("-256", "--hash", action="store_true", help="Gen SHA256 Hash from output file contents")
     # See https://bomonike.github.io/nft for explanation:
     #parser.add_argument("-ipfs", "--ipfs", action="store_true", help="Gen. IPFS CID")
     parser.add_argument("-qn", "--quicknode", action="store_true", help="Gen. IPFS CID in QuickNode")
 
     parser.add_argument("-nft", "--nft", action="store_true", help="Mint NFT")
-    parser.add_argument("-qr", "--genqrcode", action="store_true", help="Gen QR Code to each URL")
+    parser.add_argument("-qr", "--genqr", action="store_true", help="Gen QR Code image file to each URL")
 
     parser.add_argument("-s", "--sleepsecs", help="Sleep seconds number")
     parser.add_argument("-m", "--summary", action="store_true", help="Show summary")
     # Default -h = --help (list arguments)
-    args = parser.parse_args()
 
+    args = parser.parse_args()
+    
     #### SECTION 9 - Override defaults and .env file with run-time parms:
 
     if args.parmspath:     # -pf
+        global SHOW_PARMSPATH
         SHOW_PARMSPATH = args.parmspath
     if args.quiet:         # -quiet
+        global show_heading
         show_heading = False
+        global show_info
         show_info = False
+        global show_warning
         show_warning = False
-        show_error = False
+        global show_error
+        global show_fail
         show_fail = False
+        global show_summary
         show_summary = False
-        PRINT_OUTPUT_FILE_LOG = False
     if args.showdates:     # -dt = "--showdates", action="store_true", help="Show dates in logs")
+        global show_dates_in_logs
         show_dates_in_logs = True
 
     if args.verbose:       # -v
+        global show_verbose
         show_verbose = True
+        global SHOW_DOWNLOAD_PROGRESS
         SHOW_DOWNLOAD_PROGRESS = True
     if args.trace:
+        global show_trace
         show_trace = True
-    if args.si:  # -si = sys_info()
+    if args.si:            # -si => used by sys_info()
+        global show_sys_info
         show_sys_info = True
-    if args.utc:           # -z = # Dates in UTC/GMT=Zulu timezone
+    if args.utc:            # -z = # Dates in UTC/GMT=Zulu timezone
+        global DATE_OUT_Z
         DATE_OUT_Z = True  # save files with Z time (in UTC time zone now) instead of local time.
 
-    if args.drivepath:     # -d "//Volumes/DriveX" # (USB removable drive without the /Volumes/ prefix)
-        DRIVE_PATH = args.drivepath
-    if args.folder:        # -f "Downloads" (overwrites default)
-        OUTPUT_FOLDER = args.folder
-
-    if args.gemini:         # -ge ="Gemini API")
-        USE_GEMINI_API = True
-    if args.dalle:         # -de ="Gen Dall-E png file")
+    if args.dalle:          # -de ="Gen Dall-E png file"
+        global USE_DALLE_API
         USE_DALLE_API = True  # if False, use programmatic Python. True = use DELL-E
+      # USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
+    if args.gemini:         # -ge ="Google Gemini API") see https://bomonike.github.io/google-ai
+        global USE_GEMINI_API
+        USE_GEMINI_API = True
+
+    if args.folder:         # -f "Downloads" (overwrites default)
+        global OUTPUT_FOLDER
+        OUTPUT_FOLDER = args.folder
+    if args.drivepath:      # -d "//Volumes/DriveX" # (USB removable drive without the /Volumes/ prefix)
+        global DRIVE_PATH
+        DRIVE_PATH = args.drivepath
+
     if args.filesgen:
+        global FILES_TO_GEN
         FILES_TO_GEN = args.filesgen     # 0 = Infinite loop while in kiosk mode.
-    # USE_DALLE_API = False  # if False, use programmatic Python. True = use DELL-E
-    if args.width:  # Width of output number (500)"
+    if args.width:          # Width of output number (eg 500)"
         global WIDTH
         WIDTH = args.width
-        print("Width="+str(WIDTH))
-    if args.height:  # Height of output number (500)"
+
+    if args.height:         # Height of output number (eg 500)"
         global HEIGHT
         HEIGHT = args.height
 
     if args.delout:  # Delete output file
+        global DELETE_OUTPUT_FILE
         DELETE_OUTPUT_FILE = True   # If True, recover files from Trash
 
     if args.showout:
+        global SHOW_OUTPUT_FILE
         SHOW_OUTPUT_FILE = True
     if args.keepshow:
+        global KEEP_SHOWING
         KEEP_SHOWING = False
 
     if args.watermark:
-        ADD_WATERMARK = False  # watermark2png()
-        #watermark_text = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+        global ADD_WATERMARK
+        ADD_WATERMARK = True   # used by watermark2png()
+        WATERMARK_TEXT = args.watermark  # used by watermark2png()
+             # "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
     if args.encrypt:
+        global ENCRYPT_FILE
         ENCRYPT_FILE = True
-    if args.key:
-        global encryption_key
-        encryption_key = args.key
+    if args.key:               # -key --key "J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM="
+        global ENCRYPTION_KEY
+        ENCRYPTION_KEY = args.key
 
-    if args.hash:  # "-256" ="Hash SHA256"
+    if args.hash:              # "-256" ="Hash SHA256"
+        global GEN_QR_CODE
         GEN_SHA256 = True
     if args.quicknode:
+        global UPLOAD_TO_QUICKNODE
         UPLOAD_TO_QUICKNODE = True
-    if args.nft:
+    if args.nft:               # -nft --nft
+        global MINT_NFT
         MINT_NFT = True
-    if args.genqrcode:
+    if args.genqr:             # -qr  --genqr Gen QR code image file from URL
+        global GEN_QR_CODE
         GEN_QR_CODE = True
 
-    if args.log:     # -l
+    if args.log:               # -l
+        global PRINT_OUTPUT_FILE_LOG
         PRINT_OUTPUT_FILE_LOG = True
+        global LOGGER_FILE_PATH
         LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
+        global LOGGER_NAME
         LOGGER_NAME = os.path.basename(__file__)  # program script name.py
 
-    if args.sleepsecs:     # -s
+    if args.sleepsecs:          # -s
+        global SLEEP_SECONDS
         SLEEP_SECONDS = args.sleepsecs  # between files created in a loop
+
+    return
+
 
     #### SECTION 10 - Set Static Global working constants:
 
@@ -502,12 +555,15 @@ def calc_env_vars():
 
     global WIDTHxHEIGHT
     WIDTHxHEIGHT = str(WIDTH)+"x"+str(HEIGHT)  # for "500x500"
-    # TODO: Vary size (ratio) of file to generate locally:
+
+    # TODO: For art: vary size (ratio) of file to generate locally
 
     return
 
 
 #### SECTION 7 - printing utility globals and functions (used by other functions):
+
+# all global:
 
 # The pallette of primary RBG colors:
 # COLORS = [(1, 1, 1), (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1)]
@@ -604,7 +660,7 @@ def print_trace(text_in):  # displayed as each object is created in pgm:
             print(bcolors.TRACE, '***', f'{text_in}', bcolors.RESET)
 
 def do_clear_cli():
-    if clear_cli:
+    if CLEAR_CLI:
         import os
         # Make a OS CLI command:
         lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
@@ -730,7 +786,8 @@ def get_time() -> str:
 
 
 def local_datetime_stamp():
-    """Assemble date stamp (with a time zone offset)
+    """Assemble from OS clock date stamp (with a time zone offset)
+    using local time zone offset above.
     """
     local_time = time.localtime()
     TZ_OFFSET = time.strftime("%z", local_time)
@@ -744,7 +801,7 @@ def local_datetime_stamp():
         # Add using local time zone offset:
         now = dt.datetime.now()
         date_stamp = now.strftime("%Y%m%dT%H%M%S")+TZ_OFFSET
-    print_trace("date_stamp="+date_stamp)
+
     return date_stamp
 
 
@@ -1119,7 +1176,7 @@ def define_output_path(SAVE_PATH) -> str:
             os.mkdirs(OUTPUT_PATH_PREFIX)
         except FileExistsError:
             print_fail(f'FileExistsError creating {OUTPUT_PATH_PREFIX}. Exiting.')
-            exit()
+            exit(9)
 
     return OUTPUT_PATH_PREFIX
 
@@ -1167,10 +1224,10 @@ def encrypt_symmetrically(source_file_path, cyphertext_file_path) -> str:
     # from cryptography.fernet import Fernet
     
     # Generate a 32-byte random encryption key like J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM=
-    if not encryption_key:
-        encryption_key = Fernet.generate_key()
+    if not ENCRYPTION_KEY:
+        ENCRYPTION_KEY = Fernet.generate_key()
     # Create a Fernet object instance from the encryption key:
-    fernet_obj = Fernet(encryption_key)
+    fernet_obj = Fernet(ENCRYPTION_KEY)
 
     # Read file contents:
     with open(source_file_path, 'rb') as file:
@@ -1370,7 +1427,7 @@ def gen_dalle_file(in_seq,path_prefix) -> str:
             print(f"*** LOG: {watermarked_file_path},{file_bytes},{func_duration:.5f}")
     else:
         print_error('Download file fail with HTTP status '+response.status_code)
-        exit()
+        return None
 
     return gened_file_path
 
@@ -1410,12 +1467,12 @@ def gen_gemini_text(prompt_in) -> str:
     return response.text
 
 
-def add_watermark2png(input_image, output_image, watermark_text):
+def add_watermark2png(input_image, output_image, watermark_text) -> None:
     # See https://www.geeksforgeeks.org/python-pillow-creating-a-watermark/
     # Alt: cv2 (OpenCV), Filetools (China), pythonwatermark
          # see https://www.youtube.com/watch?v=Yu8z0Lg53zk
 
-    from PIL import Image, ImageDraw, ImageFont
+    # from PIL import Image, ImageDraw, ImageFont
     # Open the original image
     image = Image.open(input_image)
 
@@ -1445,6 +1502,20 @@ def add_watermark2png(input_image, output_image, watermark_text):
     # Save the watermarked image
     watermarked.save(output_image, "PNG")
 
+    return
+
+
+def mint_nft(file_path_in, blockchain_name, file_path_out):
+    # TODO: mint_nft - see https://bomonike.github.io/nft
+    # marketplace = "OpenSea", "MagicEden", "Rarible", "Superrare"
+    # blockchain_name = "Ethereum", "Solana", "Polygon", "AirNFTs", "NEAR"
+    # wallet = "Metamask", MATIC (Polygon's native token) or Polygon-bridged ETH
+    print_trace("Mint NFT from: "+file_path_in+" to "+blockchain_name)
+    print_trace("Minted NFT at: "+file_path_out)
+
+
+#### SECTION 15 - End-of-Run summary functions:
+
 
 def print_wall_times():
     """Prints All the timings together for consistency of output:
@@ -1464,7 +1535,7 @@ def print_wall_times():
     pgm_stop_datetimestamp = dt.datetime.now()
     pgm_elapsed_wall_time = pgm_stop_datetimestamp -  pgm_strt_datetimestamp
     print_verbose("for whole program run: "+ \
-        str(pgm_elapsed_wall_time))  # like 0:00:00.317434 wall .secs.
+        str(pgm_elapsed_wall_time))  # like 0:00:00.317434 Days:Hours:Mins:Secs.
 
     pgm_stop_perftimestamp = time.perf_counter()
     # print(str(pgm_stop_perftimestamp)+" seconds.microseconds perf time.")
@@ -1478,9 +1549,11 @@ def show_summary(in_seq):
         pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
 
         if artpieces_processed_count == 1:
-            print_info(f"SUMMARY: 1 artpiece gen'd during {str(pgm_elapsed_wall_time)} wall .secs.")
+            print_info(f"SUMMARY: 1 artpiece gen'd"
+                f" during {str(pgm_elapsed_wall_time)} Days:Hours:Mins:Secs.")
         else:
-            print_info(f"SUMMARY: {artpieces_processed_count} artpieces gen'd during {str(pgm_elapsed_wall_time)} wall .secs.")
+            print_info(f"SUMMARY: {artpieces_processed_count} artpieces gen'd"
+                f" during {str(pgm_elapsed_wall_time)} Days:Hours:Mins:Secs")
 
     # TODO: Write wall times to log for longer-term analytics
 
@@ -1500,7 +1573,6 @@ if __name__ == "__main__":
     # TODO: eject_drive(removable_drive_path)
     read_cmd_args()  # from command line parameters at run time.
     calc_env_vars()
-
     sys_info()
 
     OUTPUT_PATH_PREFIX = define_output_path(OUTPUT_FOLDER)
@@ -1515,21 +1587,22 @@ if __name__ == "__main__":
             hash_str = hash_file_sha256(gened_file_path) # from step above
             print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
 
-        if USE_DALLE_API:  # Using text-to-image OpenAI DALL-E service:
+        if USE_DALLE_API:  #     Using text-to-image OpenAI DALL-E service:
             gened_file_path = gen_dalle_file(artpieces_processed_count,OUTPUT_PATH_PREFIX)
         else:              # Programmatic:
             gened_file_path = gen_one_file(artpieces_processed_count,OUTPUT_PATH_PREFIX)
+        # TODO: if gened_file_path is None:  # if DALL-E fails
 
-        if SHOW_OUTPUT_FILE:
+        if SHOW_OUTPUT_FILE:   # --showout
             img = Image.open(gened_file_path)
             # Display the image:
             img.show()
 
-        if GEN_SHA256:
+        if GEN_SHA256:  # -256 --hash
             hash_str = hash_file_sha256(gened_file_path) # from step above
             print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
 
-        if KEEP_SHOWING:  # if FILES_TO_GEN == 0:   # Not infinite loop:
+        if KEEP_SHOWING:  # -ks--keepshow if FILES_TO_GEN == 0:   # Not infinite loop:
             # For running in kiosk mode where images appear and disappear:
             time.sleep(SLEEP_SECONDS)  # give user some time to appreciate the art.
 
@@ -1549,29 +1622,29 @@ if __name__ == "__main__":
             # Alternative C: use UI automation pyautogui or pyobjc to control Preview app.
             # See https://stackoverflow.com/questions/16928021/mac-python-close-window
 
-        if DELETE_OUTPUT_FILE:
+        if DELETE_OUTPUT_FILE:  # -del --delete
             os.remove(gened_file_path)
             print_info(f"File {gened_file_path} deleted.")
         else:
-            if ADD_WATERMARK:
+            # TODO: Upscale image using https://topazai.com (paid)
+            #if UPSCALE_IMAGE_FILE:
+            #    upscaled_file_path=upscale_image_file(gened_file_path)
+
+            if ADD_WATERMARK:  # -wm --watermark
                 print_info(f"File {WATERMARKED_PATH_PREFIX}")
                 if USE_DALLE_API:  # Using text-to-image OpenAI DALL-E service:
                     watermarked_file_path = gen_dalle_file(artpieces_processed_count,WATERMARKED_PATH_PREFIX)
                 else:              # Programmatic:
                     watermarked_file_path = gen_one_file(artpieces_processed_count,WATERMARKED_PATH_PREFIX)
-                add_watermark2png(gened_file_path, watermarked_file_path, watermark_text)
+                add_watermark2png(gened_file_path, watermarked_file_path, WATERMARK_TEXT)
             else:
                 watermarked_file_path=gened_file_path
-            #TODO: test read_watermark()
-
-            # TODO: Upscale image using https://topazai.com (paid)
-            #if UPSCALE_IMAGE_FILE:
-            #    upscaled_file_path=upscale_image_file(gened_file_path)
+            #TODO: watermarked_file_found = read_watermark(watermarked_file_path)
 
             #TODO: create_thumbnail_png()
             #TODO: Resize mockups for different canvas sizes using free XnConvert @ xnview.com
 
-            if ENCRYPT_FILE:  # (password protect file)
+            if ENCRYPT_FILE:  # -e --encrypt  (password protect file)
                 symmetric_key_str = encrypt_symmetrically(gened_file_path,cyphertext_file_path)
                 print_trace("Encrypted file: "+cyphertext_file_path+" size: "+\
                     str(get_file_size_on_disk(cyphertext_file_path)))
@@ -1579,19 +1652,21 @@ if __name__ == "__main__":
             else:
                 cyphertext_file_path=watermarked_file_path
 
-            if UPLOAD_TO_QUICKNODE:
+            if MINT_NFT:
+               # Create a non-fungible token (NFT) on a blockchain using the ERC721 standard
+               # https://ethereum.org/en/developers/docs/standards/tokens/erc-721/
+               # https://www.youtube.com/watch?v=Q2MvYR8qFtU
+               mint_nftcyphertext_file_path = mint_nft(cyphertext_file_path,BLOCKCHAIN_NAME)
+
+            if UPLOAD_TO_QUICKNODE:  # -qn --quicknode
                 quicknode_cid = upload_to_ipfs(encrypted_file_path,
                     quicknode_keyring_service_name,
                     quicknode_keyring_account_name)
                 print_trace("QuickNode IPFS CID:", quicknode_cid)
-            #if mint_nft():
-               # Create a non-fungible token (NFT) on a blockchain using the ERC721 standard
-               # https://ethereum.org/en/developers/docs/standards/tokens/erc-721/
-               # https://www.youtube.com/watch?v=Q2MvYR8qFtU
-
-            #if GEN_QR_CODE:
+            
+            if GEN_QR_CODE:
                # Create QR code image file from URL:
-            #   gen_qrcode(url,qrcode_file_path)
+               gen_qrcode(url,qrcode_file_path)
 
 
             # TODO: printify.com t-shirts on demand https://www.youtube.com/watch?v=TygDUR38wuM
