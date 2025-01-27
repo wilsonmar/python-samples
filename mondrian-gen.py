@@ -13,7 +13,7 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 // SPDX-License-Identifier: MIT
 CURRENT STATUS: WORKING but no env file retrieve.
 
-git commit -m"v016 + massive fix :mondrian-gen.py"
+git commit -m"v017 + colors, qrcode :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
 
@@ -621,30 +621,32 @@ COLORS = [(1, 1, 1), (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1), (0, 1, 0), (1, 
 RED = '\033[31m'
 GREEN = '\033[32m'
 YELLOW = '\033[33m'
-BLUE = '\033[34m'
+BLUE = '\033[34m'   # [94 blue (bad on black background)
+PURPLE = '\033[35m'
+VIOLET = '\033[38m'
+ORANGE = '\033[208m'
+
+CVIOLET = '\033[35m'
+CBEIGE = '\033[36m'
+CWHITE = '\033[37m'
+CGRAY = '\033[90m'  # secret
+
 # Styles:
 BOLD = '\033[1m'
-RESET = '\033[0m'
+RESET = '\033[0m'  # switch back to default color
 
 class bcolors:  # ANSI escape sequences:
-    BOLD = '\033[1m'       # Begin bold text
+    BOLD = RED #'\033[1m'       # Begin bold text
     UNDERLINE = '\033[4m'  # Begin underlined text
 
-    HEADING = '\033[90m'   # [90 gray  NOT [37 white
-    FAIL = '\033[91m'      # [91 red
-    ERROR = '\033[91m'     # [91 red
-    WARNING = '\033[93m'   # [93 yellow
-    INFO = '\033[92m'      # [92 green
-    VERBOSE = '\033[95m'   # [95 purple
-    TRACE = '\033[96m'     # [96 blue/green
-                 # [94 blue (bad on black background)
-    CVIOLET = '\033[35m'
-    CBEIGE = '\033[36m'
-    CWHITE = '\033[37m'
-    CGRAY = '\033[90m'
-
-    RESET = '\033[0m'   # switch back to default color
-
+    HEADING = CWHITE #'\033[90m'   # [90 gray  NOT [37 white
+    INFO = GREEN # '\033[92m'      # [92 green
+    VERBOSE = PURPLE # '\033[95m'   # [95 purple
+    TRACE = ORANGE # '\033[96m'     # [96 blue/green
+    WARNING = BLUE # '\033[93m'   # [93 yellow
+    ERROR = RED # '\033[91m'     # [91 red
+    FAIL = YELLOW # '\033[91m'      # [91 red
+              
 def do_clear_cli() -> None:
     if CLEAR_CLI:
         import os
@@ -658,60 +660,76 @@ def print_separator() -> None:
     print(" ")
 
 def print_heading(text_in) -> None:
+    """ Provide a heading to help align vertical text columns.
+    """
     if show_heading:
         if show_dates_in_logs:
-            print(bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', bcolors.RESET)
+            print(bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', RESET)
         else:
-            print(bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', bcolors.RESET)
+            print(bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET)
 
-def print_fail(text_in) -> None:  # when program should stop
+def print_fail(text_in) -> None:
+    """ Explain a critical failure causing the program to stop.
+    """
     if show_fail:
         if show_dates_in_logs:
-            print(bcolors.FAIL, '***', local_datetime_stamp(), "FAIL:", f'{text_in}', bcolors.RESET)
+            print(bcolors.FAIL, '***', local_datetime_stamp(), "FAIL:", f'{text_in}', RESET)
         else:
-            print(bcolors.FAIL, '***', "FAIL:", f'{text_in}', bcolors.RESET)
+            print(bcolors.FAIL, '***', "FAIL:", f'{text_in}', RESET)
 
-def print_error(text_in) -> None:  # when a programming error is evident
+def print_error(text_in) -> None:  
+    """ Explain to programmers about a potential programming error.
+    """
     if show_fail:
         if show_dates_in_logs:
-            print(bcolors.ERROR, '***', local_datetime_stamp(), "ERROR:", f'{text_in}', bcolors.RESET)
+            print(bcolors.ERROR, '***', local_datetime_stamp(), "ERROR:", f'{text_in}', RESET)
         else:
-            print(bcolors.ERROR, '***', "ERROR:", f'{text_in}', bcolors.RESET)
+            print(bcolors.ERROR, '***', "ERROR:", f'{text_in}', RESET)
 
 def print_warning(text_in) -> None:
+    """ Warn the programmer about changes such as default values applied.
+    """
     if show_warning:
         if show_dates_in_logs:
-            print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', bcolors.RESET)
+            print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
         else:
-            print(bcolors.WARNING, '***', "WARNING:",f'{text_in}', bcolors.RESET)
+            print(bcolors.WARNING, '***', "WARNING:",f'{text_in}', RESET)
 
 def print_todo(text_in) -> None:
+    """ Remind the programmer of a TODO item when the program is run.
+    """
     if show_todo:
         if show_dates_in_logs:
-            print(bcolors.CVIOLET, '***', local_datetime_stamp(), "TODO:", f'{text_in}', bcolors.RESET)
+            print(bcolors.CVIOLET, '***', local_datetime_stamp(), "TODO:", f'{text_in}', RESET)
         else:
-            print(bcolors.CVIOLET, '***', "TODO:", f'{text_in}', bcolors.RESET)
+            print(bcolors.CVIOLET, '***', "TODO:", f'{text_in}', RESET)
 
-def print_info(text_in) -> None:    
+def print_info(text_in) -> None:
+    """Display information to users about what was done.
+    """
     if show_info:
         if show_dates_in_logs:
-            print(bcolors.INFO+bcolors.BOLD,'***', local_datetime_stamp(), "INFO:", f'{text_in}', bcolors.RESET)
+            print(bcolors.INFO+bcolors.BOLD,'***', local_datetime_stamp(), "INFO:", f'{text_in}', RESET)
         else:
-            print(bcolors.INFO+bcolors.BOLD,'***', "INFO:", f'{text_in}', bcolors.RESET)
+            print(bcolors.INFO+bcolors.BOLD,'***', "INFO:", f'{text_in}', RESET)
 
 def print_verbose(text_in) -> None:
+    """Display details about inputs to each function:
+    """
     if show_verbose:
         if show_dates_in_logs:
-            print(bcolors.VERBOSE, '***', local_datetime_stamp(), f'{text_in}', bcolors.RESET)
+            print(bcolors.VERBOSE, '***', local_datetime_stamp(), f'{text_in}', RESET)
         else:
-            print(bcolors.VERBOSE, '***', f'{text_in}', bcolors.RESET)
+            print(bcolors.VERBOSE, '***', f'{text_in}', RESET)
 
 def print_trace(text_in) -> None:  # displayed as each object is created in pgm:
+    """To display details output from a function:
+    """
     if show_trace:
         if show_dates_in_logs:
-            print(bcolors.TRACE, '***', local_datetime_stamp(), f'{text_in}', bcolors.RESET)
+            print(bcolors.TRACE, '***', local_datetime_stamp(), f'{text_in}', RESET)
         else:
-            print(bcolors.TRACE, '***', f'{text_in}', bcolors.RESET)
+            print(bcolors.TRACE, '***', f'{text_in}', RESET)
 
 def print_secret(secret_in) -> None:
     """ Outputs only the first few characters (like Git) with dots replacing the rest 
@@ -720,9 +738,9 @@ def print_secret(secret_in) -> None:
     if show_secrets:  # program parameter
         if show_dates_in_logs:
             now_utc=datetime.now(timezone('UTC'))
-            print(bcolors.WARNING, '*** ',now_utc,"SECRET: ", secret_in, bcolors.RESET)
+            print(bcolors.WARNING, '*** ',now_utc,"SECRET: ", secret_in, RESET)
         else:
-            print(bcolors.CBEIGE, '***', "SECRET: ", secret_in, bcolors.RESET)
+            print(bcolors.CBEIGE, '***', "SECRET: ", secret_in, RESET)
     else:
         # same length regardless of secret length to reduce ability to guess:
         secret_len = 8
@@ -731,9 +749,9 @@ def print_secret(secret_in) -> None:
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             if show_dates_in_logs:
-                print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', bcolors.RESET)
+                print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
             else:
-                print(bcolors.CBEIGE, '***', " SECRET: ", f'{secret_out}', bcolors.RESET)
+                print(bcolors.CBEIGE, '***', " SECRET: ", f'{secret_out}', RESET)
     return
 
 
@@ -1267,21 +1285,26 @@ def get_api_key(app_id,account_name) -> str:
     """
     print_verbose("get_api_key() app_id="+app_id+", account_name="+account_name)
 
+    # import platform
     platform_system = platform.system()
     if platform_system == 'Darwin':
         # Pull sd_api_key as password from macOS Keyring file (and other password manager):
         try:
             #import keyring
             api_key = keyring.get_password(app_id,account_name)
-            return api_key
+            if api_key:
+                print_trace("get_api_key() len(api_key)="+str(len(api_key)))
+                return api_key
+            else:
+                # FIXME: sd_api_key=None
+                print_fail("get_api_key() api_key=None")
+                return None
         except Exception as e:
-            print_error("get_api_key() {e}")
+            print_error("get_api_key() str({e})")
             return None
     #else: Windows, Linux, etc.
 
-    print_secret("get_api_key() api_key="+str(api_key))
-    # FIXME: sd_api_key=None
-    return api_key
+    return None
 
 
 
@@ -1309,12 +1332,17 @@ def set_output_file_path(i, api_id, filetype) -> str:
     -art or -qr  :filetype = from argument
     .png
     """
+    print_verbose("set_output_file_path() api_id="+api_id+" i="+str(i))
     # WARNING: NOT from input file date's own timestamp:
-    datetime_stamp = local_datetime_stamp()
     # OUTPUT_PATH_PREFIX set by calc_from_globals()
+    print_verbose("set_output_file_path() OUTPUT_PATH_PREFIX="+OUTPUT_PATH_PREFIX)
+
+    datetime_stamp = local_datetime_stamp()
     full_file_path = OUTPUT_PATH_PREFIX+SLASH_CHAR+PROGRAM_NAME \
         +"-"+RUNID+"-"+datetime_stamp+"-"+str(i)+"-"+api_id+"-"+filetype+".png"
-    print_trace("set_output_file_path()="+full_file_path)
+    print_trace("set_output_file_path()="+full_file_path+" len="+str(len(full_file_path)))
+    # /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-
+    # /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-openai-qr.png
     return full_file_path
 
 
@@ -1369,12 +1397,10 @@ def gen_qrcode(url,qrcode_file_path) -> bool:
     See https://www.geeksforgeeks.org/python-generate-qr-code/
     See https://python.plainenglish.io/how-i-generate-qr-codes-with-python-in-under-30-seconds-77f627e8fe63
     """
-    if not GEN_QR_CODE:
-        print_trace("gen_qrcode() bypassed for "+url)
+    if not GEN_QR_CODE:  # Bypass
         return False
-    else:
-        print_trace("gen_qrcode() url_input="+url)
 
+    print_verbose("gen_qrcode() url="+url+" qrcode_file_path="+qrcode_file_path)
     try:
         #import qrcode  with higher level of error correction
         qr = qrcode.QRCode(version=2, 
@@ -1510,65 +1536,55 @@ def gen_one_file(file_path) -> bool:
 #### SECTION 16 - DALL-E Generative AI OpenAI API functions:
 
 
-def gen_dalle_file(path_prefix,in_seq) -> str:
+def gen_dalle_file(gened_file_path) -> str:
     """Generate image using DALL-E Generative AI API calls to OpenAI servers.
     """
-    global openai_api_key
-    if not openai_api_key:
-        openai_api_key = get_api_key("openai","johndoe")
-    
-    global openai_engine_id
-    if not openai_engine_id:  
-        #openai_engine_id = get_openai_engine_id(openai_api_key)
-        openai_engine_id="dall-e-2"
-        # openai_engine_id="dall-e-3"
+    #openai_engine_id = get_openai_engine_id(openai_api_key)
+    openai_engine_id="dall-e-2"
+    # openai_engine_id="dall-e-3"
 
-    #import keyring
-    openai_api_key = keyring.get_password("openai", openai_api_key)
+    #prompt_model="dall-e-3" # for 1024x1024 licen$ed
+    #prompt_model="dall-e-2" # for 500x500 FREE
+    WIDTHxHEIGHT = "500x500"
+    # TODO: Use global variable: See https://beta.dreamstudio.ai/prompt-guide
+    #.  size=WIDTHxHEIGHT = "512x512"
+      # quality="hd” costs more, takes more time to generate than "standard".
+       # or "vivid" for advanced control of the generation.
+    print_verbose("gen_dalle_file() model="+openai_engine_id+\
+        " WIDTHxHEIGHT="+WIDTHxHEIGHT+\
+        " len(PROMPT_TEXT)="+str(len(PROMPT_TEXT)))
 
+    openai_api_key = get_api_key("openai","johndoe")
+    if openai_api_key:
+        print_trace("gen_dalle_file() len(openai_api_key)="+str(len(openai_api_key)))
+    else:
+        print_error("gen_dalle_file() does not have openai_api_key.")
+        return None
+    exit()
+
+    func_start_timer = time.perf_counter()
     # See https://help.openai.com/en/articles/8555480-dall-e-3-api
     # See https://platform.openai.com/docs/guides/images?context=python
     client = OpenAI()
     client.api_key = openai_api_key
-
-    #prompt_model="dall-e-3" # for 1024x1024
-    prompt_size=WIDTHxHEIGHT 
-    # TODO: Use global variable: See https://beta.dreamstudio.ai/prompt-guide
-    prompt_text = (
-        "Create an abstract painting in the style of Piet Mondrian "
-        "featuring a grid of shapes between straight black lines "
-        "dividing the canvas into rectangles and squares. "
-        "Use the golden ratio (1:1.618) to arrange blocks. "
-        "Fill 50% of shapes with primary colors - red, blue, and yellow - "
-        "while leaving others white. Ensure a balanced composition with "
-        "asymmetrical placement of colored blocks."
-    )
-    #.  size=WIDTHxHEIGHT = "512x512"
-      # quality="hd” costs more, takes more time to generate than "standard".
-       # or "vivid" for advanced control of the generation.
-    func_start_timer = time.perf_counter()
     response = client.images.generate(
         model=openai_engine_id,
-        prompt=prompt_text,
+        prompt=PROMPT_TEXT,
         n=1,
         style="natural",
         quality="standard",
-        size=prompt_size
+        size=WIDTHxHEIGHT
     )
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
-    print_trace(f"gen_dalle_file() func_duration={func_duration:.5f} seconds")
-
     print_info("response.data[0].url"+response.data[0].url)
        # Example: https://oaidalleapiprodscus.blob.core.windows.net/private/org-4...
     response = requests.get(response.data[0].url)
     if response.status_code == 200:
-        # Generate to a static local file name for renaming outide this app function:
-        file_date_stamp = local_datetime_stamp()
-        gened_file_path = path_prefix +SLASH_CHAR +PROGRAM_NAME+"-"+file_date_stamp +"-"+str(in_seq)+".png"
-        print_trace(f"*** DEBUG: gened_file_path = {gened_file_path}")
         with open(gened_file_path, 'wb') as file:
             file.write(response.content)
+
+        func_end_timer = time.perf_counter()
+        func_duration = func_end_timer - func_start_timer
+        print_trace(f"gen_dalle_file() func_duration={func_duration:.5f} seconds")
 
         if PRINT_OUTPUT_FILE_LOG:
             file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
@@ -1877,13 +1893,10 @@ if __name__ == "__main__":
         elif ai == "anthropic":
             gened_file_path = set_output_file_path(artpiece_num,"stab","art")
             result = gen_claude_file(gened_file_path)
-        # elif TODO: STABLEDIFFUSION API too?
         else: # use local programmatic code:
             ai = "local"
             gened_file_path = set_output_file_path(artpiece_num,ai,"art")
             result = gen_one_file(gened_file_path)
-
-        # TODO: log_file_gened(gened_file_path)
 
         if SHOW_OUTPUT_FILE:   # --showout
             img = Image.open(gened_file_path)
@@ -1954,9 +1967,10 @@ if __name__ == "__main__":
             else:
                 quicknode_cid_url=mint_nftcyphertext_file_path
     
-            # Create QR code image file from URL:
-            qrcode_file_path = set_output_file_path(quicknode_cid_url,ai,"qr")
-            gen_qrcode(quicknode_cid_url,qrcode_file_path)
+            if GEN_QR_CODE:  # -qr --qrcode
+                # Create QR code image file from URL:
+                qrcode_file_path = set_output_file_path(artpiece_num,ai,"qr")
+                gen_qrcode(quicknode_cid_url,qrcode_file_path)
 
             # TODO: printify.com t-shirts on demand https://www.youtube.com/watch?v=TygDUR38wuM
             # TODO: API to Etsy using TaskMagic https://www.youtube.com/watch?v=1sZ5VPlThKQ
