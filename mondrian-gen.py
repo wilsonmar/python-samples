@@ -13,7 +13,7 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 // SPDX-License-Identifier: MIT
 CURRENT STATUS: WORKING but no env file retrieve.
 
-git commit -m"v017 + colors, qrcode :mondrian-gen.py"
+git commit -m"v019 + GEN_URL_FILE :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
 
@@ -26,6 +26,7 @@ Tested on macOS 24.1.0 using Python 3.12.8
     python3 -m pip install envcloak keyring OpenAI pycairo python-dotenv Pillow psutil qrcode requests tzlocal
     python3 -m pip install web3 eth_account IPFS-Toolkit Fernet cryptography pycryptodome qiskit
     # See https://wilsonmar.github.io/quantum
+    python3 -m pip install functools  # FIXME ERROR: Failed to build installable wheels for some pyproject.toml based projects (functools)
     python3 -m pip install --upgrade -q google-api-python-client google-auth-httplib2 google-auth-oauthlib
     python3 -m pip install stablediffusionapi
         import smtplib
@@ -94,6 +95,7 @@ std_strt_datetimestamp = dt.datetime.now()
 import argparse
 from argparse import ArgumentParser
 import base64
+from functools import cache
 import hashlib
 import io
 import json
@@ -233,6 +235,7 @@ RUNID = "t1"  # This value should have no spaces or special characters.
    # TODO: Store and increment externally each run.
 
 OUTPUT_FOLDER = "Desktop"  # "Desktop" or "Documents" or "Downloads" to avoid subfolder creation.
+GEN_URL_FILE = False
 
 # For creation of image files:
 # PROMPT_TEXT = "A beautiful monochromatic art piece"
@@ -384,6 +387,7 @@ def read_cmd_args() -> None:
     parser.add_argument("-do", "--delout", action="store_true", help="Delete output file")
     parser.add_argument("-so", "--showout", action="store_true", help="Show output file")
     parser.add_argument("-ks", "--keepshow", action="store_true", help="Keep Showing output file (not kill preview)")
+    parser.add_argument("-gf", "--genurlfile", action="store_true", help="Gen a file to open url in browser")
 
     parser.add_argument("-wm", "--marktext", help="Watermark text to insertin png file")
     parser.add_argument("-e", "--encrypt", action="store_true", help="Encrypt file")
@@ -526,6 +530,9 @@ def read_cmd_args() -> None:
     if args.genqr:             # -qr  --genqr Gen QR code image file from URL
         global GEN_QR_CODE
         GEN_QR_CODE = True
+    if args.genurlfile:           # -gu  --genurlfile
+        global GEN_URL_FILE
+        GEN_URL_FILE = True
 
     if args.showout:           # -so  --showout Show output file
         global SHOW_OUTPUT_FILE
@@ -550,7 +557,7 @@ def read_cmd_args() -> None:
         global SLEEP_SECONDS
         SLEEP_SECONDS = args.sleepsecs  # between files created in a loop
 
-    return
+    return None
 
 
     #### SECTION 10 - Set Static Global working constants:
@@ -604,7 +611,7 @@ def calc_from_globals() -> None:
 #        global ADD_WATERMARK
 #        ADD_WATERMARK = True   # used by watermark2png()
 
-    return
+    return None
 
 
 #### SECTION 7 - printing utility globals and functions (used by other functions):
@@ -652,14 +659,14 @@ def do_clear_cli() -> None:
         import os
         # Make a OS CLI command:
         lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
-    return
+    return None
 
 def print_separator() -> None:
     """ Put a blank line in CLI output. Used in case the technique changes throughout this code. 
     """
     print(" ")
 
-def print_heading(text_in) -> None:
+def print_heading(text_in: str) -> None:
     """ Provide a heading to help align vertical text columns.
     """
     if show_heading:
@@ -668,7 +675,7 @@ def print_heading(text_in) -> None:
         else:
             print(bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET)
 
-def print_fail(text_in) -> None:
+def print_fail(text_in: str) -> None:
     """ Explain a critical failure causing the program to stop.
     """
     if show_fail:
@@ -677,7 +684,7 @@ def print_fail(text_in) -> None:
         else:
             print(bcolors.FAIL, '***', "FAIL:", f'{text_in}', RESET)
 
-def print_error(text_in) -> None:  
+def print_error(text_in: str) -> None:  
     """ Explain to programmers about a potential programming error.
     """
     if show_fail:
@@ -686,7 +693,7 @@ def print_error(text_in) -> None:
         else:
             print(bcolors.ERROR, '***', "ERROR:", f'{text_in}', RESET)
 
-def print_warning(text_in) -> None:
+def print_warning(text_in: str) -> None:
     """ Warn the programmer about changes such as default values applied.
     """
     if show_warning:
@@ -695,7 +702,7 @@ def print_warning(text_in) -> None:
         else:
             print(bcolors.WARNING, '***', "WARNING:",f'{text_in}', RESET)
 
-def print_todo(text_in) -> None:
+def print_todo(text_in: str) -> None:
     """ Remind the programmer of a TODO item when the program is run.
     """
     if show_todo:
@@ -704,7 +711,7 @@ def print_todo(text_in) -> None:
         else:
             print(bcolors.CVIOLET, '***', "TODO:", f'{text_in}', RESET)
 
-def print_info(text_in) -> None:
+def print_info(text_in: str) -> None:
     """Display information to users about what was done.
     """
     if show_info:
@@ -713,7 +720,7 @@ def print_info(text_in) -> None:
         else:
             print(bcolors.INFO+bcolors.BOLD,'***', "INFO:", f'{text_in}', RESET)
 
-def print_verbose(text_in) -> None:
+def print_verbose(text_in: str) -> None:
     """Display details about inputs to each function:
     """
     if show_verbose:
@@ -722,7 +729,7 @@ def print_verbose(text_in) -> None:
         else:
             print(bcolors.VERBOSE, '***', f'{text_in}', RESET)
 
-def print_trace(text_in) -> None:  # displayed as each object is created in pgm:
+def print_trace(text_in: str) -> None:  # displayed as each object is created in pgm:
     """To display details output from a function:
     """
     if show_trace:
@@ -731,7 +738,7 @@ def print_trace(text_in) -> None:  # displayed as each object is created in pgm:
         else:
             print(bcolors.TRACE, '***', f'{text_in}', RESET)
 
-def print_secret(secret_in) -> None:
+def print_secret(secret_in: str) -> None:
     """ Outputs only the first few characters (like Git) with dots replacing the rest 
     """
     # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
@@ -752,13 +759,13 @@ def print_secret(secret_in) -> None:
                 print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
             else:
                 print(bcolors.CBEIGE, '***', " SECRET: ", f'{secret_out}', RESET)
-    return
+    return None
 
 
 #### SECTION 7 - read_env_file() to override hard-coded defaults:
 
 
-def load_env_file(env_path) -> None:
+def load_env_file(env_path: str) -> None:
     """Read .env file containing variables and values.
     See https://wilsonmar.github.io/python-samples/#envLoad
     See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
@@ -778,17 +785,17 @@ def load_env_file(env_path) -> None:
     else:
         print_error("openai_api_key="+openai_api_key+" in "+env_path)
     """
-    return
+    return None
 
 
 # See https://wilsonmar.github.io/python-samples/#envFile
-def open_env_file(env_file) -> str:
+def open_env_file(env_file: str) -> str:
     """Return a file path obtained from .env file based on the path provided
     in env_file coming in.
     """
-    from pathlib import Path
     # See https://wilsonmar.github.io/python-samples#run_env
     global user_home_dir_path
+    #from pathlib import Path
     user_home_dir_path = str(Path.home())
        # example: /users/john_doe
 
@@ -812,7 +819,7 @@ def open_env_file(env_file) -> str:
     #print_trace("user_home_dir_path="+user_home_dir_path)
 
 
-def get_str_from_env_file(key_in) -> str:
+def get_str_from_env_file(key_in: str) -> str:
     """Return a value of string data type from OS environment or .env file
     (using pip python-dotenv)
     """
@@ -832,7 +839,7 @@ def get_str_from_env_file(key_in) -> str:
         return str(env_var)
 
 
-def list_files_on_removable_drive(drive_path) -> None:
+def list_files_on_removable_drive(drive_path: str) -> None:
     """List all directories and files on a removable USB volumedrive.
     where drive_path = "/Volumes/YOUR_DRIVE_NAME"
     """
@@ -850,7 +857,7 @@ def list_files_on_removable_drive(drive_path) -> None:
             print_info(f'Directory: {item.name}')
         elif item.is_file():
             print_info(f'File: {item.name}')
-    return
+    return None
 
 
 #### SECTION 11 - Utility time & date functions (which can be in a python module)
@@ -882,7 +889,7 @@ def local_datetime_stamp() -> str:
     return date_stamp
 
 
-def file_creation_datetime(path_to_file):
+def file_creation_datetime(path_to_file: str) -> str:
     """ Get the datetime stamp for a file, 
     falling back to when it was last modified if that isn't possible.
     See http://stackoverflow.com/a/39501288/1709587 for explanation.
@@ -934,9 +941,9 @@ def display_disk_free() -> None:
     disk = psutil.disk_usage('/')
     free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
     print_verbose(f'disk space free={free_space_gb:.2f} GB at '+local_datetime_stamp())
-    return
+    return None
 
-def count_files_within_path(directory) -> int:
+def count_files_within_path(directory: str) -> int:
     """Returns the number of files after looking recursively
     within a given directory"""
     # import os
@@ -947,7 +954,7 @@ def count_files_within_path(directory) -> int:
     return file_count
 
 
-def get_file_size_on_disk(file_path) -> int:
+def get_file_size_on_disk(file_path: str) -> int:
     """Returns integer bytes from the OS for a file path """
     try:
         file_size = os.path.getsize(file_path)
@@ -1062,7 +1069,7 @@ def sys_info() -> None:
     display_memory()
     # list_disk_space_by_device()
     
-    return
+    return None
 
 
 def list_disk_space_by_device() -> None:
@@ -1092,10 +1099,10 @@ def list_disk_space_by_device() -> None:
             print_error("Permission denied to access usage information")
 
         print()
-        return
+        return None
 
 
-def list_macos_volumes():
+def list_macos_volumes() -> None:
     """ Like Bash CLI: diskutil list
     STATUS: NOT WORKING
     volumes_path = '/Volumes'
@@ -1120,9 +1127,10 @@ def list_macos_volumes():
         volume_path = os.path.join(volumes_path, volume)
         if os.path.ismount(volume_path):
             print(f"- {volume}")
+    return None
 
 
-def list_files_by_mountpoint():
+def list_files_by_mountpoint() -> None:
     """ List files within get all disk partitions
     """
     #import os
@@ -1144,9 +1152,10 @@ def list_files_by_mountpoint():
             print("Permission denied to access this mountpoint")
         except Exception as e:
             print(f"Error: {str(e)}")
+    return None
 
 
-def read_file_from_removable_drive(drive_path, file_name, content):
+def read_file_from_removable_drive(drive_path: str, file_name: str, content: str) -> str:
     """TODO: Read content (text) from a file_name on a removable drive on macOS. 
     Example: -d "/Volumes/DriveName"
     """
@@ -1183,7 +1192,7 @@ def read_file_from_removable_drive(drive_path, file_name, content):
     return global_env_path
 
 
-def write_file_to_removable_drive(drive_path, file_name, content):
+def write_file_to_removable_drive(drive_path: str, file_name: str, content: str) -> None:
     """
     Write content (text) to a file_name on a removable drive on macOS.
     :param drive_path: The path to the removable drive
@@ -1209,7 +1218,7 @@ def write_file_to_removable_drive(drive_path, file_name, content):
         print(f"An error occurred while writing the file: {e}")
 
 
-def eject_drive(drive_path):
+def eject_drive(drive_path: str) -> None:
     """Safely eject removeable drive after use, where
     drive_path = '/Volumes/YourDriveName'
     """
@@ -1219,12 +1228,13 @@ def eject_drive(drive_path):
         print(f"Successfully ejected {drive_path}")
     except subprocess.CalledProcessError:
         print(f"Failed to eject {drive_path}")
+    return None
 
 
 #### SECTION 15 - utility cryptopgraphic functions:
 
 
-def hash_file_sha256(filename) -> str:
+def hash_file_sha256(filename: str) -> str:
     # A hash is a fixed length one way string from input data. Change of even one bit would change the hash.
     # A hash cannot be converted back to the input data (unlike encryption).
     # https://stackoverflow.com/questions/22058048/hashing-a-file-in-python
@@ -1240,7 +1250,7 @@ def hash_file_sha256(filename) -> str:
     return sha256_hash.hexdigest()
 
 
-def encrypt_symmetrically(source_file_path, cyphertext_file_path) -> str:
+def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> str:
     """Encrypt a plaintext file to cyphertext using Fernet symmetric encryption algorithm
     after reading entire file into memory.
     Based on https://www.educative.io/answers/how-to-create-file-encryption-decryption-program-using-python
@@ -1278,7 +1288,32 @@ def encrypt_symmetrically(source_file_path, cyphertext_file_path) -> str:
     return key_out
 
 
-def get_api_key(app_id,account_name) -> str:
+# FIXME:
+# @functools.cache  # See https://www.datacamp.com/tutorial/python-cache-introduction
+def get_openai_parms(app_id: str, account_name: str) -> str:
+    api_key = get_api_key(app_id, account_name)
+    return api_key
+
+
+def save_url_to_file(filepath: str, url: str) -> None:
+    """ Create a shareable file that, when clicked, opens a window in the default browser,
+    showing the web page at the URL specified in the file.
+    filepath = "/Users/johndoe/Desktop/whatever/example.url"
+    url such as "https://www.example.com"
+    USAGE: save_url_to_file(url, filename) 
+    """
+    print_verbose("save_url_to_file() filepath="+filepath+", url="+url)
+    content = "[InternetShortcut]\nURL="+url
+    try:
+        with open(filepath, "w") as file:
+            file.write(content)
+        return True
+    except Exception as e:
+        print_error("save_url_to_file() "+filepath+" exception: "+str(e))
+        return False
+
+
+def get_api_key(app_id: str, account_name: str) -> str:
     """Get API key from macOS Keyring file or .env file (depending on what's available)
     referencing global variables keyring_service_name & keyring_account_name
     USAGE: api_key = get_api_key("anthropic","johndoe")
@@ -1314,7 +1349,7 @@ def get_api_key(app_id,account_name) -> str:
    # See https://docs.python.org/3/library/logging.html#module-logging
 # def log_event(logger, event_type, message, level='info'):
 
-def set_output_file_path(i, api_id, filetype) -> str:
+def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
     """Generate the full file path for the generated image like this:
     /Users/johndoe/Desktop/mondrian-gen-20250119T192300-0700-1-openai-qr.png
     Using :SLASH_CHAR ("/") from global variable depending on OS platform
@@ -1392,7 +1427,7 @@ def send_smtp() -> bool:
     return True
 
 
-def gen_qrcode(url,qrcode_file_path) -> bool:
+def gen_qrcode(url: str,qrcode_file_path: str) -> bool:
     """Generate a QR code from a URL and save it to a file.
     See https://www.geeksforgeeks.org/python-generate-qr-code/
     See https://python.plainenglish.io/how-i-generate-qr-codes-with-python-in-under-30-seconds-77f627e8fe63
@@ -1417,7 +1452,7 @@ def gen_qrcode(url,qrcode_file_path) -> bool:
         return False
 
 
-def upload_to_ipfs(file_path, quicknode_api_key) -> str:
+def upload_to_ipfs(file_path: str, quicknode_api_key: str) -> str:
     """Upload a file to IPFS using the QuickNode API.
     See https://www.quicknode.com/docs
     See https://techieteee.hashnode.dev/how-to-build-a-decentralized-data-pipeline-with-quicknode-ipfs-and-python
@@ -1449,7 +1484,7 @@ def upload_to_ipfs(file_path, quicknode_api_key) -> str:
 
 # Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
 
-def generate_mondrian():
+def generate_mondrian() -> list:
     """Called by Create a grid and adds random horizontal and vertical lines
     based on WIDTH_PIXELS, HEIGHT_PIXELS, TILE_SIZE
     """
@@ -1480,7 +1515,7 @@ def generate_mondrian():
     return grid
 
 
-def mondrian_flood_fill(grid, x, y, old_color, new_color):
+def mondrian_flood_fill(grid, x: int, y: int, old_color: int, new_color: int) -> None:
     """Fill grid with colors:
     """
     if x < 0 or x >= GRID_WIDTH or y < 0 or y >= GRID_HEIGHT:
@@ -1494,13 +1529,14 @@ def mondrian_flood_fill(grid, x, y, old_color, new_color):
     mondrian_flood_fill(grid, x-1, y, old_color, new_color)
     mondrian_flood_fill(grid, x, y+1, old_color, new_color)
     mondrian_flood_fill(grid, x, y-1, old_color, new_color)
+    return None
 
 
-def draw_mondrian(grid, filename) -> None:
+def draw_mondrian(grid: list, filename: str) -> None:
     """Use the Cairo graphics library to render the grid as an image2.
     This references global variables WIDTH_PIXELS, HEIGHT_PIXELS.
     """
-    print_trace("draw_mondrian() grid="+str(grid)+" filename="+filename)
+    print_trace("draw_mondrian() grid="+str(grid)+"\nfilename="+filename)
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, WIDTH_PIXELS, HEIGHT_PIXELS)
     ctx = cairo.Context(surface)
 
@@ -1515,7 +1551,7 @@ def draw_mondrian(grid, filename) -> None:
     return
 
 
-def gen_one_file(file_path) -> bool:
+def gen_one_file(file_path: str) -> bool:
     """Generate image and draw to a file.
     """
     func_start_timer = time.perf_counter()
@@ -1536,7 +1572,7 @@ def gen_one_file(file_path) -> bool:
 #### SECTION 16 - DALL-E Generative AI OpenAI API functions:
 
 
-def gen_dalle_file(gened_file_path) -> str:
+def gen_dalle_file(gened_file_path: str) -> str:
     """Generate image using DALL-E Generative AI API calls to OpenAI servers.
     """
     #openai_engine_id = get_openai_engine_id(openai_api_key)
@@ -1599,7 +1635,7 @@ def gen_dalle_file(gened_file_path) -> str:
     return gened_file_path
 
 
-def get_stability_engine_id(api_key) -> str:
+def get_stability_engine_id(api_key: str) -> str:
     """Return the id to the Stability AI model/engine id for using Stable Diffusion.
     """
     stability_engine_id = "stable-diffusion-xl-1024-v1-0"
@@ -1625,7 +1661,7 @@ def get_stability_engine_id(api_key) -> str:
     return stability_engine_id
 
 
-def gen_stablediffusion_file(prompt) -> str:
+def gen_stablediffusion_file(prompt: str) -> str:
     """Based on global variables PROMPT_TEXT, WIDTH_PIXELS and HEIGHT_PIXELS,
     generate an image using Stable Diffusion API calls to Stability AI servers.
     # Stable Diffusion shines at precise control and customization, or specific artistic directions
@@ -1701,7 +1737,7 @@ def gen_stablediffusion_file(prompt) -> str:
     return False
 
 
-def gen_claude_file(prompt) -> str:
+def gen_claude_file(prompt: str) -> str:
     """Call Anthropic API to generate an image.
     : PROMPT_TEXT  from global variables
     : WIDTHxHEIGHT from global variables
@@ -1728,6 +1764,7 @@ def gen_claude_file(prompt) -> str:
         # PROTIP: Get the 
         print_error(f"gen_claude_file() {e}")
 
+    # QUESTION: What are max_tokens and size?
     try:
         image_obj = client.images.create(
             model=claude_engine_id,
@@ -1750,8 +1787,10 @@ def gen_claude_file(prompt) -> str:
 
 #### SECTION 16 - Post-generation processing
 
+zzz
 
-def add_watermark2png(input_image, output_image, watermark_text) -> str:
+
+def add_watermark2png(input_image: str, output_image: str, watermark_text: str) -> str:
     """Add watermark to PNG image.
     """
     # See https://www.geeksforgeeks.org/python-pillow-creating-a-watermark/
@@ -1799,13 +1838,15 @@ def add_watermark2png(input_image, output_image, watermark_text) -> str:
     return out_url
 
 
-def mint_nft(file_path_in, blockchain_name, file_path_out):
+def mint_nft(file_path_in: str, blockchain_name: str, file_path_out: str) -> None:
     # TODO: mint_nft - see https://bomonike.github.io/nft
+    # https://www.crossmint.com/console/projects/apiKeys
     # marketplace = "OpenSea", "MagicEden", "Rarible", "Superrare"
     # blockchain_name = "Ethereum", "Solana", "Polygon", "AirNFTs", "NEAR"
     # wallet = "Metamask", MATIC (Polygon's native token) or Polygon-bridged ETH
     # Agents = Zapier, make.com, n8n, Agentforce
-    api_key = get_api_key("chain?","johndoe")
+    
+    api_key = get_api_key("crossmint","prod-ntfs")  # In Cloud Keychain
     print_trace("Mint NFT from: "+file_path_in +" to "+blockchain_name)
     print_trace("Minted NFT at: "+file_path_out)
     return
@@ -1814,7 +1855,7 @@ def mint_nft(file_path_in, blockchain_name, file_path_out):
 #### SECTION 15 - End-of-Run summary functions:
 
 
-def print_wall_times():
+def print_wall_times() -> None:
     """Prints All the timings together for consistency of output:
     """
     #print_heading("Wall times (hh:mm:sec.microsecs):")
@@ -1837,8 +1878,10 @@ def print_wall_times():
     pgm_stop_perftimestamp = time.perf_counter()
     # print(str(pgm_stop_perftimestamp)+" seconds.microseconds perf time.")
 
+    return
 
-def show_summary(in_seq):
+
+def show_summary(in_seq: int) -> None:
     """Print summary count of files processed and the time to do them.
     """
     if SHOW_SUMMARY_COUNTS:
@@ -1853,9 +1896,10 @@ def show_summary(in_seq):
                 f" during {str(pgm_elapsed_wall_time)} Days:Hours:Mins:Secs")
 
     # TODO: Write wall times to log for longer-term analytics
+    return
 
 
-def log_file_gened():
+def log_file_gened() -> None:
     """TODO: print_output_file_log()
     """
     # Output to a PNG file:
@@ -1873,6 +1917,11 @@ if __name__ == "__main__":
     """
     Referencing global variables: stability_api_key
     """
+    url="http://wilsonmar.com"
+    filepath="/Users/johndoe/Downloads/test.url"
+    save_url_to_file(filepath, url)
+    exit()
+
     # After set_hard_coded_defaults()
     # TODO: load_env_file("???")  # read_env_file(ENV_FILE_PATH)
     read_cmd_args()  # override command line parameters at run time.
@@ -1894,7 +1943,7 @@ if __name__ == "__main__":
             gened_file_path = set_output_file_path(artpiece_num,"stab","art")
             result = gen_claude_file(gened_file_path)
         else: # use local programmatic code:
-            ai = "local"
+            ai = "pgm"
             gened_file_path = set_output_file_path(artpiece_num,ai,"art")
             result = gen_one_file(gened_file_path)
 
@@ -1905,6 +1954,10 @@ if __name__ == "__main__":
         if GEN_SHA256:  # -256 --hash
             hash_str = hash_file_sha256(gened_file_path) # from step above
             print_trace(str(len(hash_str))+" char SHA256 hash:"+hash_str)
+
+        if GEN_URL_FILE: # -wm --watermark
+            gened_file_path = set_output_file_path(artpiece_num,ai,"art")
+            result = gen_one_file(gened_file_path)
 
         if KEEP_SHOWING:  # -ks--keepshow if FILES_TO_GEN == 0:   # Not infinite loop:
             # For running in kiosk mode where images appear and disappear:
