@@ -14,7 +14,7 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-git commit -m"v020 + mongodb :mondrian-gen.py"
+git commit -m"v021 + logging :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
 
@@ -81,10 +81,10 @@ flake8  E501 line too long, E222 multiple spaces after operator
         -q, --quiet           Run without output
         -v, --verbose         Show what input goes into functions
         -vv, --trace          Trace info comes out of functions
+        -log, --loglvl LOGLEVEL  Log to external file "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
         -ss, --showsecrets    Show secrets
         -ri, --runid          Run ID (no spaces or special characters)
         -si, --si             Show System Info
-        -log, --log           Log to external file
         -dt, --showdates      Show dates in logs
         -z, --utc             Show Dates in UTC/GMT=Zulu timezone
         -d, --drivepath DRIVEPATH
@@ -169,6 +169,7 @@ from functools import cache
 import hashlib
 import io
 import json
+import logging
 import os
 import pathlib
 from pathlib import Path
@@ -289,7 +290,9 @@ class bcolors:  # ANSI escape sequences:
     WARNING = BLUE # '\033[93m'   # [93 yellow
     ERROR = RED # '\033[91m'     # [91 red
     FAIL = YELLOW # '\033[91m'      # [91 red
-              
+
+LOG_LVL = False   # If True, log to external file
+
 def do_clear_cli() -> None:
     if CLEAR_CLI:
         import os
@@ -308,72 +311,97 @@ def print_heading(text_in: str) -> None:
     """
     if show_heading:
         if show_dates_in_logs:
-            print(bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', RESET)
+            out = bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', RESET
         else:
-            print(bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET)
+            print(bcolors.INFO +'***'+ out + RESET)
+            out = bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET
+        print(out)
+        if LOG_LVL == "INFO":
+            logging.info(out)
 
+# "INFO", "WARNING", "ERROR", "DEBUG", "CRITICAL"
 def print_fail(text_in: str) -> None:
     """ Explain a critical failure causing the program to stop.
     """
     if show_fail:
         if show_dates_in_logs:
-            print(bcolors.FAIL, '***', local_datetime_stamp(), "FAIL:", f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.FAIL, '***', "FAIL:", f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.FAIL +'***'+ out + RESET)
+        if LOG_LVL == "CRITICAL":
+            logging.critical(out)
 
 def print_error(text_in: str) -> None:  
     """ Explain to programmers about a potential programming error.
     """
     if show_fail:
         if show_dates_in_logs:
-            print(bcolors.ERROR, '***', local_datetime_stamp(), "ERROR:", f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.ERROR, '***', "ERROR:", f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.ERROR +'***'+ out + RESET)
+        if LOG_LVL == "ERROR":
+            logging.error(out)
 
 def print_warning(text_in: str) -> None:
     """ Warn the programmer about changes such as default values applied.
     """
     if show_warning:
         if show_dates_in_logs:
-            print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.WARNING, '***', "WARNING:",f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.WARNING +'***'+ out + RESET)
+        if LOG_LVL == "WARNING":
+            logging.warning(out)
 
 def print_todo(text_in: str) -> None:
     """ Remind the programmer of a TODO item when the program is run.
     """
     if show_todo:
         if show_dates_in_logs:
-            print(bcolors.CVIOLET, '***', local_datetime_stamp(), "TODO:", f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.CVIOLET, '***', "TODO:", f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.INFO +'***'+ out + RESET)
+        # logging.warning(out)
 
 def print_info(text_in: str) -> None:
     """Display information to users about what was done.
     """
     if show_info:
         if show_dates_in_logs:
-            print(bcolors.INFO+bcolors.BOLD,'***', local_datetime_stamp(), "INFO:", f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.INFO+bcolors.BOLD,'***', "INFO:", f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.INFO+bcolors.BOLD +'***'+ out + RESET)
+        if LOG_LVL == "INFO":
+            logging.info(out)
 
 def print_verbose(text_in: str) -> None:
     """Display details about inputs to each function:
     """
     if show_verbose:
         if show_dates_in_logs:
-            print(bcolors.VERBOSE, '***', local_datetime_stamp(), f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.VERBOSE, '***', f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.VERBOSE +'***'+ out + RESET)
+        if LOG_LVL == "INFO":
+            logging.info(out)
 
 def print_trace(text_in: str) -> None:  # displayed as each object is created in pgm:
     """To display details output from a function:
     """
     if show_trace:
         if show_dates_in_logs:
-            print(bcolors.TRACE, '***', local_datetime_stamp(), f'{text_in}', RESET)
+            out = local_datetime_stamp() +" "+ text_in
         else:
-            print(bcolors.TRACE, '***', f'{text_in}', RESET)
+            out = text_in
+        print(bcolors.TRACE +'***'+ out + RESET)
+        if LOG_LVL == "DEBUG":
+            logging.debug(out)
 
 def print_secret(secret_in: str) -> None:
     """ Outputs only the first few characters (like Git) with dots replacing the rest 
@@ -402,6 +430,11 @@ def print_secret(secret_in: str) -> None:
 #### SECTION 05 - TASK: Customize hard-coded values that control program flow.
 
 
+# Start with program name (without ".py" file extension) such as "modrian-gen":
+PROGRAM_NAME = Path(__file__).stem
+    # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
+    # Instead of os.path.splitext(os.path.basename(sys.argv[0]))[0]
+
 # This check is too late because "No module named" errors appear first when not in venv.
 # VSCode Python Environment Manager extension https://www.youtube.com/watch?v=1w6zUrVx4to
 def is_venv_activated():
@@ -410,11 +443,6 @@ def is_venv_activated():
 if not is_venv_activated():
     print("Please activate your virtual environment:\npython3 -m venv venv\nsource venv/bin/activate")
     exit(9)
-
-# Start with program name (without ".py" file extension) such as "modrian-gen":
-PROGRAM_NAME = Path(__file__).stem
-    # See https://stackoverflow.com/questions/4152963/get-name-of-current-script-in-python
-    # Instead of os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 def is_macos():
     return platform.system() == "Darwin"
@@ -425,7 +453,7 @@ if os.name == "nt":  # Windows operating system:
     print_fail(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
     print_warning("*** WARNING: This program has not been tested on Windows yet.")
 else:
-    print("os.name="+os.name)  # "posix" for macOS & Linux
+    # print("*** os.name="+os.name)  # "posix" for macOS & Linux
     SLASH_CHAR = "/"
 
 SAVE_CWD = os.getcwd()  # cwd=current working directory (python-examples code folder)
@@ -447,10 +475,10 @@ show_info = True
 show_warning = True
 show_error = True
 show_fail = True
+LOG_LVL = False
 
 DRIVE_VOLUME = "NODE NAME"  # as in "/Volumes/NODE NAME" - the default from manufacturing.
 
-PRINT_OUTPUT_FILE_LOG = True
 show_dates_in_logs = False
 DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
@@ -588,7 +616,7 @@ def read_cmd_args() -> None:
 
     parser.add_argument("-ri", "--runid", action="store_true", help="Run ID (no spaces or special characters)")
     parser.add_argument("-si", "--si", action="store_true", help="Show System Info")
-    parser.add_argument("-log", "--log", action="store_true", help="Log to external file")
+    parser.add_argument("-l", "--loglvl", help="Level of logging to external file/cloud")
     parser.add_argument("-dt", "--showdates", action="store_true", help="Show dates in logs")
     parser.add_argument("-z", "--utc", action="store_true", help="Show Dates in UTC/GMT=Zulu timezone")
 
@@ -666,6 +694,18 @@ def read_cmd_args() -> None:
     if args.trace:
         global show_trace
         show_trace = True
+
+    if args.loglvl:               # -l --loglvl "DEBUG", "INFO", "WARNING", "ERROR", "FAIL", "NONE"
+        global LOG_LVL
+        LOG_LVL = args.loglvl
+    # TODO: Log to cloud API?
+        global LOGGER_FILE_PATH
+        LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
+        print("*** DEBUGGING: LOGGER_FILE_PATH="+LOGGER_FILE_PATH)
+        exit()
+        global LOGGER_NAME
+        LOGGER_NAME = os.path.basename(__file__)  # program script name.py
+
     if args.showsecrets:  # -ss  --showsecrets
         global show_secrets
         show_secrets = True
@@ -780,14 +820,6 @@ def read_cmd_args() -> None:
         global MONGODB
         MONGODB = args.mongodb
 
-    if args.log:               # -l
-        global PRINT_OUTPUT_FILE_LOG
-        PRINT_OUTPUT_FILE_LOG = True
-        global LOGGER_FILE_PATH
-        LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
-        global LOGGER_NAME
-        LOGGER_NAME = os.path.basename(__file__)  # program script name.py
-
     if args.sleepsecs:          # -s 1.2
         global SLEEP_SECONDS
         SLEEP_SECONDS = args.sleepsecs  # between files created in a loop
@@ -806,6 +838,11 @@ def calc_from_globals() -> None:
     * WIDTHxHEIGHT and TILE_SIZE
     * watermark text
     """
+    if LOG_LVL:  # specified:
+        if LOG_LVL == "DEBUG" or LOG_LVL == "INFO" or LOG_LVL == "WARNING" or LOG_LVL == "ERROR" or LOG_LVL == "FAIL":
+            logging.basicConfig(filename=LOGGER_FILE_PATH, level=LOG_LVL)
+            print_info(f"--loglvl \"{LOG_LVL}\" in calc_from_globals().")
+
     user_home_path = os.path.expanduser("~")  # user home folder path "/Users/johndoe"
     global OUTPUT_PATH_PREFIX
     OUTPUT_PATH_PREFIX = user_home_path+ SLASH_CHAR + OUTPUT_FOLDER
@@ -912,10 +949,10 @@ def get_str_from_env_file(key_in: str) -> str:
     """
     # FIXME:
     env_var = os.environ.get(key_in)
-    print_trace("DEBUG: EXIT: key_in="+key_in+" env_var="+env_var)
+    # print_verbose("get_str_from_env_file() key_in="+key_in+" env_var="+env_var)
 
     if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE_PATH)
+        print_warning("get_str_from_env_file() key="+key_in + " not found in OS nor .env file: " + ENV_FILE_PATH)
         return None
     else:
         # PROTIP: Display only first 5 characters of a potentially secret long string:
@@ -1774,10 +1811,10 @@ def gen_dalle2_file(gened_file_path: str) -> str:
         func_duration = func_end_timer - func_start_timer
         print_trace(f"gen_dalle2_file() func_duration={func_duration:.5f} seconds")
 
-        if PRINT_OUTPUT_FILE_LOG:
+        if LOG_LVL:
             file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
             print(f"*** LOG: {gened_file_path},{file_bytes},{file_creation_datetime(gened_file_path)},{func_duration:.5f}")
-
+        else:
             file_bytes = get_file_size_on_disk(watermarked_file_path)  # type = number
             print(f"*** LOG: {watermarked_file_path},{file_bytes},{func_duration:.5f}")
     else:
@@ -1829,7 +1866,7 @@ def gen_qwen_file(gened_file_path: str) -> str:
         func_duration = func_end_timer - func_start_timer
         print_trace(f"gen_qwen_file() func_duration={func_duration:.5f} seconds")
 
-        if PRINT_OUTPUT_FILE_LOG:
+        if LOG_LVL:
             file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
             print(f"*** LOG: {gened_file_path},{file_bytes},{file_creation_datetime(gened_file_path)},{func_duration:.5f}")
 
@@ -2110,7 +2147,7 @@ def print_wall_times() -> None:
 
     # For wall time of xpt imports:
     xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-    print_verbose("for import of Python extra    libraries: "+ \
+    print_verbose("for import of Python external libraries: "+ \
         str(xpt_elapsed_wall_time))
 
     pgm_stop_datetimestamp = dt.datetime.now()
@@ -2125,10 +2162,10 @@ def print_wall_times() -> None:
 
 
 def log_file_gened() -> None:
-    """TODO: print_output_file_log()
+    """TODO: LOG_LVL()
     """
     # Output to a PNG file:
-    if PRINT_OUTPUT_FILE_LOG:
+    if LOG_LVL:
         file_create_stamp = file_creation_datetime(gened_file_path)
         file_bytes = get_file_size_on_disk(gened_file_path)  # type = number
         print(f"*** LOG: {gened_file_path},{file_bytes},{file_create_datetime},{func_duration:.5f}")
