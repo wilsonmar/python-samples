@@ -14,11 +14,13 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-git commit -m"v021 + logging :mondrian-gen.py"
+git commit -m"v022 + logging :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
+This code will be split into multiple files: documentation to __init__.py and
+utility functions to utility.py.
 
-# Before running this program:
+#### Before running this program:
 1. In Terminal: INSTEAD OF: conda install -c conda-forge ...
     python3 -m venv venv
     source venv/bin/activate
@@ -313,11 +315,10 @@ def print_heading(text_in: str) -> None:
         if show_dates_in_logs:
             out = bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', RESET
         else:
-            print(bcolors.INFO +'***'+ out + RESET)
             out = bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET
         print(out)
         if LOG_LVL == "INFO":
-            logging.info(out)
+            logging.info(text_in)
 
 # "INFO", "WARNING", "ERROR", "DEBUG", "CRITICAL"
 def print_fail(text_in: str) -> None:
@@ -330,7 +331,7 @@ def print_fail(text_in: str) -> None:
             out = text_in
         print(bcolors.FAIL +'***'+ out + RESET)
         if LOG_LVL == "CRITICAL":
-            logging.critical(out)
+            logging.critical(text_in)
 
 def print_error(text_in: str) -> None:  
     """ Explain to programmers about a potential programming error.
@@ -342,7 +343,7 @@ def print_error(text_in: str) -> None:
             out = text_in
         print(bcolors.ERROR +'***'+ out + RESET)
         if LOG_LVL == "ERROR":
-            logging.error(out)
+            logging.error(text_in)
 
 def print_warning(text_in: str) -> None:
     """ Warn the programmer about changes such as default values applied.
@@ -354,7 +355,7 @@ def print_warning(text_in: str) -> None:
             out = text_in
         print(bcolors.WARNING +'***'+ out + RESET)
         if LOG_LVL == "WARNING":
-            logging.warning(out)
+            logging.warning(text_in)
 
 def print_todo(text_in: str) -> None:
     """ Remind the programmer of a TODO item when the program is run.
@@ -365,7 +366,8 @@ def print_todo(text_in: str) -> None:
         else:
             out = text_in
         print(bcolors.INFO +'***'+ out + RESET)
-        # logging.warning(out)
+        # no LOG_LVL
+        logging.warning(text_in)
 
 def print_info(text_in: str) -> None:
     """Display information to users about what was done.
@@ -377,7 +379,7 @@ def print_info(text_in: str) -> None:
             out = text_in
         print(bcolors.INFO+bcolors.BOLD +'***'+ out + RESET)
         if LOG_LVL == "INFO":
-            logging.info(out)
+            logging.info(text_in)
 
 def print_verbose(text_in: str) -> None:
     """Display details about inputs to each function:
@@ -389,7 +391,7 @@ def print_verbose(text_in: str) -> None:
             out = text_in
         print(bcolors.VERBOSE +'***'+ out + RESET)
         if LOG_LVL == "INFO":
-            logging.info(out)
+            logging.info(text_in)
 
 def print_trace(text_in: str) -> None:  # displayed as each object is created in pgm:
     """To display details output from a function:
@@ -401,7 +403,7 @@ def print_trace(text_in: str) -> None:  # displayed as each object is created in
             out = text_in
         print(bcolors.TRACE +'***'+ out + RESET)
         if LOG_LVL == "DEBUG":
-            logging.debug(out)
+            logging.debug(text_in)
 
 def print_secret(secret_in: str) -> None:
     """ Outputs only the first few characters (like Git) with dots replacing the rest 
@@ -424,6 +426,7 @@ def print_secret(secret_in: str) -> None:
                 print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
             else:
                 print(bcolors.CBEIGE, '***', " SECRET: ", f'{secret_out}', RESET)
+    # NOTE: secrets should not be printed to logs.
     return None
 
 
