@@ -14,11 +14,17 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-git commit -m"v022 + logging :mondrian-gen.py"
+git commit -m"v023 + import env err :mondrian-gen.py"
 
 Tested on macOS 24.1.0 using Python 3.12.8
 This code will be split into multiple files: documentation to __init__.py and
 utility functions to utility.py.
+
+#### Features:
+
+* Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
+
+* TODO: Use Pytest to unit test individual functions with assertions.
 
 #### Before running this program:
 1. In Terminal: INSTEAD OF: conda install -c conda-forge ...
@@ -33,7 +39,7 @@ utility functions to utility.py.
     python3 -m pip install stablediffusionapi
         import smtplib
         from email.mime.text import MIMEText
-    python3 -m pip install anthropic pymongo
+    python3 -m pip install anthropic pymongo deepseek
 
     # Successfully installed stablediffusionapi-0.0.5
     # Successfully installed stablediffusion_api-1.0.7 from https://stability.ai
@@ -48,16 +54,24 @@ utility functions to utility.py.
 flake8  E501 line too long, E222 multiple spaces after operator
 
 4. Use an internet browser to obtain API keys from cloud services: 
-   1a. ChatGPT API calls at https://platform.openai.com/api-keys and 
-   1b. https://platform.stability.ai/account/keys see https://www.youtube.com/watch?v=Uo9XUapKz9o&t=4s
-   1c. https://www.quicknode.com/signup
-   1d. https://chat.qwenlm.ai/auth?action=signup Qwen2.5-Max Max context length: 32,768 tokens, Max generation length: 8,192 tokens
+   a. ChatGPT API calls at https://platform.openai.com/api-keys and 
+   b. https://platform.stability.ai/account/keys see https://www.youtube.com/watch?v=Uo9XUapKz9o&t=4s
+   c. Anthropic API calls at https://console.anthropic.com
+   d. qwak
+   e. https://platform.deepseek.ai/usage see https://api-docs.deepseek.com/quick-start/pricing
+
+   f. https://www.quicknode.com/signup
+   g. https://chat.qwenlm.ai/auth?action=signup Qwen2.5-Max Max context length: 32,768 tokens, Max generation length: 8,192 tokens
 5. Open the Keychain Access.app. Click login then iCloud. Click the add icon at the top.
 6. Fill in the Item Name and Account Name 
-   6a. Store "dalle2 as Item Name for use as --keyitem "openai"
-   6b. Store "stability" as Item Name for use as --keyitem "stability"
-   6c. Store QuickNode API Key & for use as --keyitem "quicknode"
-   6d. Store "gmail" as Item Name for sending emails.
+   a. Store "dalle2 as Item Name for use as -ai "dalle2"
+   b. Store "stability" as Item Name for use as -ai "stability"
+   c. Store Anthropic API Key & for use as -ai "anthropic"
+   d. Store "qwak" as Item Name for use as -ai "qwak"
+   e. Store "deepseek" as Item Name for use as -ai "deepseek"
+
+   f. Store QuickNode API Key & for use as -ai "quicknode"
+   g. Store "gmail" as Item Name for sending emails.
 7. Paste the API key in the Password field. Click Add.
 
 8. Create Edit .env files to customize run parameters.
@@ -136,7 +150,7 @@ flake8  E501 line too long, E222 multiple spaces after operator
 
 Alternative API: https://niftykit.com/products/minting-api
 
-TODO: Other articles about tools to generate art:
+#### Other articles about tools to generate art:
 <a target="_blank" href="https://www.youtube.com/watch?v=Vgcr6VOwHf0">VIDEO</a>
 * <a target="_blank" href="https://mondriangenerator.io/">Mondrian Generator</a> web-based tool. Allows you to adjust parameters in the left panel: Format (size), Complexity (number of blocks), Colors, Color amount.
 * <a target="_blank" href="https://www.artvy.ai/ai-art-style/piet-mondrian">Artvy</a> generates based on an image you upload for style transfer.
@@ -193,33 +207,40 @@ std_stop_datetimestamp = dt.datetime.now()
 #### SECTION 02 - imports external modules (alphabetically) at top of file
 # See https://peps.python.org/pep-0008/#imports
 
+
 # For wall time of xpt imports:
 xpt_strt_datetimestamp = dt.datetime.now()
-
-import anthropic
-import cairo  # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
-#import cryptography
-from Crypto.PublicKey import RSA  # from pip install pycryptodome
-from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.Random import get_random_bytes
-from qiskit.circuit.library import QFT   # see https://docs.quantum.ibm.com/api/qiskit
-#from qiskit import QuantumCircuit, execute, Aer
-from dotenv import load_dotenv
-from envcloak import load_encrypted_env
-import ipfs_api  # https://pypi.org/project/IPFS-Toolkit/
-import keyring
-from openai import OpenAI
-# import Pillow to convert SVG to PNG file format:
-from PIL import Image, ImageDraw, ImageFont  # noqa: E402
-import psutil
-import pytz  # for time zone handling
-from pymongo import MongoClient
-import qrcode
-import requests   # used by stability.ai to operate stable diffusion API
-    # NOTE: The requests library is more versatile and widely used than
-    # urllib is a built-in module that doesn't require additional installation.
-import timeit
-import tzlocal
+try:
+    import timeit
+    import anthropic
+    import cairo  # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
+    #import cryptography
+    from Crypto.PublicKey import RSA  # from pip install pycryptodome
+    from Crypto.Cipher import AES, PKCS1_OAEP
+    from Crypto.Random import get_random_bytes
+    from qiskit.circuit.library import QFT   # see https://docs.quantum.ibm.com/api/qiskit
+    #from qiskit import QuantumCircuit, execute, Aer
+    from dotenv import load_dotenv
+    from envcloak import load_encrypted_env
+    import ipfs_api  # https://pypi.org/project/IPFS-Toolkit/
+    import keyring
+    from openai import OpenAI
+    # import Pillow to convert SVG to PNG file format:
+    from PIL import Image, ImageDraw, ImageFont  # noqa: E402
+    import psutil
+    import pytz  # for time zone handling
+    from pymongo import MongoClient
+    import qrcode
+    import requests   # used by stability.ai to operate stable diffusion API
+        # NOTE: The requests library is more versatile and widely used than
+        # urllib is a built-in module that doesn't require additional installation.
+    import timeit
+    import tzlocal
+except ImportError:
+    print("Python module import failed. Please activate your virtual environment:\npython3 -m venv venv\nsource venv/bin/activate")
+    #print("    sys.prefix      = ", sys.prefix)
+    #print("    sys.base_prefix = ", sys.base_prefix)
+    exit(9)
 
 # For wall time of xpt imports:
 xpt_stop_datetimestamp = dt.datetime.now()
@@ -235,10 +256,9 @@ xpt_stop_datetimestamp = dt.datetime.now()
 utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
 pgm_strt_datetimestamp = dt.datetime.now()
 
+#import time   # std python module for time.sleep(1.5)
 local_time = time.localtime()
 TZ_OFFSET = time.strftime("%z", local_time)  # such as "-0700"
-# TODO: Use Decorators to capture timings. https://realpython.com/videos/timing-functions-decorators/
-#import time   # std python module for time.sleep(1.5)
 # To display date & time of program start:
 pgm_strt_timestamp = time.monotonic()
 # TODO: Display Z (UTC/GMT) instead of local time
@@ -313,9 +333,9 @@ def print_heading(text_in: str) -> None:
     """
     if show_heading:
         if show_dates_in_logs:
-            out = bcolors.HEADING+bcolors.UNDERLINE, '\n***', local_datetime_stamp(), f'{text_in}', RESET
+            out = bcolors.HEADING+bcolors.UNDERLINE, '\n*** ', local_datetime_stamp(), f'{text_in}', RESET
         else:
-            out = bcolors.HEADING+bcolors.UNDERLINE,'\n***', f'{text_in}', RESET
+            out = bcolors.HEADING+bcolors.UNDERLINE,'\n*** ' , f'{text_in}', RESET
         print(out)
         if LOG_LVL == "INFO":
             logging.info(text_in)
@@ -329,7 +349,7 @@ def print_fail(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.FAIL +'***'+ out + RESET)
+        print(bcolors.FAIL +'*** '+ out + RESET)
         if LOG_LVL == "CRITICAL":
             logging.critical(text_in)
 
@@ -341,7 +361,7 @@ def print_error(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.ERROR +'***'+ out + RESET)
+        print(bcolors.ERROR +'*** '+ out + RESET)
         if LOG_LVL == "ERROR":
             logging.error(text_in)
 
@@ -353,7 +373,7 @@ def print_warning(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.WARNING +'***'+ out + RESET)
+        print(bcolors.WARNING +'*** '+ out + RESET)
         if LOG_LVL == "WARNING":
             logging.warning(text_in)
 
@@ -365,7 +385,7 @@ def print_todo(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.INFO +'***'+ out + RESET)
+        print(bcolors.INFO +'*** '+ out + RESET)
         # no LOG_LVL
         logging.warning(text_in)
 
@@ -377,7 +397,7 @@ def print_info(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.INFO+bcolors.BOLD +'***'+ out + RESET)
+        print(bcolors.INFO+bcolors.BOLD +'*** '+ out + RESET)
         if LOG_LVL == "INFO":
             logging.info(text_in)
 
@@ -389,7 +409,7 @@ def print_verbose(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.VERBOSE +'***'+ out + RESET)
+        print(bcolors.VERBOSE +'*** '+ out + RESET)
         if LOG_LVL == "INFO":
             logging.info(text_in)
 
@@ -401,7 +421,7 @@ def print_trace(text_in: str) -> None:  # displayed as each object is created in
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.TRACE +'***'+ out + RESET)
+        print(bcolors.TRACE +'*** '+ out + RESET)
         if LOG_LVL == "DEBUG":
             logging.debug(text_in)
 
@@ -414,7 +434,7 @@ def print_secret(secret_in: str) -> None:
             now_utc=datetime.now(timezone('UTC'))
             print(bcolors.WARNING, '*** ',now_utc,"SECRET: ", secret_in, RESET)
         else:
-            print(bcolors.CBEIGE, '***', "SECRET: ", secret_in, RESET)
+            print(bcolors.CBEIGE, '*** ', "SECRET: ", secret_in, RESET)
     else:
         # same length regardless of secret length to reduce ability to guess:
         secret_len = 8
@@ -423,9 +443,9 @@ def print_secret(secret_in: str) -> None:
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             if show_dates_in_logs:
-                print(bcolors.WARNING, '***', local_datetime_stamp(), f'{text_in}', RESET)
+                print(bcolors.WARNING, '*** ', local_datetime_stamp(), f'{text_in}', RESET)
             else:
-                print(bcolors.CBEIGE, '***', " SECRET: ", f'{secret_out}', RESET)
+                print(bcolors.CBEIGE, '*** ', " SECRET: ", f'{secret_out}', RESET)
     # NOTE: secrets should not be printed to logs.
     return None
 
@@ -443,10 +463,7 @@ PROGRAM_NAME = Path(__file__).stem
 def is_venv_activated():
     # import sys
     return sys.prefix != sys.base_prefix
-if not is_venv_activated():
-    print("Please activate your virtual environment:\npython3 -m venv venv\nsource venv/bin/activate")
-    exit(9)
-
+    
 def is_macos():
     return platform.system() == "Darwin"
 
@@ -565,7 +582,8 @@ GEN_NFT = False
 
 ADD_WATERMARK = False  # watermark2png()
 WATERMARK_TEXT = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
-# Copyright issues: In the United States, only works created by humans can be copyrighted.
+    # WARNING: Art made by text-to-image AI prompts are not copyrightable. 
+    # See https://copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf
 
 GEN_IPFS = False
 UPLOAD_TO_QUICKNODE = False
@@ -701,13 +719,9 @@ def read_cmd_args() -> None:
     if args.loglvl:               # -l --loglvl "DEBUG", "INFO", "WARNING", "ERROR", "FAIL", "NONE"
         global LOG_LVL
         LOG_LVL = args.loglvl
-    # TODO: Log to cloud API?
+    #if args.logger:               # -lf --logger "path   to   log   file"  # TODO: Log to cloud API?t
         global LOGGER_FILE_PATH
         LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
-        print("*** DEBUGGING: LOGGER_FILE_PATH="+LOGGER_FILE_PATH)
-        exit()
-        global LOGGER_NAME
-        LOGGER_NAME = os.path.basename(__file__)  # program script name.py
 
     if args.showsecrets:  # -ss  --showsecrets
         global show_secrets
@@ -1343,7 +1357,7 @@ def write_file_to_removable_drive(drive_path: str, file_name: str, content: str)
     # Verify that the drive is mounted and the path exists:
     if not os.path.exists(drive_path):
         # mount point = drive_path = '/Volumes/YourDriveName'
-        print(f"Drive path {drive_path} not found. Please check if it's properly connected.")
+        print_error(f"Drive path {drive_path} not found. Please check if it's properly connected.")
         raise FileNotFoundError(f"The drive path {drive_path} does not exist.")
         # Perhaps permission error?
         list_macos_volumes()
@@ -1479,7 +1493,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
                 return api_key
             else:
                 # FIXME: sd_api_key=None
-                print_fail("get_api_key() api_key=None")
+                print_error("get_api_key() api_key=None")
                 return None
         except Exception as e:
             print_error("get_api_key() str({e})")
@@ -1542,12 +1556,12 @@ def send_smtp() -> bool:
     """
     password = get_api_key("gmail",EMAIL_FROM)  # loadtesters
     if not password:
-        print_fail("send_smtp() does not have password needed.")
+        print_error("send_smtp() does not have password needed.")
         return False
 
     recipients = EMAIL_TO  # Recipients as a list: "[ 1@example.com, 2@example.com ]"
     if recipients is None:   # Not a list
-        print_fail("--emailfrom does not have recipients for send_smtp().")
+        print_error("--emailfrom does not have recipients for send_smtp().")
         return False
     
     #import smtplib
@@ -1643,6 +1657,16 @@ def insert_mongodb(doc_in: object) -> str:
     except Exception as e:
         print_error(f"insert_mongodb() Exception: {e}")
         return False
+
+
+def latest_git_sha1():
+    """Return the current Git SHA1 hash.
+    """
+    #import subprocess
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    except subprocess.CalledProcessError:
+        return "Git SHA1 not available"
 
 
 def upload_to_ipfs(file_path: str) -> str:
@@ -2228,10 +2252,12 @@ if __name__ == "__main__":
         # TODO: Add "sora"
         # TODO: Add DeepSeek 384x384 Janus from HuggingFace "janus" # https://api-docs.deepseek.com
         # TODO: Add https://chat.qwenlm.ai/ "qwenlm" https://www.youtube.com/watch?v=he9xAr_CKMQ
-        else: # use local programmatic code:
-            ai_svc = "pgm"
+        elif ai_svc == "pgm": # use local programmatic code:        
             gened_file_path = set_output_file_path(artpiece_num,ai_svc,"art.png")
             result = gen_one_file(gened_file_path)
+        else: # use local programmatic code:        
+            print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Is required. Aborting.")
+            exit(9)
 
         if SHOW_OUTPUT_FILE:   # --showout
             img = Image.open(gened_file_path)
@@ -2345,10 +2371,12 @@ if __name__ == "__main__":
                 print_trace(f"main() artpiece_num={artpiece_num} artpiece_duration={artpiece_duration:.5f} seconds")
                 document = {
                     "SHA256": hash_str,
+                    "git": latest_git_sha1(),
                     "key": RUNID, # T0011
                     "pgm": PROGRAM_NAME,
                     "start": format_datetime_stamp(pgm_strt_datetimestamp),
                     "ai_svc": ai_svc,
+                    #"model_id": model_id,
                     "artpiece_file": gened_file_path,
                     "watermarked_file": watermarked_file_path,
                     "cyphertext_file": cyphertext_file_path,
