@@ -14,16 +14,13 @@ https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnu
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-git commit -m"v023 + import env err :mondrian-gen.py"
+git commit -m"v024 + open_mongodb :mondrian-gen.py"
 
-Tested on macOS 24.1.0 using Python 3.12.8
-This code will be split into multiple files: documentation to __init__.py and
+* Code here are marked into "SECTION" divisions.
+* TODO: These comments will be split into multiple files: documentation to __init__.py and
 utility functions to utility.py.
 
-#### Features:
-
 * Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
-
 * TODO: Use Pytest to unit test individual functions with assertions.
 
 #### Before running this program:
@@ -139,13 +136,12 @@ flake8  E501 line too long, E222 multiple spaces after operator
                                 Recipient list of emails about results
         -ef, --emailfrom EMAILFROM
                                 Sender gmail address
-        -md, --mongodb MONGODB
+        -md, --mongodb MONGODB_ID
                                 "local", port "27017", or MONGODB URL
         -m, --summary         Show summary
 
 12. Craft commands to run this program:
-    ./mondrian-gen.py -v -vv 
-    ./mondrian-gen.py -v -vv -q -gf
+    ./mondrian-gen.py -v -vv -fn "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png" -md "local"
     ./mondrian-gen.py -v -vv --mintemail "johndoe@gmail.com" -q -gf -md "local" -ai "dalle2" 
 
 Alternative API: https://niftykit.com/products/minting-api
@@ -170,11 +166,42 @@ Other Mondrian artists:
 """
 
 
-#### SECTION 01 - import internal modules (alphabetically):
+#### SECTION 01 - Start Global timers:
 
 # For wall time of std (standard) imports:
 import datetime as dt
 std_strt_datetimestamp = dt.datetime.now()
+
+# Based on: pip3 install datetime
+#import datetime as dt
+#from datetime import datetime, timezone
+# For wall time of program run (using date and time together):
+utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
+pgm_strt_datetimestamp = dt.datetime.now()
+
+# For wall time of program run (using date and time together):
+utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
+pgm_strt_datetimestamp = dt.datetime.now()
+
+import time   # std python module for time.sleep(1.5)
+local_time = time.localtime()
+TZ_OFFSET = time.strftime("%z", local_time)  # such as "-0700"
+# To display date & time of program start:
+pgm_strt_timestamp = time.monotonic()
+# TODO: Display Z (UTC/GMT) instead of local time
+pgm_strt_epoch_timestamp = time.time()
+pgm_strt_local_timestamp = time.localtime()
+# the most accurate difference between two times. Used by timeit.
+# pgm_strt_perf_counter = time.perf_counter()
+
+# For the time taken to execute a small bit of Python code:
+#import timeit
+#from timeit import default_timer as timer
+# start_time = timeit.default_timer()  # start the program-level timer.
+
+
+#### SECTION 02 - import internal modules (alphabetically):
+
 
 from doctest import run_docstring_examples
 # Standard Python library modules (no need to pip install):
@@ -198,20 +225,21 @@ from email.mime.text import MIMEText
 import socket
 import subprocess
 import sys
-import time
+#import time
+import timeit
+import tzlocal
 import uuid
 
 std_stop_datetimestamp = dt.datetime.now()
 
 
-#### SECTION 02 - imports external modules (alphabetically) at top of file
+#### SECTION 03 - imports external modules (alphabetically) at top of file
 # See https://peps.python.org/pep-0008/#imports
 
 
 # For wall time of xpt imports:
 xpt_strt_datetimestamp = dt.datetime.now()
 try:
-    import timeit
     import anthropic
     import cairo  # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
     #import cryptography
@@ -222,6 +250,8 @@ try:
     #from qiskit import QuantumCircuit, execute, Aer
     from dotenv import load_dotenv
     from envcloak import load_encrypted_env
+    import fernet
+    from cryptography.fernet import Fernet
     import ipfs_api  # https://pypi.org/project/IPFS-Toolkit/
     import keyring
     from openai import OpenAI
@@ -234,43 +264,15 @@ try:
     import requests   # used by stability.ai to operate stable diffusion API
         # NOTE: The requests library is more versatile and widely used than
         # urllib is a built-in module that doesn't require additional installation.
-    import timeit
-    import tzlocal
-except ImportError:
-    print("Python module import failed. Please activate your virtual environment:\npython3 -m venv venv\nsource venv/bin/activate")
+except Exception as e:
+    print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
+    print(f"Please activate your virtual environment:\n$ python3 -m venv venv\n$ source venv/bin/activate")
     exit(9)
 
 # For wall time of xpt imports:
 xpt_stop_datetimestamp = dt.datetime.now()
-
-
-#### SECTION 03 - Start Global timers:
-
-
-# Based on: pip3 install datetime
-#import datetime as dt
-#from datetime import datetime, timezone
-# For wall time of program run (using date and time together):
-utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
-pgm_strt_datetimestamp = dt.datetime.now()
-
-#import time   # std python module for time.sleep(1.5)
-local_time = time.localtime()
-TZ_OFFSET = time.strftime("%z", local_time)  # such as "-0700"
-# To display date & time of program start:
-pgm_strt_timestamp = time.monotonic()
-# TODO: Display Z (UTC/GMT) instead of local time
-pgm_strt_epoch_timestamp = time.time()
-pgm_strt_local_timestamp = time.localtime()
-# the most accurate difference between two times. Used by timeit.
-# pgm_strt_perf_counter = time.perf_counter()
-
-# For the time taken to execute a small bit of Python code:
-#import timeit
-#from timeit import default_timer as timer
-# start_time = timeit.default_timer()  # start the program-level timer.
 
 
 #### SECTION 04 - utility printing globals and functions (used by other functions):
@@ -467,15 +469,6 @@ def is_venv_activated():
 def is_macos():
     return platform.system() == "Darwin"
 
-if os.name == "nt":  # Windows operating system:
-    SLASH_CHAR = "\\"
-    # if platform.system() == "Windows":
-    print_fail(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
-    print_warning("*** WARNING: This program has not been tested on Windows yet.")
-else:
-    # print("*** os.name="+os.name)  # "posix" for macOS & Linux
-    SLASH_CHAR = "/"
-
 SAVE_CWD = os.getcwd()  # cwd=current working directory (python-examples code folder)
 SAVE_PATH = os.path.expanduser("~")  # user home folder path like "/User/johndoe"
 #print("*** DEBUGGING: SAVE_PATH="+SAVE_PATH)
@@ -496,6 +489,7 @@ show_warning = True
 show_error = True
 show_fail = True
 LOG_LVL = False
+    # https://github.com/ArjanCodes/2023-logging/blob/main/logging_papertrail.py
 
 DRIVE_VOLUME = "NODE NAME"  # as in "/Volumes/NODE NAME" - the default from manufacturing.
 
@@ -565,6 +559,8 @@ SUMMARIZE_IMAGE = False  # For caption
 
 KIOSK_MODE = False
 
+FILE_NAME = None
+FILEPATH_PARM = None   # Filepath instead of generated
 FILES_TO_GEN = 1     # 0 = Infinite loop while in kiosk mode.
 SLEEP_SECONDS = 1.0  # between art created in a loop
 
@@ -609,7 +605,11 @@ decrypted_file_path='your_file.txt'
 quicknode_file_path = "path/to/your/file ???"
 
 SHOW_OUTPUT_FILE = False
-MONGODB = None
+MONGODB_ID = None
+MONGODB_NAME = "mondrian"
+# Define a NoSQL collection (like a table in relational databases):
+MONGODB_COLLECTION = "runs"
+ 
 
 KEEP_SHOWING = False
 
@@ -643,7 +643,7 @@ def read_cmd_args() -> None:
 
     parser.add_argument("-d", "--drivepath", help="Removeable USB Drive Name (after /Volumes/)")
     parser.add_argument("-f", "--folder", help="Folder (Desktop) to hold output files")
-
+    parser.add_argument("-fn", "--filename", help="Name of file already generated. To be processed.")
     parser.add_argument("-ai", "--ai", help="AI svc: dalle2, stability, deepseek, qwen")
     parser.add_argument("-ka", "--keyitem", help="Item string in keyring")
     parser.add_argument("-ki", "--keyacct", help="Account string in keyring to get API key")
@@ -769,12 +769,15 @@ def read_cmd_args() -> None:
         global FILES_TO_GEN
         FILES_TO_GEN = args.filesgen     # 0 = Infinite loop while in kiosk mode.
 
-    if args.drivepath:      # -d "//Volumes/DriveX" # (USB removable drive without the /Volumes/ prefix)
+    if args.drivepath:      # -d "DriveX" as in "//Volumes/DriveX" # (USB removable drive without the /Volumes/ prefix)
         global DRIVE_PATH
         DRIVE_PATH = args.drivepath
     if args.folder:         # -f "Downloads" (overwrites default "Desktop" folder)
         global OUTPUT_FOLDER
         OUTPUT_FOLDER = args.folder
+    if args.filename:       # -fn "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png"
+        global FILE_NAME
+        FILE_NAME = args.filename  # in place of gened_file_path
 
     if args.width:          # Width of output number (eg 500)"
         global WIDTH_PIXELS
@@ -834,8 +837,8 @@ def read_cmd_args() -> None:
         DELETE_OUTPUT_FILE = True   # If True, recover files from Trash
 
     if args.mongodb:           # -md "local", "27017", "mongodb://localhost:27017"
-        global MONGODB
-        MONGODB = args.mongodb
+        global MONGODB_ID
+        MONGODB_ID = args.mongodb
 
     if args.sleepsecs:          # -s 1.2
         global SLEEP_SECONDS
@@ -844,30 +847,43 @@ def read_cmd_args() -> None:
     return None
 
 
-    #### SECTION 08 - Set Static Global working constants:
+#### SECTION 08 - Set Static Global working constants:
+
 
 def calc_from_globals() -> None:
-    """This is called just once at the top of __main__ to 
-    assemble values within global variablessuch as 
+    """This is called just once at the top of __main__ to assemble 
+    values within global variables:
     * OUTPUT_PATH_PREFIX for defining output file paths.
     * api keys (secrets)
     * genai prompt text
     * WIDTHxHEIGHT and TILE_SIZE
     * watermark text
     """
+    global LOG_LVL
     if LOG_LVL:  # specified:
         if LOG_LVL == "DEBUG" or LOG_LVL == "INFO" or LOG_LVL == "WARNING" or LOG_LVL == "ERROR" or LOG_LVL == "FAIL":
             logging.basicConfig(filename=LOGGER_FILE_PATH, level=LOG_LVL)
             print_info(f"--loglvl \"{LOG_LVL}\" in calc_from_globals().")
+        # TODO: Add logging database.
 
-    user_home_path = os.path.expanduser("~")  # user home folder path "/Users/johndoe"
+    global SLASH_CHAR
+    if os.name == "nt":  # Windows operating system:
+        # and if platform.system() == "Windows":
+        SLASH_CHAR = "\\"
+        print_fail(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
+        print_warning("*** WARNING: This program has not been tested on Windows yet.")
+    else:
+        # print_trace("*** os.name="+os.name)  # "posix" for macOS & Linux
+        SLASH_CHAR = "/"
+
+    # user home folder path "/Users/johndoe/Documents/mondrian-gen" :
     global OUTPUT_PATH_PREFIX
-    OUTPUT_PATH_PREFIX = user_home_path+ SLASH_CHAR + OUTPUT_FOLDER
+    OUTPUT_PATH_PREFIX = os.path.expanduser("~") + SLASH_CHAR + OUTPUT_FOLDER
     # Create folder if it does not exist: 
     if not os.path.exists(OUTPUT_PATH_PREFIX):
         # If it doesn't exist, create the folder:
         os.makedirs(OUTPUT_PATH_PREFIX)
-        print_warning(f"--folder {OUTPUT_FOLDER} created by calc_from_globals().")
+        print_warning(f"--folder {OUTPUT_PATH_PREFIX} created by calc_from_globals().")
 
     # TODO: For art: vary size (ratio) of file to generate locally
 
@@ -1085,6 +1101,7 @@ def file_creation_datetime(path_to_file: str) -> str:
 
 
 #### SECTION 11 - Utility system information functions (which can be in a python module)
+
 
 def display_memory() -> None:
     #import os, psutil  #  psutil-5.9.5
@@ -1365,7 +1382,7 @@ def write_file_to_removable_drive(drive_path: str, file_name: str, content: str)
 
     try:
         # Write the content to the file
-        with open(file_path, 'w') as file:
+        with open(drive_path, 'w') as file:
             file.write(content)
         print(f"File '{file_name}' has been successfully written to {drive_path}")
     except PermissionError:
@@ -1411,11 +1428,11 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     after reading entire file into memory.
     Based on https://www.educative.io/answers/how-to-create-file-encryption-decryption-program-using-python
     """
-    # pip install cryptography
-    # from cryptography.fernet import Fernet
     
     # Generate a 32-byte random encryption key like J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM=
     if not ENCRYPTION_KEY:   # global variable
+        # pip install cryptography  # cryptography-44.0.0
+        #from cryptography.fernet import Fernet
         ENCRYPTION_KEY = Fernet.generate_key()
     # Create a Fernet object instance from the encryption key:
     fernet_obj = Fernet(ENCRYPTION_KEY)
@@ -1510,11 +1527,22 @@ def get_api_key(app_id: str, account_name: str) -> str:
    # See https://docs.python.org/3/library/logging.html#module-logging
 # def log_event(logger, event_type, message, level='info'):
 
+def prefix_output_file_path(file_name) -> str:
+    """ Add a prefix path to a file name
+    """
+    print_verbose("prefix_output_file_path() file_name="+file_name)
+    # Make use of global variable cached so not repeat:
+    file_path = OUTPUT_PATH_PREFIX + SLASH_CHAR + file_name
+    print_trace("prefix_output_file_path()="+file_path+", len="+str(len(file_path)))
+    return file_path
+
+
 def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
     """Generate the full file path for the generated image like this:
     /Users/johndoe/Desktop/mondrian-gen-20250119T192300-0700-1-openai-qr.png
-    Using :SLASH_CHAR ("/") from global variable depending on OS platform
-    OUTPUT_PATH_PREFIX contains:
+    Using globals:
+    :SLASH_CHAR ("/") from global variable depending on OS platform
+    OUTPUT_PATH_PREFIX  set by calc_from_globals(). It contains:
         /Users/johndoe = from os.path.expanduser("~")
         /Desktop :OUTPUT_FOLDER =  from global variable
     /mondrian-gen :PROGRAM_NAME =  from global variable
@@ -1525,21 +1553,17 @@ def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
 
     -1  :i = incrementor from argument
     -dalle2 or -pgm (if local programmatic code) :api_id = from argument 
-    -art or -qr  :filetype = from argument
-    .png
+    -art or -qr  :filetype = "art.png" or "qr.png" 
     """
     print_verbose("set_output_file_path() api_id="+api_id+" i="+str(i)+" of "+str(FILES_TO_GEN))
-    # WARNING: NOT from input file date's own timestamp:
-    # OUTPUT_PATH_PREFIX set by calc_from_globals()
-    print_verbose("set_output_file_path() OUTPUT_PATH_PREFIX="+OUTPUT_PATH_PREFIX)
 
-    datetime_stamp = local_datetime_stamp()
-    full_file_path = OUTPUT_PATH_PREFIX+SLASH_CHAR+PROGRAM_NAME \
-        +"-"+RUNID+"-"+datetime_stamp+"-"+str(i)+"-"+api_id+"-"+filetype
-    print_trace("set_output_file_path()="+full_file_path+" len="+str(len(full_file_path)))
-    # /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-
-    # /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-dalle2-qr.png
+    datetime_stamp = local_datetime_stamp()  # from OS, not from created file. Not verified.
+    file_name = PROGRAM_NAME+"-"+RUNID+"-"+datetime_stamp+"-"+str(i)+"-"+api_id+"-"+filetype
+    print_trace("set_output_file_path()="+file_name+" len="+str(len(file_name)))
+    # Like                        mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-dalle2-qr.png
+    full_file_path = prefix_output_file_path(file_name)
     return full_file_path
+    # Like /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-dalle2-qr.png
 
 
 def send_smtp() -> bool:
@@ -1616,56 +1640,85 @@ def is_none(variable):
 def is_only_numbers(variable):
     return str(variable).isdigit()
 
-def insert_mongodb(doc_in: object) -> str:
-    """Call MongoDB to store a document into a collection into aNoSQL database
-    """
-    print_verbose("insert_mongodb() str(document)="+str(doc_in)) # str(len(doc_in)))
-    
-    # from pymongo import MongoClient
+
+def open_mongodb() -> object:
+    # from pymongo import MongoClient  # a blocking synchronous driver API to MongoDB
+    # NOTE: The async callback alternative is Motor http://motor.readthedocs.org/en/stable/
     # client = MongoClient('localhost', 27017)
     # Connect to MongoDB (assuming it's running on localhost):
-    if is_none(MONGODB):
+    if is_none(MONGODB_ID):  # variable contains None (no) value!
         return None
-    elif MONGODB == "local":
+    elif MONGODB_ID == "local":  # The hard-coded default
         MONGODB_URL = f"mongodb://localhost:27017/"
-    elif is_only_numbers(MONGODB):
-        MONGODB_URL = f"mongodb://localhost:{MONGODB}/"
+    elif is_only_numbers(MONGODB_ID):
+        MONGODB_URL = f"mongodb://localhost:{MONGODB_ID}/"
     else:
-        MONGODB_URL = MONGODB  # host URL pecified in parm.
+        MONGODB_URL = MONGODB_ID  # host URL specified in parm.
+    print_verbose("-md \""+MONGODB_ID+"\" = MONGODB_URL=\""+MONGODB_URL+"\"")
  
-    MONGODB_NAME = "mondrian"
-    # Define a NoSQL collection (like a table in relational databases):
-    MONGODB_COLLECTION = "runs"
- 
-    client = MongoClient(MONGODB_URL)
-    db = client[MONGODB_NAME]
-    collection = db[MONGODB_COLLECTION]
+    try:
+        print_verbose("open_mongodb() MONGODB_NAME=\""+MONGODB_NAME+"\" MONGODB_COLLECTION=\""+MONGODB_COLLECTION+"\"")
+        client = MongoClient(MONGODB_URL)
+        mydb = client[MONGODB_NAME]
+        mycol = mydb[MONGODB_COLLECTION]
 
-    # Create a document to insert:
-    #doc_in = {
-    #    "interests": ["programming", "data science", "machine learning"],
-    #    ...
-    #}
+        # FIXME: print(client.list_database_names())
+            # pymongo.errors.ServerSelectionTimeoutError: localhost:27017: 
+            # [Errno 61] Connection refused (configured timeouts: 
+            # socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), 
+            # Timeout: 30s, Topology Description: <TopologyDescription id: 679fe4670ac94f8bbe73e374, 
+            # topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) 
+            # server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: 
+            # [Errno 61] Connection refused (configured timeouts: 
+            # socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+        return mycol
+    except Exception as e:
+        print_error(f"open_mongodb() access Exception: {e}")
+        return None
+
+
+def insert_mongodb(doc_in: object) -> str:
+    """Call MongoDB to store a document into a collection into aNoSQL database
+    ./mondrian-gen.py -db local -v -vv -fn 
+    : MONGODB_ID
+    : MONGODB_URL
+    : MONGODB_NAME
+    : MONGODB_COLLECTION
+    # See https://github.com/mongodb/academia-mongodb-lab-python by https://www.linkedin.com/in/juliannachen-yvr/
+    """
+    mycol = open_mongodb()
+    if is_none(mycol):
+        return None
+
+    print_verbose("insert_mongodb() my collection=\""+str(mycol)+"\" in document="+str(doc_in))
     try:
         # Insert the document into the collection:
-        result = collection.insert_one(doc_in)
+        result = mycol.insert_one(doc_in)
         print(f"Inserted document ID: {result.inserted_id}")
         print_trace("insert_mongodb() collection \""+MONGODB_COLLECTION+\
             "\" inserted_id="+result.inserted_id)
         return result.inserted_id
-
     except Exception as e:
-        print_error(f"insert_mongodb() Exception: {e}")
+        print_error(f"insert_mongodb() insert Exception: {e}")
         return False
 
 
-def latest_git_sha1():
+# def find1_mongodb(run_id) -> object:
+#    for x in mycol.find({},{ "_id": run_id, "name": 1, "address": 1 }):
+#    print(x)
+
+
+def latest_git_sha1() -> str:
     """Return the current Git SHA1 hash.
     """
     #import subprocess
     try:
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+        sha1 = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+        print_trace("latest_git_sha1() = "+sha1)
+           # Example: f375e07a801c6ad3566c889f24de742867de468c
+        return sha1
     except subprocess.CalledProcessError:
+        print_error(f"latest_git_sha1() Exception: {e}")
         return "Git SHA1 not available"
 
 
@@ -1694,7 +1747,7 @@ def upload_to_ipfs(file_path: str) -> str:
     data = json.loads(response_obj.text)
     cid = data["Hash"]
 
-    print_trace("upload_to_ipfs() ="+cid)
+    print_trace("upload_to_ipfs() ="+cid+ " took "+str(func_duration)+" seconds.")
 
     return cid
 
@@ -2222,8 +2275,7 @@ def show_summary(in_seq: int) -> None:
 
 if __name__ == "__main__":
 # TODO: Test Run this program different parameters by loading different env files.
-    """
-    Referencing global variables: stability_api_key
+    """ Loop to generate and process artpieces.
     """
     # After set_hard_coded_defaults()
     # TODO: load_env_file("???")  # read_env_file(ENV_FILE_PATH)
@@ -2233,31 +2285,34 @@ if __name__ == "__main__":
 
     artpiece_num = 0
     while True:  # loop forever
-        artpiece_num += 1
         artpiece_start_timer = time.perf_counter()
+        artpiece_num += 1
 
-        # Generate text-to-image using only one method at a time (for easier post-processing):
-        if ai_svc == "dalle2":    # Using text-to-image OpenAI's DALL-E service:
-            gened_file_path = set_output_file_path(artpiece_num,"dalle2","art.png")
-            result = gen_dalle2_file(gened_file_path)
-        elif ai_svc == "qwen":
-            gened_file_path = set_output_file_path(artpiece_num,"qwen","art.png")
-            result = gen_qwen_file(gened_file_path)
-        elif ai_svc == "stability":
-            gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
-            result = gen_stablediffusion_file(gened_file_path)
-        elif ai_svc == "anthropic":
-            gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
-            result = gen_claude_file(gened_file_path)
-        # TODO: Add "sora"
-        # TODO: Add DeepSeek 384x384 Janus from HuggingFace "janus" # https://api-docs.deepseek.com
-        # TODO: Add https://chat.qwenlm.ai/ "qwenlm" https://www.youtube.com/watch?v=he9xAr_CKMQ
-        elif ai_svc == "pgm": # use local programmatic code:        
-            gened_file_path = set_output_file_path(artpiece_num,ai_svc,"art.png")
-            result = gen_one_file(gened_file_path)
-        else: # use local programmatic code:        
-            print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Is required. Aborting.")
-            exit(9)
+        if FILE_NAME:  # -fn --filename "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png"
+            gened_file_path = prefix_output_file_path(FILE_NAME)
+        else:
+            # Generate text-to-image using only one method at a time (for easier post-processing):
+            if ai_svc == "dalle2":    # Using text-to-image OpenAI's DALL-E service:
+                gened_file_path = set_output_file_path(artpiece_num,"dalle2","art.png")
+                result = gen_dalle2_file(gened_file_path)
+            elif ai_svc == "qwen":
+                gened_file_path = set_output_file_path(artpiece_num,"qwen","art.png")
+                result = gen_qwen_file(gened_file_path)
+            elif ai_svc == "stability":
+                gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
+                result = gen_stablediffusion_file(gened_file_path)
+            elif ai_svc == "anthropic":
+                gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
+                result = gen_claude_file(gened_file_path)
+            # TODO: Add "sora"
+            # TODO: Add DeepSeek 384x384 Janus from HuggingFace "janus" # https://api-docs.deepseek.com
+            # TODO: Add https://chat.qwenlm.ai/ "qwenlm" https://www.youtube.com/watch?v=he9xAr_CKMQ
+            elif ai_svc == "pgm": # use local programmatic code:        
+                gened_file_path = set_output_file_path(artpiece_num,ai_svc,"art.png")
+                result = gen_one_file(gened_file_path)
+            else: # use local programmatic code:        
+                print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Is required. Aborting.")
+                exit(9)
 
         if SHOW_OUTPUT_FILE:   # --showout
             img = Image.open(gened_file_path)
@@ -2314,12 +2369,14 @@ if __name__ == "__main__":
                     str(get_file_size_on_disk(cyphertext_file_path)))
                 #TODO: test decrypt_symmetrically(cyphertext_file_path,plaintext_file_path,symmetric_key_str) 
 
-            cyphertext_file_path = None
-            if UPLOAD_TO_QUICKNODE and cyphertext_file_path:  # -qn --quicknode
-                quicknode_cid_url = upload_to_ipfs(cyphertext_file_path)
-                print_trace("QuickNode IPFS CID:", quicknode_cid_url)
-                # see https://marketplace.quicknode.com/add-on/nft-mint-api-testnet
-    
+            if UPLOAD_TO_QUICKNODE:
+                if cyphertext_file_path:  # -qn --quicknode
+                    quicknode_cid_url = upload_to_ipfs(cyphertext_file_path)
+                    print_trace("QuickNode IPFS CID:", quicknode_cid_url)
+                    # see https://marketplace.quicknode.com/add-on/nft-mint-api-testnet
+            else:
+                quicknode_cid_url = None
+
             # TODO: Define smart contract Collection (Solidity code) using OpenZeppelin https://docs.openzeppelin.com/contracts/4.4.1/
             # TODO: Have ready an address with its privatekey with native assets. Required to pay for the minting.
             # If a Minter address was added to the Collection SmartContract, 
@@ -2343,15 +2400,21 @@ if __name__ == "__main__":
 
             if SHORTEN_URL and quicknode_cid_url:  # -su --shorturl
                 shortened_url = shorten_url(quicknode_cid_url)
-
+            else:
+                shortened_url = None
+   
             if GEN_URL_FILE and shortened_url:  # -gu --genurlfile
                 url_file_path = set_output_file_path(artpiece_num,ai_svc,"qn.url")
                 save_url_to_file(shortened_url, url_file_path)
+            else:
+                url_file_path = None
 
             if GEN_QR_CODE and shortened_url:  # -qr --qrcode  (from shortened_url):
                 # Create QR code image file from URL:
                 qrcode_file_path = set_output_file_path(artpiece_num,ai_svc,"qr.png")
                 gen_qrcode(shortened_url,shortened_url)
+            else:
+                qrcode_file_path = None
 
             # TODO: printify.com t-shirts on demand https://www.youtube.com/watch?v=TygDUR38wuM
             # TODO: API to Etsy using TaskMagic https://www.youtube.com/watch?v=1sZ5VPlThKQ
@@ -2360,32 +2423,34 @@ if __name__ == "__main__":
             # TODO: API to Facebook Marketplace https://apify.com/shmlkv/facebook-marketplace/api
             # TODO: API to artbreeder.com https://documenter.getpostman.com/view/7462304/Tz5s3bQB
 
-            if MONGODB:  # -md --mongodb "27017" or "mongodb://localhost:27017/"
+            if MONGODB_ID:  # -md --mongodb "local" (for "mongodb://localhost:27017/") or "27019" or 
                 hash_str = hash_file_sha256(gened_file_path) # from step above
                 print_trace("main() SHA256 hash "+str(len(hash_str))+" char=\""+hash_str+"\"")
 
                 # Insert document into mongodb NoSQL database and return an index number:
-                mongodb_client = MongoClient(MONGODB)
+                mongodb_client = MongoClient(MONGODB_ID)
                 artpiece_end_timer = time.perf_counter()
                 artpiece_duration = artpiece_end_timer - artpiece_start_timer
                 print_trace(f"main() artpiece_num={artpiece_num} artpiece_duration={artpiece_duration:.5f} seconds")
                 document = {
-                    "SHA256": hash_str,
+                    "_id": hash_str,
+                    "run_id": RUNID, # T0011
                     "git": latest_git_sha1(),
-                    "key": RUNID, # T0011
                     "pgm": PROGRAM_NAME,
                     "start": format_datetime_stamp(pgm_strt_datetimestamp),
                     "ai_svc": ai_svc,
                     #"model_id": model_id,
+                    "prompt_text": PROMPT_TEXT,
                     "artpiece_file": gened_file_path,
                     "watermarked_file": watermarked_file_path,
                     "cyphertext_file": cyphertext_file_path,
                     "quicknode_cid_url": quicknode_cid_url,
                     "qrcode_file": qrcode_file_path,
                     "shortened_url": shortened_url,
-                    #"interests": ["???", "data science", "machine learning"]
+                    #"gen_parms": ["???", "data science", "machine learning"]
                     "secs": artpiece_duration
                 }
+                # Obtain an index where the document was inserted into the database:
                 mongodb_index = insert_mongodb(document)
                 print_trace(f"main() RUNID={RUNID} -> mongodb_index={mongodb_index}")
 
