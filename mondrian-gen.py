@@ -3,6 +3,11 @@
 
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
 
+git commit -m"v026 + sentiment :mondrian-gen.py"
+
+CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
+    ERROR: gen_one_file() draw_mondrian() failed. 
+
 This program was created as a base to create other programs quickly yet securely.
 So this is rather "bloated swiss army knife" program for use during hackathons.
 However, in the future, utility functions here can be 
@@ -17,20 +22,13 @@ vertical lines of rectangular boxes filled with primary colors
 compare with the intuitive beauty of works manually created by Mondrian, such as
 https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnum3-268x266_hceym9.png
 
-Currently, the sequence of functions in the workflow is fixed.
-Agentic systems are dynamic in sequence and tool usage.
-
-CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
-    ERROR: gen_one_file() draw_mondrian() failed. 
-
-git commit -m"v025 + create open_mongodb"
 
 #### SECTION 01 - Program Description (to be extracted into __init__.py or README)
 
 Code here are marked by "SECTION" dividers:
 
 * SECTION 01 - Program Description (to be extracted into __init__.py or README.md .io)
-* SECTION 02 - Start Global timers and define timing functions:
+* SECTION 02 - Import timing libraries and functions to start global timers
 * SECTION 03 - Import internal modules (alphabetically):
 * SECTION 04 - Import external modules (alphabetically) at top of file
 * SECTION 05 - Utility printing globals and functions (used by other functions):
@@ -39,8 +37,9 @@ Code here are marked by "SECTION" dividers:
 * SECTION 08 - Override defaults and .env file with run-time parms:
 * SECTION 09 - Set Static Global working constants:
 * SECTION 10 - Read .env file (from disk & USB) to override hard-coded defaults:
+
 * SECTION 11 - System information functions (which can be in a python module)
-* SECTION 12 - Utility cryptopgraphic functions:
+* SECTION 12 - Utility input processing (sentiment analysis, cryptopgraphy):
 * SECTION 13 - Utility output functions:
 * SECTION 14 - Custom programmatic app functions:
 * SECTION 15 - Generative AI (GenAI) API functions:
@@ -62,7 +61,10 @@ Code here are marked by "SECTION" dividers:
     python3 -m pip install stablediffusionapi
         import smtplib
         from email.mime.text import MIMEText
-    python3 -m pip install anthropic pymongo deepseek
+    python3 -m pip install anthropic pymongo deepseek vaderSentiment
+
+    Download to /Users/johndoe/nltk_data:
+    python3 -c "import nltk; nltk.download('vader_lexicon')"
 
     # Successfully installed stablediffusionapi-0.0.5
     # Successfully installed stablediffusion_api-1.0.7 from https://stability.ai
@@ -96,7 +98,6 @@ flake8  E501 line too long, E222 multiple spaces after operator
    f. Store QuickNode API Key & for use as -ai "quicknode"
    g. Store "gmail" as Item Name for sending emails.
 7. Paste the API key in the Password field. Click Add.
-
 8. Create Edit .env files to customize run parameters.
 9. Create local log database and save the password.
 10. Create Mongodb database  and save the password.
@@ -197,7 +198,7 @@ Commentary:
 
 """
 
-#### SECTION 02 - Start Global timers and define timing functions:
+#### SECTION 02 - Import timing libraries and functions to start global timers
 
 # See https://realpython.com/python-timer/ & https://dev.to/behainguyen/python-local-date-time-and-utc-date-time-4cl7
 
@@ -205,7 +206,8 @@ Commentary:
 # Based on: pip3 install datetime
 from datetime import datetime, UTC
 pgm_strt_datetimestamp = datetime.now(UTC)
-    # 2025-02-04 04:05:58.423242+00:00
+# = 2025-02-04 04:05:58.423242+00:00 in UTC (Greenwich Mean Time London)
+
 DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
 """
@@ -220,15 +222,16 @@ See https://docs.python.org/3/library/datetime.html?timetuple=#datetime.datetime
 
 To ensure consistency in all logs from machines throughout the world,
 we store time stamps in UTC and in 24-hour clock time.
-Python, PostgreSQL and others use the precision of 
-ISO 8601 YYYY-MM-DDTHH:MM:SS.ssssss standard format such as: 2026-02-10 12:24:40.089415
+Python, PostgreSQL, FastAPI, and others use the precision of 
+ISO 8601 YYYY-MM-DD HH:MM:SS.ssssss+00:00 standard format 
+such as: 2026-02-10 12:24:40.089415+00:00
 (MySQL omits the precision).
 Others add "Z" to indicate the UTC time zone, which is NOT adjusted for DST (Daylight Savings Time).
 Others add a time zone offset, such as the negative "-07:00" indicates a time zone West of UTC/GMT.
 
 Presentation to users is in each user's local time zone and in AM/PM format:
 coverted from UTC ed on the local time zone obtained from operating system settings, such as:
-    2026-02-10 12:24:40.089415 PM MST
+    2026-02-10 12:24:40.089415 PM MST -0700
 
 """
 
@@ -239,14 +242,20 @@ def utc_to_local(utc_time_obj, use_z) -> str:
     """
     if use_z:  # specificed among global user preferences
         # see https://strftime.org/
-        # Present local time zone 24-hour clock with Z (Zulu) for UTC (GMT):
-        time_str = utc_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
-            # 2025-02-03T09:03:29.423242Z with "T" added to not show a space character.
+        # Present 24-hour clock with Z (Zulu time) for UTC (GMT):
+        time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%fZ")
+            # 20250203T090329423242Z with "T" added to not show a space character.
     else:
+        # Convert from UTC to local time using system's local timezone:
         local_time_obj = utc_time_obj.astimezone()
-        # Add using local time zone offset:
+        # Print local Time Zone code & offset:
         time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
             # 2025-02-03 09:03:29.423242 PM MST -0700
+            # MST = Mountain Standard Time (no DST adjustment)
+            # MDT = Mountain Daylight Time = In Daylight Savings "Summer" Time
+        # see https://www.youtube.com/watch?v=Bxf_HMs7SeQ
+            # TZ_DB_VER = "2022a" from ???
+            # IANA_TZ_NAME = "America/Denver" 
     return time_str
 
 
@@ -254,11 +263,25 @@ def local_datetime_stamp() -> str:
     """Assemble from OS clock date stamp (with a time zone offset)
     using local time zone offset above.
     based on global var DATE_OUT_Z
-    USAGE: print(local_datetime_stamp())
+    USAGE: print(local_datetime_stamp()) used in print_trace() etc.
     """
+    # Get current time in UTC:
     utc_time_obj = datetime.now(UTC)
-    local_time_str = utc_to_local(utc_time_obj,DATE_OUT_Z)
-    return local_time_str
+    # Convert from UTC to local time using system's local timezone:
+    local_time_obj = utc_time_obj.astimezone()
+
+    is_short_date_format = True  # True="short"
+    # Both formats contain a "T" to separate date from time with no space.
+    if is_short_date_format:  # specificed among global user preferences
+        time_str = local_time_obj.strftime("%Y%m%dT%I%M%S.%f%z")
+        # Like: 20250204T114354.692446-0700 with Z for UTC (GMT) time
+    else:
+        # Print local Time Zone code & offset:
+        time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
+        # time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%f%z")
+            # Like: 20250204T114354.692446-0700 for local time offset from GMT.
+            #local_time_str = utc_to_local(utc_time_obj,DATE_OUT_Z)
+    return time_str
 
 
 def file_creation_datetime(path_to_file: str) -> str:
@@ -364,6 +387,8 @@ try:
     import requests   # used by stability.ai to operate stable diffusion API
         # NOTE: The requests library is more versatile and widely used than
         # urllib is a built-in module that doesn't require additional installation.
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
@@ -403,17 +428,19 @@ CGRAY = '\033[90m'  # secret
 BOLD = '\033[1m'
 RESET = '\033[0m'  # switch back to default color
 
-class bcolors:  # ANSI escape sequences:
-    BOLD = RED #'\033[1m'       # Begin bold text
-    UNDERLINE = '\033[4m'  # Begin underlined text
+CLI_PFX = "*** "
 
-    HEADING = CWHITE #'\033[90m'   # [90 gray  NOT [37 white
-    INFO = GREEN # '\033[92m'      # [92 green
-    VERBOSE = PURPLE # '\033[95m'   # [95 purple
-    TRACE = ORANGE # '\033[96m'     # [96 blue/green
-    WARNING = BLUE # '\033[93m'   # [93 yellow
-    ERROR = RED # '\033[91m'     # [91 red
-    FAIL = YELLOW # '\033[91m'      # [91 red
+class bcolors:  # ANSI escape sequences:
+    UNDERLINE = '\033[4m'  # Begin underlined text
+    BOLD = '\033[1m'
+
+    HEADING = CWHITE
+    INFO = GREEN
+    VERBOSE = BLUE
+    TRACE = CGRAY
+    WARNING = PURPLE
+    ERROR = RED
+    FAIL = YELLOW
 
 LOG_LVL = False   # If True, log to external file
 
@@ -451,7 +478,7 @@ def print_fail(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.FAIL +'*** '+ out + RESET)
+        print(bcolors.FAIL +CLI_PFX+ out + RESET)
         if LOG_LVL == "CRITICAL":
             logging.critical(text_in)
 
@@ -463,7 +490,7 @@ def print_error(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.ERROR +'*** '+ out + RESET)
+        print(bcolors.ERROR +CLI_PFX+ out + RESET)
         if LOG_LVL == "ERROR":
             logging.error(text_in)
 
@@ -475,7 +502,7 @@ def print_warning(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.WARNING +'*** '+ out + RESET)
+        print(bcolors.WARNING +CLI_PFX+ out + RESET)
         if LOG_LVL == "WARNING":
             logging.warning(text_in)
 
@@ -487,7 +514,7 @@ def print_todo(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.INFO +'*** '+ out + RESET)
+        print(bcolors.INFO +CLI_PFX+ out + RESET)
         # no LOG_LVL
         logging.warning(text_in)
 
@@ -499,7 +526,7 @@ def print_info(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.INFO+bcolors.BOLD +'*** '+ out + RESET)
+        print(bcolors.INFO+bcolors.BOLD +CLI_PFX+ out + RESET)
         if LOG_LVL == "INFO":
             logging.info(text_in)
 
@@ -511,7 +538,7 @@ def print_verbose(text_in: str) -> None:
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.VERBOSE +'*** '+ out + RESET)
+        print(bcolors.VERBOSE +CLI_PFX+ out + RESET)
         if LOG_LVL == "INFO":
             logging.info(text_in)
 
@@ -523,7 +550,7 @@ def print_trace(text_in: str) -> None:  # displayed as each object is created in
             out = local_datetime_stamp() +" "+ text_in
         else:
             out = text_in
-        print(bcolors.TRACE +'*** '+ out + RESET)
+        print(bcolors.TRACE +CLI_PFX+ out + RESET)
         if LOG_LVL == "DEBUG":
             logging.debug(text_in)
 
@@ -534,9 +561,9 @@ def print_secret(secret_in: str) -> None:
     if show_secrets:  # program parameter
         if show_dates_in_logs:
             now_utc=datetime.now(timezone('UTC'))
-            print(bcolors.WARNING, '*** ',now_utc,"SECRET: ", secret_in, RESET)
+            print(bcolors.WARNING, CLI_PFX,now_utc,"SECRET: ", secret_in, RESET)
         else:
-            print(bcolors.CBEIGE, '*** ', "SECRET: ", secret_in, RESET)
+            print(bcolors.CBEIGE, CLI_PFX, "SECRET: ", secret_in, RESET)
     else:
         # same length regardless of secret length to reduce ability to guess:
         secret_len = 8
@@ -545,9 +572,9 @@ def print_secret(secret_in: str) -> None:
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             if show_dates_in_logs:
-                print(bcolors.WARNING, '*** ', local_datetime_stamp(), f'{text_in}', RESET)
+                print(bcolors.WARNING, CLI_PFX, local_datetime_stamp(), f'{text_in}', RESET)
             else:
-                print(bcolors.CBEIGE, '*** ', " SECRET: ", f'{secret_out}', RESET)
+                print(bcolors.CBEIGE, CLI_PFX, " SECRET: ", f'{secret_out}', RESET)
     # NOTE: secrets should not be printed to logs.
     return None
 
@@ -571,9 +598,6 @@ def is_macos():
 
 SAVE_CWD = os.getcwd()  # cwd=current working directory (python-examples code folder)
 SAVE_PATH = os.path.expanduser("~")  # user home folder path like "/User/johndoe"
-#print("*** DEBUGGING: SAVE_PATH="+SAVE_PATH)
-#print("*** DEBUGGING: SAVE_CWD= "+SAVE_CWD)
-
 
 # These will be overridden by variables (API key, etc.) within .env file.
 
@@ -610,6 +634,7 @@ RUNID = "R011"  # This value should have no spaces or special characters.
 OUTPUT_FOLDER = "Desktop"  # "Desktop" or "Documents" or "Downloads" to avoid subfolder creation.
 GEN_URL_FILE = False
 SHORTEN_URL = False
+EVAL_SENTIMENT = False
 
 # For creation of image files:
 # PROMPT_TEXT = "A beautiful monochromatic art piece"
@@ -760,6 +785,7 @@ def read_cmd_args() -> None:
     parser.add_argument("-ks", "--keepshow", action="store_true", help="Keep Showing output file (not kill preview)")
     parser.add_argument("-gf", "--genurlfile", action="store_true", help="Gen a file to open url in browser")
 
+    parser.add_argument("-es", "--evalsentiment", action="store_true", help="Evaluate Sentiment of text as: positive, neutral, negative")
     parser.add_argument("-wm", "--marktext", help="Watermark text to insertin png file")
     parser.add_argument("-e", "--encrypt", action="store_true", help="Encrypt file")
     parser.add_argument("-key", "--key", help="Encryption key")
@@ -830,6 +856,10 @@ def read_cmd_args() -> None:
     if args.runid:         # -ri --runid  "Run ID (no spaces or special characters)"
         global RUNID
         RUNID = args.runid
+    
+    if args.evalsentiment: # -es --evalsentiment
+        global EVAL_SENTIMENT
+        EVAL_SENTIMENT = True
 
     if args.email:     # -em  --email
         global SEND_EMAIL
@@ -1124,14 +1154,15 @@ def display_memory() -> None:
     #import os, psutil  #  psutil-5.9.5
     process = psutil.Process()
     mem=process.memory_info().rss / (1024 ** 2)  # in bytes
-    print_verbose(str(process)+"memory used="+str(mem)+" MiB at "+local_datetime_stamp())
+    print_trace(str(process))
+    print_verbose(local_datetime_stamp()+" memory used="+str(mem)+" MiB")
     return 
 
 def display_disk_free() -> None:
     #import os, psutil  #  psutil-5.9.5
     disk = psutil.disk_usage('/')
     free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
-    print_verbose(f'disk space free={free_space_gb:.2f} GB at '+local_datetime_stamp())
+    print_verbose(f"{local_datetime_stamp()} disk space free={free_space_gb:.2f} GB")
     return None
 
 def count_files_within_path(directory: str) -> int:
@@ -1178,7 +1209,7 @@ def sys_info() -> None:
     """Obtain and display system info:
     OS, RunEnv, AppP Program, Memory, Disk spaceCPU.
     """
-    if not show_sys_info:   # defined among CLI arguments
+    if not show_sys_info:   # -si defined among CLI arguments
         return None
 
     print_trace("local_datetime_stamp="+local_datetime_stamp())
@@ -1254,9 +1285,9 @@ def sys_info() -> None:
     ip_addresses_str = ', '.join(map(str, ip_addresses_list))
     print_trace("hostname="+hostname+" ip_addresses="+ip_addresses_str)
     # for ip in ip_addresses: print(ip)
-
-    display_disk_free()
+    print("")
     display_memory()
+    display_disk_free()
     # list_disk_space_by_device()
     
     return None
@@ -1421,7 +1452,34 @@ def eject_drive(drive_path: str) -> None:
     return None
 
 
-#### SECTION 12 - Utility cryptopgraphic functions:
+#### SECTION 12 - Utility input processing (sentiment analysis, cryptopgraphy):
+
+
+def score_sentiment(sentence: str) -> dict:
+    """Calculate a float number assessing the emotional sentiment intensity 
+    from the input sentence, based on the VADER sentiment analyzer.
+    Based on https://www.geeksforgeeks.org/python-sentiment-analysis-using-vader/
+    USAGE:
+    sentiment_dict = score_sentiment("Geeks For Geeks is the best portal for computer science engineering students.")
+    sentiment_dict = score_sentiment("The quick brown fox jumps over the lazy dog")
+    sentiment_dict = score_sentiment("I am very sad today.")
+
+    """
+    if not EVAL_SENTIMENT:
+        return None
+    
+    print_verbose("score_sentiment() sentence="+sentence)
+
+    # Create a SentimentIntensityAnalyzer object:
+    sid_obj = SentimentIntensityAnalyzer()
+
+    # polarity_scores method of SentimentIntensityAnalyzer object gives a sentiment dictionary.
+    # which contains pos, neg, neu, and compound scores:
+    sentiment_dict = sid_obj.polarity_scores(sentence)
+       # Example: {'neg': 0.531, 'neu': 0.469, 'pos': 0.0, 'compound': -0.5256}
+
+    print_trace(f"score_sentiment() "+str(sentiment_dict))
+    return sentiment_dict
 
 
 def hash_file_sha256(filename: str) -> str:
@@ -1547,7 +1605,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
 def prefix_output_file_path(file_name) -> str:
     """ Add a prefix path to a file name
     """
-    print_verbose("prefix_output_file_path() file_name="+file_name)
+    print_verbose("prefix_output_file_path() -fn \""+file_name+"\"")
     # Make use of global variable cached so not repeat:
     file_path = OUTPUT_PATH_PREFIX + SLASH_CHAR + file_name
     print_trace("prefix_output_file_path()="+file_path+", len="+str(len(file_path)))
@@ -1931,8 +1989,10 @@ def gen_qwen_file(gened_file_path: str) -> str:
     """Generate image using Qwen Generative AI API calls to Alibaba servers in China.
     Released 01/25/2025.See https://www.youtube.com/watch?v=he9xAr_CKMQ
     """
-    qwen_engine_id="qwen-max-2025-01-25"
     # qwen_engine_id="dall-e-3" #prompt_model="dall-e-3" # for 1024x1024 licen$ed
+    qwen_engine_id="qwen-max-2025-01-25"
+    global MODEL_ID
+    MODEL_ID = qwen_engine_id
     WIDTHxHEIGHT = "500x500"
     print_verbose("gen_qwen_file() model="+qwen_engine_id+\
         " WIDTHxHEIGHT="+WIDTHxHEIGHT+\
@@ -2071,7 +2131,6 @@ def gen_stablediffusion_file(prompt: str) -> str:
             file_path = set_output_file_path(i,"stability","art.png")
             with open(file_path, "wb") as f:
                 f.write(base64.b64decode(image["base64"]))
-        print("gen_stability_image() Image generated successfully!")
     else:
         print(f"gen_stability_image() Error: {response.status_code}")
         # FIXME: Error: 400 {"id":"e5628c21ac5e7b24231b95df44ce8f45","message":"height and width must be specified in increments of 64","name":"invalid_height_or_width"}
@@ -2263,11 +2322,11 @@ def show_summary(in_seq: int) -> None:
 
         # For wall time of std imports:
         std_elapsed_wall_time = std_stop_datetimestamp -  pgm_strt_datetimestamp
-        print_verbose(str(std_elapsed_wall_time)+" to import of Python standard libraries.")
+        print_trace(str(std_elapsed_wall_time)+" to import of Python standard libraries.")
 
         # For wall time of xpt imports:
         xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-        print_verbose(str(xpt_elapsed_wall_time)+" to import of Python external libraries.")
+        print_trace(str(xpt_elapsed_wall_time)+" to import of Python external libraries.")
 
     # TODO: Write wall times to log for longer-term analytics
     return None
@@ -2290,9 +2349,15 @@ if __name__ == "__main__":
         artpiece_start_timer = time.perf_counter()
         artpiece_num += 1
 
+        sentiment_dict = score_sentiment(PROMPT_TEXT)
+            # TODO: If too negative, exit.
+
         if FILE_NAME:  # -fn --filename "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png"
             gened_file_path = prefix_output_file_path(FILE_NAME)
         else:
+            if ai_svc is None:
+                print_fail(f"-ai \"pgm\" parameter not specified. Is required. Aborting.")
+                exit(9)
             # Generate text-to-image using only one method at a time (for easier post-processing):
             if ai_svc == "dalle2":    # Using text-to-image OpenAI's DALL-E service:
                 gened_file_path = set_output_file_path(artpiece_num,"dalle2","art.png")
@@ -2313,7 +2378,7 @@ if __name__ == "__main__":
                 gened_file_path = set_output_file_path(artpiece_num,ai_svc,"art.png")
                 result = gen_one_file(gened_file_path)
             else: # use local programmatic code:        
-                print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Is required. Aborting.")
+                print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Aborting.")
                 exit(9)
 
         if SHOW_OUTPUT_FILE:   # --showout
@@ -2439,9 +2504,10 @@ if __name__ == "__main__":
                     "run_id": RUNID, # T0011
                     "git": latest_git_sha1(),
                     "pgm": PROGRAM_NAME,
-                    "start_utc": utc_to_local(pgm_strt_datetimestamp),
+                    "start_utc": utc_to_local(pgm_strt_datetimestamp,DATE_OUT_Z),
+                    "tzdb": TZ_DB_VER,
                     "ai_svc": ai_svc,
-                    #"model_id": model_id,
+                    "model_id": MODEL_ID,
                     "prompt_text": PROMPT_TEXT,
                     "artpiece_file": gened_file_path,
                     "watermarked_file": watermarked_file_path,
