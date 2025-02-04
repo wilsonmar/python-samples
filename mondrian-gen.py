@@ -1,29 +1,55 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
-This program provides both local programmatic and Generative AI (GenAI)API calls
+
+This program was created as a base to create other programs quickly yet securely.
+So this is rather "bloated swiss army knife" program for use during hackathons.
+However, in the future, utility functions here can be 
+moved to a separate file (Python module) of custom utilities. 
+But they are together here now to make it easier to understand and modify.
+
+Currently, this program has both local programming and Generative AI (GenAI) API calls
 to create (from text prompt) a PNG image file of art in the pure abstract Neoplasticism style
 initiated in 1920s by Piet Mondrian (in Amersfort, Netherlands 1872-1944).
-
-This was created to see how the different ways of creating horizontal and 
+This is to see how the different ways of creating horizontal and 
 vertical lines of rectangular boxes filled with primary colors
 compare with the intuitive beauty of works manually created by Mondrian, such as
 https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnum3-268x266_hceym9.png
 
-// SPDX-License-Identifier: MIT
+Currently, the sequence of functions in the workflow is fixed.
+Agentic systems are dynamic in sequence and tool usage.
+
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-git commit -m"v024 + open_mongodb :mondrian-gen.py"
+git commit -m"v025 + create open_mongodb"
 
-* Code here are marked into "SECTION" divisions.
-* TODO: These comments will be split into multiple files: documentation to __init__.py and
-utility functions to utility.py.
+#### SECTION 01 - Program Description (to be extracted into __init__.py or README)
 
-* Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
-* TODO: Use Pytest to unit test individual functions with assertions.
+Code here are marked by "SECTION" dividers:
+
+* SECTION 01 - Program Description (to be extracted into __init__.py or README.md .io)
+* SECTION 02 - Start Global timers and define timing functions:
+* SECTION 03 - Import internal modules (alphabetically):
+* SECTION 04 - Import external modules (alphabetically) at top of file
+* SECTION 05 - Utility printing globals and functions (used by other functions):
+* SECTION 06 - Customize hard-coded values that control program flow
+* SECTION 07 - Read custom command line (CLI) arguments:
+* SECTION 08 - Override defaults and .env file with run-time parms:
+* SECTION 09 - Set Static Global working constants:
+* SECTION 10 - Read .env file (from disk & USB) to override hard-coded defaults:
+* SECTION 11 - System information functions (which can be in a python module)
+* SECTION 12 - Utility cryptopgraphic functions:
+* SECTION 13 - Utility output functions:
+* SECTION 14 - Custom programmatic app functions:
+* SECTION 15 - Generative AI (GenAI) API functions:
+* SECTION 16 - Post-generation processing:
+* SECTION 17 - End-of-Run summary functions:
+* SECTION 18 - Main calling function:
 
 #### Before running this program:
+
 1. In Terminal: INSTEAD OF: conda install -c conda-forge ...
     python3 -m venv venv
     source venv/bin/activate
@@ -163,44 +189,117 @@ Other Mondrian artists:
 * https://opensea.io/collection/soupxmondrian
 * https://opensea.io/collection/pepemondrians
 * https://opensea.io/collection/mondrian-on-polygon
+
+Commentary:
+
+1. Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
+2. TODO: Use Pytest to unit test individual functions with assertions.
+
 """
 
+#### SECTION 02 - Start Global timers and define timing functions:
 
-#### SECTION 01 - Start Global timers:
+# See https://realpython.com/python-timer/ & https://dev.to/behainguyen/python-local-date-time-and-utc-date-time-4cl7
 
 # For wall time of std (standard) imports:
-import datetime as dt
-std_strt_datetimestamp = dt.datetime.now()
-
 # Based on: pip3 install datetime
-#import datetime as dt
-#from datetime import datetime, timezone
-# For wall time of program run (using date and time together):
-utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
-pgm_strt_datetimestamp = dt.datetime.now()
+from datetime import datetime, UTC
+pgm_strt_datetimestamp = datetime.now(UTC)
+    # 2025-02-04 04:05:58.423242+00:00
+DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
-# For wall time of program run (using date and time together):
-utc_strt_datetimestamp = dt.datetime.now(dt.timezone.utc)
-pgm_strt_datetimestamp = dt.datetime.now()
+"""
+We begin the program by capturing a time stamp at the earliest possible moment.
 
-import time   # std python module for time.sleep(1.5)
-local_time = time.localtime()
-TZ_OFFSET = time.strftime("%z", local_time)  # such as "-0700"
-# To display date & time of program start:
-pgm_strt_timestamp = time.monotonic()
-# TODO: Display Z (UTC/GMT) instead of local time
-pgm_strt_epoch_timestamp = time.time()
-pgm_strt_local_timestamp = time.localtime()
-# the most accurate difference between two times. Used by timeit.
-# pgm_strt_perf_counter = time.perf_counter()
+Several different ways and modules have been used for time reporting.
 
-# For the time taken to execute a small bit of Python code:
-#import timeit
-#from timeit import default_timer as timer
-# start_time = timeit.default_timer()  # start the program-level timer.
+Due to deprecations of datetime.utcnow() since version 3.12, we now use 
+datetime.now(UTC) to obtain a datetime object that is 
+“aware” of political time zones rather than “naive” ones that do not.
+See https://docs.python.org/3/library/datetime.html?timetuple=#datetime.datetime.utcnow
+
+To ensure consistency in all logs from machines throughout the world,
+we store time stamps in UTC and in 24-hour clock time.
+Python, PostgreSQL and others use the precision of 
+ISO 8601 YYYY-MM-DDTHH:MM:SS.ssssss standard format such as: 2026-02-10 12:24:40.089415
+(MySQL omits the precision).
+Others add "Z" to indicate the UTC time zone, which is NOT adjusted for DST (Daylight Savings Time).
+Others add a time zone offset, such as the negative "-07:00" indicates a time zone West of UTC/GMT.
+
+Presentation to users is in each user's local time zone and in AM/PM format:
+coverted from UTC ed on the local time zone obtained from operating system settings, such as:
+    2026-02-10 12:24:40.089415 PM MST
+
+"""
+
+def utc_to_local(utc_time_obj, use_z) -> str:
+    """ Format datetime.now(UTC) object in UTC to local time string 
+    based on global var DATE_OUT_Z
+    USAGE: print(utc_to_local(pgm_strt_datetimestamp,DATE_OUT_Z))
+    """
+    if use_z:  # specificed among global user preferences
+        # see https://strftime.org/
+        # Present local time zone 24-hour clock with Z (Zulu) for UTC (GMT):
+        time_str = utc_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
+            # 2025-02-03T09:03:29.423242Z with "T" added to not show a space character.
+    else:
+        local_time_obj = utc_time_obj.astimezone()
+        # Add using local time zone offset:
+        time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
+            # 2025-02-03 09:03:29.423242 PM MST -0700
+    return time_str
 
 
-#### SECTION 02 - import internal modules (alphabetically):
+def local_datetime_stamp() -> str:
+    """Assemble from OS clock date stamp (with a time zone offset)
+    using local time zone offset above.
+    based on global var DATE_OUT_Z
+    USAGE: print(local_datetime_stamp())
+    """
+    utc_time_obj = datetime.now(UTC)
+    local_time_str = utc_to_local(utc_time_obj,DATE_OUT_Z)
+    return local_time_str
+
+
+def file_creation_datetime(path_to_file: str) -> str:
+    """ Get the datetime stamp for a file, 
+    falling back to when it was last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
+    """
+    if path_to_file is None:
+        print_trace(f"path_to_file="+path_to_file)
+    # print_trace("platform.system="+platform.system())
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:  # macOS & Linux:
+        from datetime import datetime as dt
+        try:
+            from datetime import datetime
+            creation_time = os.path.getctime(path_to_file)
+            # Convert the timestamp to a human-readable datetime format:
+            crea_time_obj = dt.fromtimestamp(creation_time)
+            # Format the datetime to a string:
+            local_tz = pytz.timezone('America/Denver') 
+            localized_datetime = local_tz.localize(crea_time_obj)
+            formatted_timestamp = localized_datetime.strftime("%Y-%m-%dT%H:%M:%S")
+            # print_trace(f"formatted_timestamp={formatted_timestamp}") 
+            # print(f"formatted_timestamp={formatted_timestamp}")
+            #return stat.st_birthtime # epoch datestamp like 1696898774.0
+            return formatted_timestamp+TZ_OFFSET
+        except Exception as e:
+            # PROTIP: Get the 
+            print_error(f"{path_to_file} AttributeError {e}")
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            stat = os.stat(path_to_file)
+            # like os.stat_result(st_mode=33188, st_ino=42022053, st_dev=16777232, 
+            # st_nlink=1, st_uid=501, st_gid=20, st_size=4940329, st_atime=1737270005, 
+            # st_mtime=1737266324, st_ctime=1737266363) 
+            return stat.st_mtime   # epoch datetime modified like 1737266324
+
+
+#### SECTION 03 - Import internal modules (alphabetically):
 
 
 from doctest import run_docstring_examples
@@ -208,6 +307,7 @@ from doctest import run_docstring_examples
 import argparse
 from argparse import ArgumentParser
 import base64
+from collections import Counter
 from functools import cache
 import hashlib
 import io
@@ -225,20 +325,20 @@ from email.mime.text import MIMEText
 import socket
 import subprocess
 import sys
-#import time
+import time
 import timeit
 import tzlocal
 import uuid
 
-std_stop_datetimestamp = dt.datetime.now()
+std_stop_datetimestamp = datetime.now(UTC)
 
 
-#### SECTION 03 - imports external modules (alphabetically) at top of file
+#### SECTION 04 - Import external modules (alphabetically) at top of file
 # See https://peps.python.org/pep-0008/#imports
 
 
 # For wall time of xpt imports:
-xpt_strt_datetimestamp = dt.datetime.now()
+xpt_strt_datetimestamp = datetime.now(UTC)
 try:
     import anthropic
     import cairo  # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
@@ -272,10 +372,10 @@ except Exception as e:
     exit(9)
 
 # For wall time of xpt imports:
-xpt_stop_datetimestamp = dt.datetime.now()
+xpt_stop_datetimestamp = datetime.now(UTC)
 
 
-#### SECTION 04 - utility printing globals and functions (used by other functions):
+#### SECTION 05 - Utility printing globals and functions (used by other functions):
 
 
 # all global:
@@ -452,7 +552,7 @@ def print_secret(secret_in: str) -> None:
     return None
 
 
-#### SECTION 05 - TASK: Customize hard-coded values that control program flow.
+#### SECTION 06 - Customize hard-coded values that control program flow.
 
 
 # Start with program name (without ".py" file extension) such as "modrian-gen":
@@ -494,7 +594,7 @@ LOG_LVL = False
 DRIVE_VOLUME = "NODE NAME"  # as in "/Volumes/NODE NAME" - the default from manufacturing.
 
 show_dates_in_logs = False
-DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
+# DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
 run_quiet = False  # suppress show_heading, show_info, show_warning, show_error, show_fail
 
@@ -620,7 +720,7 @@ EMAIL_TO = "[1@a.com, 2@b.com]"
 SHOW_SUMMARY_COUNTS = True
 
 
-#### SECTION 06 - Read custom command line (CLI)arguments
+#### SECTION 07 - Read custom command line (CLI) arguments:
 
 def read_cmd_args() -> None:
     """Read command line arguments and set global variables.
@@ -683,7 +783,7 @@ def read_cmd_args() -> None:
     args = parser.parse_args()
 
 
-    #### SECTION 07 - Override defaults and .env file with run-time parms:
+    #### SECTION 08 - Override defaults and .env file with run-time parms:
 
     # In sequence of workflow:
 
@@ -747,9 +847,9 @@ def read_cmd_args() -> None:
     if args.si:            # -si => used by sys_info()
         global show_sys_info
         show_sys_info = True
-    if args.utc:           # -z = # Dates in UTC/GMT=Zulu timezone
+    if args.utc:           # -z --utc = # Present dates in UTC/GMT=Zulu timezone instead of local time.
         global DATE_OUT_Z
-        DATE_OUT_Z = True  # save files with Z time (in UTC time zone now) instead of local time.
+        DATE_OUT_Z = True
 
     if args.ai:            # -ai --ai "dalle2", "qwen", "stability", etc.
         global ai_svc
@@ -847,7 +947,7 @@ def read_cmd_args() -> None:
     return None
 
 
-#### SECTION 08 - Set Static Global working constants:
+#### SECTION 09 - Set Static Global working constants:
 
 
 def calc_from_globals() -> None:
@@ -919,7 +1019,7 @@ def calc_from_globals() -> None:
     return None
 
 
-#### SECTION 09 - read_env_file() to override hard-coded defaults:
+#### SECTION 10 - Read .env file (from disk & USB) to override hard-coded defaults:
 
 
 def load_env_file(env_path: str) -> None:
@@ -1017,90 +1117,7 @@ def list_files_on_removable_drive(drive_path: str) -> None:
     return None
 
 
-#### SECTION 10 - Utility time & date functions (which can be in a python module)
-
-
-def get_time() -> str:
-    """ Generate the current local datetime. """
-    now: datetime = dt.datetime.now()
-    return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d}'
-
-
-def format_datetime_stamp(datetime_stamp_obj) -> str:
-    """format from OS clock date stamp (with a time zone offset)
-    using local time zone offset above.
-    """
-    # Set in SECTION 3 above:
-    # local_time = time.localtime()
-    # TZ_OFFSET = time.strftime("%z", local_time)
-        # returns "-0700" for MST "America/Denver"
-
-    if DATE_OUT_Z:  # from user preferences
-        # Add using local time zone Z (Zulu) for UTC (GMT):
-        date_stamp = datetime_stamp_obj.strftime("%Y%m%dT%H%M%SZ")
-    else:
-        # Add using local time zone offset:
-        date_stamp = datetime_stamp_obj.strftime("%Y%m%dT%H%M%S")+TZ_OFFSET
-
-    return date_stamp
-
-
-def local_datetime_stamp() -> str:
-    """Assemble from OS clock date stamp (with a time zone offset)
-    using local time zone offset above.
-    """
-    # local_time = time.localtime()
-    # TZ_OFFSET = time.strftime("%z", local_time)
-        # returns "-0700" for MST "America/Denver"
-
-    if DATE_OUT_Z:  # from user preferences
-        # Add using local time zone Z (Zulu) for UTC (GMT):
-        now = dt.datetime.now(dt.timezone.utc)
-    else:
-        # Add using local time zone offset:
-        now = dt.datetime.now()
-    return format_datetime_stamp(now)
-
-
-def file_creation_datetime(path_to_file: str) -> str:
-    """ Get the datetime stamp for a file, 
-    falling back to when it was last modified if that isn't possible.
-    See http://stackoverflow.com/a/39501288/1709587 for explanation.
-    WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
-    """
-    if path_to_file is None:
-        print_trace(f"path_to_file="+path_to_file)
-    # print_trace("platform.system="+platform.system())
-    if platform.system() == 'Windows':
-        return os.path.getctime(path_to_file)
-    else:  # macOS & Linux:
-        from datetime import datetime as dt
-        try:
-            from datetime import datetime
-            creation_time = os.path.getctime(path_to_file)
-            # Convert the timestamp to a human-readable datetime format:
-            crea_time_obj = dt.fromtimestamp(creation_time)
-            # Format the datetime to a string:
-            local_tz = pytz.timezone('America/Denver') 
-            localized_datetime = local_tz.localize(crea_time_obj)
-            formatted_timestamp = localized_datetime.strftime("%Y-%m-%dT%H:%M:%S")
-            # print_trace(f"formatted_timestamp={formatted_timestamp}") 
-            # print(f"formatted_timestamp={formatted_timestamp}")
-            #return stat.st_birthtime # epoch datestamp like 1696898774.0
-            return formatted_timestamp+TZ_OFFSET
-        except Exception as e:
-            # PROTIP: Get the 
-            print_error(f"{path_to_file} AttributeError {e}")
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            stat = os.stat(path_to_file)
-            # like os.stat_result(st_mode=33188, st_ino=42022053, st_dev=16777232, 
-            # st_nlink=1, st_uid=501, st_gid=20, st_size=4940329, st_atime=1737270005, 
-            # st_mtime=1737266324, st_ctime=1737266363) 
-            return stat.st_mtime   # epoch datetime modified like 1737266324
-
-
-#### SECTION 11 - Utility system information functions (which can be in a python module)
+#### SECTION 11 - System information functions (which can be in a python module)
 
 
 def display_memory() -> None:
@@ -1404,7 +1421,7 @@ def eject_drive(drive_path: str) -> None:
     return None
 
 
-#### SECTION 12 - utility cryptopgraphic functions:
+#### SECTION 12 - Utility cryptopgraphic functions:
 
 
 def hash_file_sha256(filename: str) -> str:
@@ -1520,7 +1537,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
     return None
 
 
-#### SECTION 13 - utility output functions:
+#### SECTION 13 - Utility output functions:
 
 
 # def setup_logger(log_file=LOGGER_FILE_PATH, console_level=logging.INFO, file_level=logging.DEBUG):
@@ -1657,20 +1674,25 @@ def open_mongodb() -> object:
     print_verbose("-md \""+MONGODB_ID+"\" = MONGODB_URL=\""+MONGODB_URL+"\"")
  
     try:
-        print_verbose("open_mongodb() MONGODB_NAME=\""+MONGODB_NAME+"\" MONGODB_COLLECTION=\""+MONGODB_COLLECTION+"\"")
-        client = MongoClient(MONGODB_URL)
-        mydb = client[MONGODB_NAME]
-        mycol = mydb[MONGODB_COLLECTION]
+        print_verbose("open_mongodb() NAME=\""+MONGODB_NAME+"\" COLLECTION=\""+MONGODB_COLLECTION+"\"")
+        # Connect to the MongoDB server:
+        client = MongoClient(MONGODB_URL)  # such as "mongodb://localhost:27017/"
 
-        # FIXME: print(client.list_database_names())
-            # pymongo.errors.ServerSelectionTimeoutError: localhost:27017: 
-            # [Errno 61] Connection refused (configured timeouts: 
-            # socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), 
-            # Timeout: 30s, Topology Description: <TopologyDescription id: 679fe4670ac94f8bbe73e374, 
-            # topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) 
-            # server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: 
-            # [Errno 61] Connection refused (configured timeouts: 
-            # socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+        # Create a new database (or connect to an existing one):
+        mydb = client[MONGODB_NAME]  # "mydatabase"
+
+        # Connect to an existing db or create a new collection:
+        mycol = mydb[MONGODB_COLLECTION]
+        # TODO: List collections in database
+
+        # To ensure the database is created)
+        # from collections import Counter
+        # Count items using Counter
+        item_counts = Counter(MONGODB_COLLECTION)
+        print_trace("open_mongodb() contains "+str(len(item_counts))+" items in collection \""+MONGODB_COLLECTION+"\".")
+
+        # TODO: List items in database:
+
         return mycol
     except Exception as e:
         print_error(f"open_mongodb() access Exception: {e}")
@@ -1683,7 +1705,7 @@ def insert_mongodb(doc_in: object) -> str:
     : MONGODB_ID
     : MONGODB_URL
     : MONGODB_NAME
-    : MONGODB_COLLECTION
+    : MONGODB_COLLECTION = mycol
     # See https://github.com/mongodb/academia-mongodb-lab-python by https://www.linkedin.com/in/juliannachen-yvr/
     """
     mycol = open_mongodb()
@@ -1730,6 +1752,7 @@ def upload_to_ipfs(file_path: str) -> str:
     """
     # import requests, json  # (not use framework)
     # This endpoint version needs to be updated: https://www.quicknode.com/docs
+    # TODO: Ensure files are 50 MB or less in https://docs.tatum.io/reference/storeipfs
 
     # global quicknode_api_key
     quicknode_api_key = get_api_key("quicknode", "johndoe")
@@ -1738,7 +1761,7 @@ def upload_to_ipfs(file_path: str) -> str:
     endpoint = "https://ipfs.quicknode.com/api/v0/add"
     files = {"file": open(file_path, "rb")}
     headers = {"Authorization": f"Bearer {quicknode_api_key}"}
-    
+    # import time
     func_start_timer = time.perf_counter()
     response_obj = requests.post(endpoint, files=files, headers=headers)
     func_end_timer = time.perf_counter()
@@ -1752,7 +1775,7 @@ def upload_to_ipfs(file_path: str) -> str:
     return cid
 
 
-#### SECTION 14 - custom programmatic app functions:
+#### SECTION 14 - Custom programmatic app functions:
 
 
 # Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
@@ -1842,7 +1865,7 @@ def gen_one_file(file_path: str) -> bool:
         return True
 
 
-#### SECTION 15 - DALL-E Generative AI API functions:
+#### SECTION 15 - Generative AI (GenAI) API functions:
 
 
 def gen_dalle2_file(gened_file_path: str) -> str:
@@ -2110,7 +2133,7 @@ def gen_claude_file(prompt: str) -> str:
     return out_url
 
 
-#### SECTION 16 - Post-generation processing
+#### SECTION 16 - Post-generation processing:
 
 
 def add_watermark2png(input_image: str, output_image: str, watermark_text: str) -> str:
@@ -2215,32 +2238,6 @@ def mint_nft(file_path_in: str, desc: str, env: str, email: str, chain: str) -> 
 #### SECTION 17 - End-of-Run summary functions:
 
 
-def print_wall_times() -> None:
-    """Prints All the timings together for consistency of output:
-    """
-    #print_heading("Wall times (hh:mm:sec.microsecs):")
-
-    # For wall time of std imports:
-    std_elapsed_wall_time = std_stop_datetimestamp -  std_strt_datetimestamp
-    print_verbose("for import of Python standard libraries: "+ \
-        str(std_elapsed_wall_time))
-
-    # For wall time of xpt imports:
-    xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-    print_verbose("for import of Python external libraries: "+ \
-        str(xpt_elapsed_wall_time))
-
-    pgm_stop_datetimestamp = dt.datetime.now()
-    pgm_elapsed_wall_time = pgm_stop_datetimestamp -  pgm_strt_datetimestamp
-    print_verbose("for whole program run: "+ \
-        str(pgm_elapsed_wall_time))  # like 0:00:00.317434 Days:Hours:Mins:Secs.
-
-    pgm_stop_perftimestamp = time.perf_counter()
-    # print(str(pgm_stop_perftimestamp)+" seconds.microseconds perf time.")
-
-    return
-
-
 def log_file_gened() -> None:
     """TODO: LOG_LVL()
     """
@@ -2256,16 +2253,21 @@ def show_summary(in_seq: int) -> None:
     """Print summary count of files processed and the time to do them.
     """
     if SHOW_SUMMARY_COUNTS:
-        pgm_stop_datetimestamp = dt.datetime.now()
+        pgm_stop_datetimestamp = datetime.now(UTC)
         pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
-
         if in_seq == 1:
-            print_info(f"SUMMARY: 1 artpiece gen'd"
-                f" during {str(pgm_elapsed_wall_time)} Days:Hours:Mins.Secs.")
+            print_info(f"{str(pgm_elapsed_wall_time)} Days:Hours:Mins.Secs to gen 1 artpiece.")
                     # like  0:00:00.989131
         else:
-            print_info(f"SUMMARY: {in_seq} artpieces gen'd"
-                f" during {str(pgm_elapsed_wall_time)} Days:Hours:Mins.Secs")
+            print_info(f"{str(pgm_elapsed_wall_time)} Days:Hours:Mins.Secs to gen {in_seq} artpieces.")
+
+        # For wall time of std imports:
+        std_elapsed_wall_time = std_stop_datetimestamp -  pgm_strt_datetimestamp
+        print_verbose(str(std_elapsed_wall_time)+" to import of Python standard libraries.")
+
+        # For wall time of xpt imports:
+        xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
+        print_verbose(str(xpt_elapsed_wall_time)+" to import of Python external libraries.")
 
     # TODO: Write wall times to log for longer-term analytics
     return None
@@ -2437,7 +2439,7 @@ if __name__ == "__main__":
                     "run_id": RUNID, # T0011
                     "git": latest_git_sha1(),
                     "pgm": PROGRAM_NAME,
-                    "start": format_datetime_stamp(pgm_strt_datetimestamp),
+                    "start_utc": utc_to_local(pgm_strt_datetimestamp),
                     "ai_svc": ai_svc,
                     #"model_id": model_id,
                     "prompt_text": PROMPT_TEXT,
@@ -2457,7 +2459,6 @@ if __name__ == "__main__":
         if FILES_TO_GEN > 0:   
             if artpiece_num >= FILES_TO_GEN:
                 # No more files to generate.Infinite loop needs to end:
-                print_wall_times()
                 if SEND_EMAIL:
                     send_smtp()            
                 show_summary(artpiece_num)
