@@ -3,13 +3,13 @@
 
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
 
-git commit -m"v026 + sentiment :mondrian-gen.py"
+git commit -m"v028 + msg_discord :mondrian-gen.py"
 
 CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
     ERROR: gen_one_file() draw_mondrian() failed. 
 
 This program was created as a base to create other programs quickly yet securely.
-So this is rather "bloated swiss army knife" program for use during hackathons.
+So this is rather "bloated swiss army knife" monolith for use during hackathons.
 However, in the future, utility functions here can be 
 moved to a separate file (Python module) of custom utilities. 
 But they are together here now to make it easier to understand and modify.
@@ -30,7 +30,8 @@ Code here are marked by "SECTION" dividers:
 * SECTION 01 - Program Description (to be extracted into __init__.py or README.md .io)
 * SECTION 02 - Import timing libraries and functions to start global timers
 * SECTION 03 - Import internal modules (alphabetically):
-* SECTION 04 - Import external modules (alphabetically) at top of file
+* SECTION 04 - Import external modules (alphabetically):
+
 * SECTION 05 - Utility printing globals and functions (used by other functions):
 * SECTION 06 - Customize hard-coded values that control program flow
 * SECTION 07 - Read custom command line (CLI) arguments:
@@ -40,10 +41,12 @@ Code here are marked by "SECTION" dividers:
 
 * SECTION 11 - System information functions (which can be in a python module)
 * SECTION 12 - Utility input processing (sentiment analysis, cryptopgraphy):
-* SECTION 13 - Utility output functions:
-* SECTION 14 - Custom programmatic app functions:
-* SECTION 15 - Generative AI (GenAI) API functions:
-* SECTION 16 - Post-generation processing:
+* SECTION 13 - Utility output (file paths, gen QR code, email smtp, Discord, Twitter, etc):
+
+* SECTION 14 - Custom programmatic GenAI app functions:
+* SECTION 15 - GenAI API calls to OpenAI DALL-E, Stability, DeepSeek, Qwen:
+
+* SECTION 16 - Post-processing (upscale, watermark, mint NFT):
 * SECTION 17 - End-of-Run summary functions:
 * SECTION 18 - Main calling function:
 
@@ -61,7 +64,7 @@ Code here are marked by "SECTION" dividers:
     python3 -m pip install stablediffusionapi
         import smtplib
         from email.mime.text import MIMEText
-    python3 -m pip install anthropic pymongo deepseek vaderSentiment
+    python3 -m pip install anthropic pymongo deepseek mistralai vaderSentiment
 
     Download to /Users/johndoe/nltk_data:
     python3 -c "import nltk; nltk.download('vader_lexicon')"
@@ -79,7 +82,7 @@ Code here are marked by "SECTION" dividers:
 flake8  E501 line too long, E222 multiple spaces after operator
 
 4. Use an internet browser to obtain API keys from cloud services: 
-   a. ChatGPT API calls at https://platform.openai.com/api-keys and 
+   a. Dall-E2 API calls at https://platform.openai.com/api-keys and 
    b. https://platform.stability.ai/account/keys see https://www.youtube.com/watch?v=Uo9XUapKz9o&t=4s
    c. Anthropic API calls at https://console.anthropic.com
    d. qwak
@@ -87,6 +90,8 @@ flake8  E501 line too long, E222 multiple spaces after operator
 
    f. https://www.quicknode.com/signup
    g. https://chat.qwenlm.ai/auth?action=signup Qwen2.5-Max Max context length: 32,768 tokens, Max generation length: 8,192 tokens
+   h. https://console.mistral.ai/api-keys/
+   i. meta
 5. Open the Keychain Access.app. Click login then iCloud. Click the add icon at the top.
 6. Fill in the Item Name and Account Name 
    a. Store "dalle2 as Item Name for use as -ai "dalle2"
@@ -94,9 +99,11 @@ flake8  E501 line too long, E222 multiple spaces after operator
    c. Store Anthropic API Key & for use as -ai "anthropic"
    d. Store "qwak" as Item Name for use as -ai "qwak"
    e. Store "deepseek" as Item Name for use as -ai "deepseek"
-
    f. Store QuickNode API Key & for use as -ai "quicknode"
    g. Store "gmail" as Item Name for sending emails.
+   h. Store "mistral" as Item Name for use as -ai "mistral"
+   i. Store "mistral" as Item Name for use as -ai "meta"
+
 7. Paste the API key in the Password field. Click Add.
 8. Create Edit .env files to customize run parameters.
 9. Create local log database and save the password.
@@ -196,6 +203,8 @@ Commentary:
 1. Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
 2. TODO: Use Pytest to unit test individual functions with assertions.
 
+TODO: Print
+
 """
 
 #### SECTION 02 - Import timing libraries and functions to start global timers
@@ -208,7 +217,7 @@ from datetime import datetime, UTC
 pgm_strt_datetimestamp = datetime.now(UTC)
 # = 2025-02-04 04:05:58.423242+00:00 in UTC (Greenwich Mean Time London)
 
-DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
+DATE_OUT_Z = False  # Show logs with Z time (in UTC time zone now) instead of local time.
 
 """
 We begin the program by capturing a time stamp at the earliest possible moment.
@@ -235,52 +244,41 @@ coverted from UTC ed on the local time zone obtained from operating system setti
 
 """
 
-def utc_to_local(utc_time_obj, use_z) -> str:
-    """ Format datetime.now(UTC) object in UTC to local time string 
-    based on global var DATE_OUT_Z
-    USAGE: print(utc_to_local(pgm_strt_datetimestamp,DATE_OUT_Z))
+def utc_to_local(utc_time_obj) -> str:
+    """ Convert from UTC to local time using system's local timezone:
+    USAGE: print(utc_to_local(pgm_strt_datetimestamp))
     """
-    if use_z:  # specificed among global user preferences
-        # see https://strftime.org/
-        # Present 24-hour clock with Z (Zulu time) for UTC (GMT):
-        time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%fZ")
-            # 20250203T090329423242Z with "T" added to not show a space character.
-    else:
-        # Convert from UTC to local time using system's local timezone:
-        local_time_obj = utc_time_obj.astimezone()
-        # Print local Time Zone code & offset:
-        time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
-            # 2025-02-03 09:03:29.423242 PM MST -0700
-            # MST = Mountain Standard Time (no DST adjustment)
-            # MDT = Mountain Daylight Time = In Daylight Savings "Summer" Time
-        # see https://www.youtube.com/watch?v=Bxf_HMs7SeQ
-            # TZ_DB_VER = "2022a" from ???
-            # IANA_TZ_NAME = "America/Denver" 
+    local_time_obj = utc_time_obj.astimezone()
+    # Print local Time Zone code & offset:
+    #time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%fZ")
+        # 20250203T230329423242.423242Z with "T" added to not show a space character.
+    time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
+        # 2025-02-03 09:03:29.423242 PM MST -0700  see https://strftime.org/
+    # see https://www.youtube.com/watch?v=Bxf_HMs7SeQ
+        # TZ_DB_VER = "2022a" from ???
+        # IANA_TZ_NAME = "America/Denver" 
+    # No print_trace() here, just return the formatted string.
     return time_str
 
 
-def local_datetime_stamp() -> str:
-    """Assemble from OS clock date stamp (with a time zone offset)
-    using local time zone offset above.
+def print_datetime() -> str:
+    """Assemble from OS clock date stamp
     based on global var DATE_OUT_Z
-    USAGE: print(local_datetime_stamp()) used in print_trace() etc.
+    USAGE: print(print_datetime()) used in print_trace() etc.
     """
-    # Get current time in UTC:
-    utc_time_obj = datetime.now(UTC)
-    # Convert from UTC to local time using system's local timezone:
-    local_time_obj = utc_time_obj.astimezone()
-
-    is_short_date_format = True  # True="short"
-    # Both formats contain a "T" to separate date from time with no space.
-    if is_short_date_format:  # specificed among global user preferences
-        time_str = local_time_obj.strftime("%Y%m%dT%I%M%S.%f%z")
-        # Like: 20250204T114354.692446-0700 with Z for UTC (GMT) time
-    else:
-        # Print local Time Zone code & offset:
-        time_str = local_time_obj.strftime("%Y-%m-%d %I:%M:%S.%f %p %Z %z")
-        # time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%f%z")
-            # Like: 20250204T114354.692446-0700 for local time offset from GMT.
-            #local_time_str = utc_to_local(utc_time_obj,DATE_OUT_Z)
+    utc_time_obj = datetime.now(UTC)  # current time in UTC Greenwich Mean Time (GMT)
+    if DATE_OUT_Z:  # True = use Z (Zulu 24-hour time) for UTC (GMT)
+        time_str = utc_time_obj.strftime("%Y%m%dT%I%M%S.%fZ")
+           # Like: 20250204 181821.686103Z
+    else:  # Local time:
+        # Convert from UTC to local time using system's local timezone:
+        local_time_obj = utc_time_obj.astimezone()
+        time_str = local_time_obj.strftime("%Y%m%dT%I%M%S.%f-%p%z")
+        #time_str = local_time_obj.strftime("%Y-%m-%dT%I:%M:%S.%f %p %Z %z")
+            # Like: 20250204 114354.692446 PM MDT -0700
+            # MST = Mountain Standard Time (no DST adjustment)
+            # MDT = Mountain Daylight Time = In Daylight Savings "Summer" Time
+    # No print_trace() here, just return the formatted string.
     return time_str
 
 
@@ -350,7 +348,6 @@ import subprocess
 import sys
 import time
 import timeit
-import tzlocal
 import uuid
 
 std_stop_datetimestamp = datetime.now(UTC)
@@ -377,9 +374,11 @@ try:
     from cryptography.fernet import Fernet
     import ipfs_api  # https://pypi.org/project/IPFS-Toolkit/
     import keyring
+    from mistralai import Mistral
     from openai import OpenAI
     # import Pillow to convert SVG to PNG file format:
     from PIL import Image, ImageDraw, ImageFont  # noqa: E402
+    # from pydantic import BaseModel, Field
     import psutil
     import pytz  # for time zone handling
     from pymongo import MongoClient
@@ -387,13 +386,14 @@ try:
     import requests   # used by stability.ai to operate stable diffusion API
         # NOTE: The requests library is more versatile and widely used than
         # urllib is a built-in module that doesn't require additional installation.
+    import tzlocal
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     from nltk.sentiment.vader import SentimentIntensityAnalyzer
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
-    print(f"Please activate your virtual environment:\n$ python3 -m venv venv\n$ source venv/bin/activate")
+    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
     exit(9)
 
 # For wall time of xpt imports:
@@ -446,12 +446,11 @@ LOG_LVL = False   # If True, log to external file
 
 def do_clear_cli() -> None:
     if CLEAR_CLI:
-        import os
-        # Make a OS CLI command:
+        # import os
+        # Use a OS CLI command:
         lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
     return None
 
-# TODO: Add standard log() functions
 def print_separator() -> None:
     """ Put a blank line in CLI output. Used in case the technique changes throughout this code. 
     """
@@ -462,7 +461,7 @@ def print_heading(text_in: str) -> None:
     """
     if show_heading:
         if show_dates_in_logs:
-            out = bcolors.HEADING+bcolors.UNDERLINE, '\n*** ', local_datetime_stamp(), f'{text_in}', RESET
+            out = bcolors.HEADING+bcolors.UNDERLINE, '\n*** ', print_datetime(), f'{text_in}', RESET
         else:
             out = bcolors.HEADING+bcolors.UNDERLINE,'\n*** ' , f'{text_in}', RESET
         print(out)
@@ -475,7 +474,7 @@ def print_fail(text_in: str) -> None:
     """
     if show_fail:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.FAIL +CLI_PFX+ out + RESET)
@@ -487,7 +486,7 @@ def print_error(text_in: str) -> None:
     """
     if show_fail:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.ERROR +CLI_PFX+ out + RESET)
@@ -499,7 +498,7 @@ def print_warning(text_in: str) -> None:
     """
     if show_warning:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.WARNING +CLI_PFX+ out + RESET)
@@ -511,7 +510,7 @@ def print_todo(text_in: str) -> None:
     """
     if show_todo:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.INFO +CLI_PFX+ out + RESET)
@@ -523,7 +522,7 @@ def print_info(text_in: str) -> None:
     """
     if show_info:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.INFO+bcolors.BOLD +CLI_PFX+ out + RESET)
@@ -535,7 +534,7 @@ def print_verbose(text_in: str) -> None:
     """
     if show_verbose:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.VERBOSE +CLI_PFX+ out + RESET)
@@ -543,11 +542,11 @@ def print_verbose(text_in: str) -> None:
             logging.info(text_in)
 
 def print_trace(text_in: str) -> None:  # displayed as each object is created in pgm:
-    """To display details output from a function:
+    """Display details output from a function:
     """
     if show_trace:
         if show_dates_in_logs:
-            out = local_datetime_stamp() +" "+ text_in
+            out = print_datetime() +" "+ text_in
         else:
             out = text_in
         print(bcolors.TRACE +CLI_PFX+ out + RESET)
@@ -572,7 +571,7 @@ def print_secret(secret_in: str) -> None:
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             if show_dates_in_logs:
-                print(bcolors.WARNING, CLI_PFX, local_datetime_stamp(), f'{text_in}', RESET)
+                print(bcolors.WARNING, CLI_PFX, print_datetime(), f'{text_in}', RESET)
             else:
                 print(bcolors.CBEIGE, CLI_PFX, " SECRET: ", f'{secret_out}', RESET)
     # NOTE: secrets should not be printed to logs.
@@ -648,7 +647,7 @@ TILE_SIZE = 10
 
 # Alternatives for Generative AI: https://youtube.com/shorts/nHQSpxKGoms?si=K3wuarLLGmbczZHC
     # https://blog.monsterapi.ai/blogs/text-to-image-stable-diffusion-api-guide/
-    # A-tier: Midjourney lacks an API (but has great models & results, easy to use)
+    # A-tier: Midjourney lacks an API (but has great models & results, easy GUI to use)
     # A-tier: Stable Diffusion requires more technical knowledge for managing LORAs, styles, and checkpoints
         # Has flexibility with plug-ins, but can be complex to use.
         # See https://www.youtube.com/watch?v=7xc0Fs3fpCg
@@ -671,6 +670,13 @@ TILE_SIZE = 10
 # used to specify what API to use as well as keyring service name
 ai_svc = None   # "dalle2", "qwen", "stability" or "deepseek", "anthropic", etc.
 keyacct = None   # "johndoe@gmail.com" 
+
+MSG_DISCORD = False
+   # https://discordapp.com/developers/docs/topics/gateway#gateways
+   # https://discordapp.com/developers/docs/topics/gateway#get-gateway
+
+DISCORD_WEBHOOK_URL = "https://discordapp.com/api/webhooks/1337476153073598585/uZTgeONmMnsrgNCsB4xtfPuG2O9hrFRmHlidcjZCkpdedVetNH0WbokOwTxtsgYXTyKZ"
+   # Jetbloom Channel: "messages-from-python-app"
 MINT_EMAIL = None  # -me --mintemail (wallet account name)
 RUN_ENV = "staging"  # "prod" or staging (license)
 
@@ -692,28 +698,30 @@ SLEEP_SECONDS = 1.0  # between art created in a loop
 UPSCALE_IMAGE = False
 
 ENCRYPT_FILE = False
-
 GEN_SHA256 = False
-
+USE_QISKIT = False   # for Quantum resistant encryption
 ENCRYPTION_KEY = None
 
-USE_QISKIT = False   # for Quantum resistant encryption
-
-GEN_NFT = False
-
 ADD_WATERMARK = False  # watermark2png()
-WATERMARK_TEXT = "\"Like Mondrian 2054\" Copywrite Wilson Mar 2025. All rights reserved."
+WATERMARK_TEXT = "\"Like Mondrian 2054\" by Wilson Mar 2025. All rights reserved."
     # WARNING: Art made by text-to-image AI prompts are not copyrightable. 
     # See https://copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf
 
 GEN_IPFS = False
 UPLOAD_TO_QUICKNODE = False
-
+GEN_NFT = False
+NFT_MARKETPLACE = "Opensea" # "Opensea","MagicEden", "Rarible", "Superrare"
 BLOCKCHAIN_NAME = "solana"  # "ethereum" (Ethereum Mainnet - the most popular), "Solana (solana-mainnet), "polygon-amoy", "ethereum-sepolia", "Near", "Avalanche", "AirNFTs", Arbitrum, Optimism
 MINT_EMAIL = None
 # wallet = "Metamask", MATIC (Polygon's native token) or Polygon-bridged ETH
 # Agents = Zapier, make.com, n8n, Agentforce
-NFT_MARKETPLACE = "Opensea","MagicEden", "Rarible", "Superrare"
+
+encrypted_file_path='your_file.txt'
+cyphertext_file_path = "path/to/your/file ???"
+
+DECRYPT_FILE = False
+decrypted_file_path='your_file.txt'
+quicknode_file_path = "path/to/your/file ???"
 
 GEN_QR_CODE = False
 
@@ -722,19 +730,11 @@ GEN_QR_CODE = False
 
 DELETE_OUTPUT_FILE = False  # If True, recover files from Trash
 
-encrypted_file_path='your_file.txt'
-cyphertext_file_path = "path/to/your/file ???"
-DECRYPT_FILE = False
-decrypted_file_path='your_file.txt'
-
-quicknode_file_path = "path/to/your/file ???"
-
 SHOW_OUTPUT_FILE = False
 MONGODB_ID = None
 MONGODB_NAME = "mondrian"
 # Define a NoSQL collection (like a table in relational databases):
 MONGODB_COLLECTION = "runs"
- 
 
 KEEP_SHOWING = False
 
@@ -795,13 +795,15 @@ def read_cmd_args() -> None:
     parser.add_argument("-ipfs", "--ipfs", action="store_true", help="Gen. IPFS CID")
     parser.add_argument("-qn", "--quicknode", action="store_true", help="Gen. IPFS CID in QuickNode")
 
-    parser.add_argument("-me", "--mintemail", help="Email to attribute Mint NFT")
     parser.add_argument("-qr", "--genqr", action="store_true", help="Gen QR Code image file to each URL")
-
     parser.add_argument("-s", "--sleepsecs", help="Sleep seconds number")
-    parser.add_argument("-em", "--email", action="store_true", help="Email (via gmail) summary ")
+
+    parser.add_argument("-dc", "--discord", action="store_true", help="Message to Discord:")
+    parser.add_argument("-me", "--mintemail", help="Email to attribute Mint NFT?")
+    parser.add_argument("-em", "--email", action="store_true", help="Email (via gmail) summary?")
     parser.add_argument("-et", "--emailto", help="Recipient list of emails about results")
     parser.add_argument("-ef", "--emailfrom", help="Sender gmail address")
+
     parser.add_argument("-md", "--mongodb", help="\"local\",  \"27017\", or MONGODB URL")
     parser.add_argument("-m", "--summary", action="store_true", help="Show summary")
     # Default -h = --help (list arguments)
@@ -860,8 +862,10 @@ def read_cmd_args() -> None:
     if args.evalsentiment: # -es --evalsentiment
         global EVAL_SENTIMENT
         EVAL_SENTIMENT = True
-
-    if args.email:     # -em  --email
+    if args.discord:       # -dc --discord  "Message to Discord?"
+        global MSG_DISCORD
+        MSG_DISCORD = True
+    if args.email:         # -em  --email
         global SEND_EMAIL
         SEND_EMAIL = True
     if args.emailfrom:     # -ef  --emailfrom "loadtesters" used by send_smtp()
@@ -873,6 +877,11 @@ def read_cmd_args() -> None:
     if args.mintemail:     # -me --mintemail
         global MINT_EMAIL
         MINT_EMAIL = args.mintemail
+    
+    # TODO: Send msg to Discord channel
+        # See https://www.youtube.com/watch?v=klLeRzUg6HA&t=22s
+        # See https://dicordpy.readthedocs.io/en/stable/api.html?highlight=webhook#discord.Webhook
+        # See https://discord.com/developers/docs/resources/webhook#execute-webhook
 
     if args.si:            # -si => used by sys_info()
         global show_sys_info
@@ -977,6 +986,14 @@ def read_cmd_args() -> None:
     return None
 
 
+def display_cli_parameters() -> str:
+    args_str = ""  # f"{len(sys.argv)} arguments: "
+    for index, arg in enumerate(sys.argv):
+        args_str = args_str + f" {arg} "
+    return args_str
+        # Like: CLI: ./mondrian-gen.py  -v  -vv  -ai  pgm  -dc 
+
+
 #### SECTION 09 - Set Static Global working constants:
 
 
@@ -1052,6 +1069,14 @@ def calc_from_globals() -> None:
 #### SECTION 10 - Read .env file (from disk & USB) to override hard-coded defaults:
 
 
+def get_str_from_os(varname: str) -> str:
+    """Get string value from OS environment variable.
+    USAGE: api_key = get_str_from_os("OPENAI_API_KEY")
+    """
+    api_key = os.environ.get(varname, None)
+    return api_key
+
+
 def load_env_file(env_path: str) -> None:
     """Read .env file containing variables and values.
     See https://wilsonmar.github.io/python-samples/#envLoad
@@ -1065,13 +1090,12 @@ def load_env_file(env_path: str) -> None:
         #    list_files_on_removable_drive(DRIVE_PATH)
         # TODO: eject_drive(removable_drive_path)
 
-    """
     openai_api_key = get_str_from_env_file('OPENAI_API_KEY')
-    if openai_api_key == None:
+    if openai_api_key is None:
         print_error("openai_api_key="+openai_api_key+" not in "+env_path)
     else:
         print_error("openai_api_key="+openai_api_key+" in "+env_path)
-    """
+
     return None
 
 
@@ -1150,20 +1174,20 @@ def list_files_on_removable_drive(drive_path: str) -> None:
 #### SECTION 11 - System information functions (which can be in a python module)
 
 
-def display_memory() -> None:
+def display_memory() -> float:
     #import os, psutil  #  psutil-5.9.5
     process = psutil.Process()
     mem=process.memory_info().rss / (1024 ** 2)  # in bytes
     print_trace(str(process))
-    print_verbose(local_datetime_stamp()+" memory used="+str(mem)+" MiB")
-    return 
+    print_verbose(print_datetime()+" memory used="+str(mem)+" MiB")
+    return mem
 
-def display_disk_free() -> None:
+def display_disk_free() -> float:
     #import os, psutil  #  psutil-5.9.5
     disk = psutil.disk_usage('/')
     free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
-    print_verbose(f"{local_datetime_stamp()} disk space free={free_space_gb:.2f} GB")
-    return None
+    print_verbose(f"{print_datetime()} disk space free={free_space_gb:.2f} GB")
+    return free_space_gb
 
 def count_files_within_path(directory: str) -> int:
     """Returns the number of files after looking recursively
@@ -1212,7 +1236,7 @@ def sys_info() -> None:
     if not show_sys_info:   # -si defined among CLI arguments
         return None
 
-    print_trace("local_datetime_stamp="+local_datetime_stamp())
+    print_trace("print_datetime="+print_datetime())
 
     #from pathlib import Path
     # See https://wilsonmar.github.io/python-samples#run_env
@@ -1286,9 +1310,6 @@ def sys_info() -> None:
     print_trace("hostname="+hostname+" ip_addresses="+ip_addresses_str)
     # for ip in ip_addresses: print(ip)
     print("")
-    display_memory()
-    display_disk_free()
-    # list_disk_space_by_device()
     
     return None
 
@@ -1468,7 +1489,8 @@ def score_sentiment(sentence: str) -> dict:
     if not EVAL_SENTIMENT:
         return None
     
-    print_verbose("score_sentiment() sentence="+sentence)
+    print_verbose("score_sentiment() -es \""+sentence+"\"")
+    func_start_timer = time.perf_counter()
 
     # Create a SentimentIntensityAnalyzer object:
     sid_obj = SentimentIntensityAnalyzer()
@@ -1478,7 +1500,9 @@ def score_sentiment(sentence: str) -> dict:
     sentiment_dict = sid_obj.polarity_scores(sentence)
        # Example: {'neg': 0.531, 'neu': 0.469, 'pos': 0.0, 'compound': -0.5256}
 
-    print_trace(f"score_sentiment() "+str(sentiment_dict))
+    func_end_timer = time.perf_counter()
+    func_duration = func_end_timer - func_start_timer
+    print_trace(f"score_sentiment() {str(sentiment_dict)} in {func_duration:.5f} seconds")
     return sentiment_dict
 
 
@@ -1486,6 +1510,8 @@ def hash_file_sha256(filename: str) -> str:
     # A hash is a fixed length one way string from input data. Change of even one bit would change the hash.
     # A hash cannot be converted back to the input data (unlike encryption).
     # https://stackoverflow.com/questions/22058048/hashing-a-file-in-python
+
+    func_start_timer = time.perf_counter()
 
     #import hashlib
     sha256_hash = hashlib.sha256()
@@ -1495,7 +1521,12 @@ def hash_file_sha256(filename: str) -> str:
         # Read and update hash string value in blocks of 64K:
         for byte_block in iter(lambda: f.read(BUF_SIZE),b""):
             sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
+    hash_text = sha256_hash.hexdigest()
+
+    func_end_timer = time.perf_counter()
+    func_duration = func_end_timer - func_start_timer
+    print_trace(f"hash_file_sha256() {hash_text} in {func_duration:.5f} seconds")
+    return hash_text
 
 
 def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> str:
@@ -1503,6 +1534,7 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     after reading entire file into memory.
     Based on https://www.educative.io/answers/how-to-create-file-encryption-decryption-program-using-python
     """
+    func_start_timer = time.perf_counter()
     
     # Generate a 32-byte random encryption key like J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM=
     if not ENCRYPTION_KEY:   # global variable
@@ -1531,8 +1563,9 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     # with open('filekey.key', 'wb') as key_file:
     #    key_out.write(key)
 
-    print_info("From ", file_bytes, "bytes to ", encrypted_file_bytes, "bytes.")
-
+    func_end_timer = time.perf_counter()
+    func_duration = func_end_timer - func_start_timer
+    print_info(f"encrypt_symmetrically() From {file_bytes} bytes to {encrypted_file_bytes} bytes in {func_duration:.5f} seconds")
     return key_out
 
 
@@ -1581,7 +1614,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
             #import keyring
             api_key = keyring.get_password(app_id,account_name)
             if api_key:
-                print_trace("get_api_key() len(api_key)="+str(len(api_key)))
+                print_trace("get_api_key() len(api_key)="+str(len(api_key))+" chars.")
                 return api_key
             else:
                 # FIXME: sd_api_key=None
@@ -1590,12 +1623,13 @@ def get_api_key(app_id: str, account_name: str) -> str:
         except Exception as e:
             print_error("get_api_key() str({e})")
             return None
-    #else: Windows, Linux, etc.
-
+    else:
+        print_error("get_api_key() not macOS. Obtain key from .env file?")
+    
     return None
 
 
-#### SECTION 13 - Utility output functions:
+#### SECTION 13 - Utility output (file paths, gen QR code, smtp, Discord, Twitter, IPFS, etc):
 
 
 # def setup_logger(log_file=LOGGER_FILE_PATH, console_level=logging.INFO, file_level=logging.DEBUG):
@@ -1603,7 +1637,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
 # def log_event(logger, event_type, message, level='info'):
 
 def prefix_output_file_path(file_name) -> str:
-    """ Add a prefix path to a file name
+    """ Add a prefix path (Like /Users/johndoe/Desktop/) to a file name
     """
     print_verbose("prefix_output_file_path() -fn \""+file_name+"\"")
     # Make use of global variable cached so not repeat:
@@ -1612,9 +1646,22 @@ def prefix_output_file_path(file_name) -> str:
     return file_path
 
 
-def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
-    """Generate the full file path for the generated image like this:
-    /Users/johndoe/Desktop/mondrian-gen-20250119T192300-0700-1-openai-qr.png
+def get_filepath_prefix() -> str:
+    """ Done once at start: Define the file path that prefixes the file output by generators,
+    like this: /Users/johndoe/Desktop/mondrian-gen-20250204T181821.686103Z
+    Each generator adds like "-1-openai-qr.png"
+    """
+    #print_verbose("get_filepath_prefix()")
+    # Make use of global variable cached so not repeat:
+    datetime_stamp = print_datetime()  # from OS, not from created file. Not verified.
+    file_path = PROGRAM_NAME+"-"+RUNID+"-"+datetime_stamp
+    print_trace("get_filepath_prefix()="+file_path+" len="+str(len(file_path)))
+    return file_path
+
+
+def set_output_file_path(prefix: str, i: int, api_id: str, filetype: str) -> str:
+    """Generate the full file path for the generated image with UTC datetime
+    like this: /Users/johndoe/Desktop/mondrian-gen-20250204T181821.686103Z-1-openai-qr.png
     Using globals:
     :SLASH_CHAR ("/") from global variable depending on OS platform
     OUTPUT_PATH_PREFIX  set by calc_from_globals(). It contains:
@@ -1623,8 +1670,8 @@ def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
     /mondrian-gen :PROGRAM_NAME =  from global variable
     -Test001 :RUNID = from global variable
 
-    -20250119T192300 :datetime_stamp generated by this function
-    -0700  :TZ_OFFSET global variable included in datetime_stamp
+    -20250204T181821.686103Z is 24-hour UTC datetime_stamp 
+        NO TZ_OFFSET global variable included in datetime_stamp
 
     -1  :i = incrementor from argument
     -dalle2 or -pgm (if local programmatic code) :api_id = from argument 
@@ -1632,13 +1679,11 @@ def set_output_file_path(i: int, api_id: str, filetype: str) -> str:
     """
     print_verbose("set_output_file_path() api_id="+api_id+" i="+str(i)+" of "+str(FILES_TO_GEN))
 
-    datetime_stamp = local_datetime_stamp()  # from OS, not from created file. Not verified.
-    file_name = PROGRAM_NAME+"-"+RUNID+"-"+datetime_stamp+"-"+str(i)+"-"+api_id+"-"+filetype
-    print_trace("set_output_file_path()="+file_name+" len="+str(len(file_name)))
+    file_path = prefix+"-"+str(i)+"-"+api_id+"-"+filetype
+    print_trace("set_output_file_path()="+file_path+" len="+str(len(file_path)))
     # Like                        mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-dalle2-qr.png
-    full_file_path = prefix_output_file_path(file_name)
-    return full_file_path
-    # Like /Users/johndoe/Desktop/mondrian-gen-t1-20250126T210748-0700-1-dalle2-art.png-dalle2-qr.png
+    return file_path
+    # Like /Users/johndoe/Desktop/mondrian-gen-r0001-20250126T210748-0700-1-dalle2-art.png
 
 
 def send_smtp() -> bool:
@@ -1833,7 +1878,63 @@ def upload_to_ipfs(file_path: str) -> str:
     return cid
 
 
-#### SECTION 14 - Custom programmatic app functions:
+def compress_to_thumbnail():
+    # TODO: Use PIL to compress image to thumbnail
+    return
+
+
+def msg_discord(message_in: str) -> None:
+    """Upload a message to Discord.
+    USAGE: msg_discord("here is the message")
+    :MSG_DISCORD = True or False to send message
+    :DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL...."
+    :DISCORD_CHANNEL_NAME = ""
+    :message is constructed by calling function.
+    To create a webhook in your Discord account:
+    1. Create a new channel "messages-from-python-app"
+    2. Click the gear icon to the right of the channel name to select the "Integrations" menu.
+    3. Click "Create Webhook", "New Webhook" button.
+    4. Change the webhook name from the default "Captain Hook".
+    5. Click "Copy Webhook URL" for "Copied!".
+    6. Paste the URL into the "Webhook URL" field in your .env file
+    7. Save Changes" button to create the webhook. 
+    """
+    # import requests, json
+    if not MSG_DISCORD:
+        return None
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+    # TODO: Ensure files sent to Discord are 50 MB or less: compress_image()
+    # image_url="https://i.pinimg.com/736x/7a/6f/3f/7a6f3f7a6f3f7a6f3f7a6f3f7a6f3f7a.jpg"
+    #data = {
+    #    "content": message_in
+    #    "embeds": [
+    #        {
+    #        "image": {
+    #            "url": image_url
+    #        }
+    #        }
+    #    ]
+    #}
+    data = {
+        "content": message_in
+    }
+    try:
+        # import requests, json
+        response = requests.post(DISCORD_WEBHOOK_URL, data=json.dumps(data), headers=headers)
+        if response.status_code == 204:  # 204 is expected from APIs.
+            print_trace(f"msg_discord() sent message: {response.status_code}")
+        else:
+            print_error(f"msg_discord() failed to send: {response.status_code}")
+    except Exception as e:
+        print_fail(f"msg_discord() failed: {e}")
+
+    return None
+
+
+#### SECTION 14 - Custom programmatic GenAI app (pgm, ):
 
 
 # Based on https://www.perplexity.ai/search/write-a-python-program-to-crea-nGRjpy0dQs6xVy9jh4k.3A#0
@@ -1923,36 +2024,36 @@ def gen_one_file(file_path: str) -> bool:
         return True
 
 
-#### SECTION 15 - Generative AI (GenAI) API functions:
+#### SECTION 15 - GenAI API calls to OpenAI DALL-E, Stability, DeepSeek, Qwen:
 
 
 def gen_dalle2_file(gened_file_path: str) -> str:
     """Generate image using DALL-E Generative AI API calls to OpenAI servers.
     """
-    #openai_engine_id = get_openai_engine_id(openai_api_key)
+
+    api_key = get_api_key("openai","johndoe")
+    if api_key:
+        print_trace("gen_dalle2_file() len(openai_api_key)="+str(len(api_key)))
+    else:
+        print_error("gen_dalle2_file() does not have api_key.")
+        return None
+
     openai_engine_id="dall-e-2"   #prompt_model="dall-e-2" # for 500x500 FREE
     # openai_engine_id="dall-e-3" #prompt_model="dall-e-3" # for 1024x1024 licen$ed
-    WIDTHxHEIGHT = "500x500"
-    # TODO: Use global variable: See https://beta.dreamstudio.ai/prompt-guide
+    WIDTHxHEIGHT = "512x512"
     #.  size=WIDTHxHEIGHT = "512x512"
+    # TODO: Use global variable: See https://beta.dreamstudio.ai/prompt-guide
       # quality="hd” costs more, takes more time to generate than "standard".
        # or "vivid" for advanced control of the generation.
-    print_verbose("gen_dalle2_file() model="+openai_engine_id+\
+    print_verbose("gen_dalle2_file() model=\""+openai_engine_id+"\""\
         " WIDTHxHEIGHT="+WIDTHxHEIGHT+\
         " len(PROMPT_TEXT)="+str(len(PROMPT_TEXT)))
-
-    openai_api_key = get_api_key("openai","johndoe")
-    if openai_api_key:
-        print_trace("gen_dalle2_file() len(openai_api_key)="+str(len(openai_api_key)))
-    else:
-        print_error("gen_dalle2_file() does not have openai_api_key.")
-        return None
 
     func_start_timer = time.perf_counter()
     # See https://help.openai.com/en/articles/8555480-dall-e-3-api
     # See https://platform.openai.com/docs/guides/images?context=python
     client = OpenAI()
-    client.api_key = openai_api_key
+    client.api_key = api_key
     response = client.images.generate(
         model=openai_engine_id,
         prompt=PROMPT_TEXT,
@@ -1961,7 +2062,7 @@ def gen_dalle2_file(gened_file_path: str) -> str:
         quality="standard",
         size=WIDTHxHEIGHT
     )
-    print_info("response.data[0].url"+response.data[0].url)
+    print_info("gen_dalle2_file() url="+response.data[0].url)
        # Example: https://oaidalleapiprodscus.blob.core.windows.net/private/org-4...
     response = requests.get(response.data[0].url)
     if response.status_code == 200:
@@ -1989,27 +2090,28 @@ def gen_qwen_file(gened_file_path: str) -> str:
     """Generate image using Qwen Generative AI API calls to Alibaba servers in China.
     Released 01/25/2025.See https://www.youtube.com/watch?v=he9xAr_CKMQ
     """
+    api_key = get_api_key("qwen","johndoe")
+    if api_key:
+        print_trace("gen_qwen_file() len(api_key)="+str(len(api_key)))
+    else:
+        print_error("gen_qwen_file() does not have api_key.")
+        return None
+
+
     # qwen_engine_id="dall-e-3" #prompt_model="dall-e-3" # for 1024x1024 licen$ed
     qwen_engine_id="qwen-max-2025-01-25"
     global MODEL_ID
     MODEL_ID = qwen_engine_id
     WIDTHxHEIGHT = "500x500"
-    print_verbose("gen_qwen_file() model="+qwen_engine_id+\
+    print_verbose("gen_qwen_file() -model="+qwen_engine_id+\
         " WIDTHxHEIGHT="+WIDTHxHEIGHT+\
         " len(PROMPT_TEXT)="+str(len(PROMPT_TEXT)))
-
-    qwen_api_key = get_api_key("qwen","johndoe")
-    if qwen_api_key:
-        print_trace("gen_qwen_file() len(qwen_api_key)="+str(len(qwen_api_key)))
-    else:
-        print_error("gen_qwen_file() does not have qwen_api_key.")
-        return None
 
     func_start_timer = time.perf_counter()
     # See https://help.qwen.com/en/articles/8555480-dall-e-3-api
     # See https://platform.qwen.com/docs/guides/images?context=python
     client = qwen()
-    client.api_key = qwen_api_key
+    client.api_key = api_key
     response = client.chat.completions.create(
         model=qwen_engine_id,
         messages=[
@@ -2081,6 +2183,13 @@ def gen_stablediffusion_file(prompt: str) -> str:
     # https://python.plainenglish.io/how-to-use-new-stable-diffusion-xl-api-from-stability-ai-b6f9b0bf0b91?gi=6b0b27ee1929
     # https://platform.stability.ai/rest-api#tag/v1engines/operation/listEngines
     """
+    api_key = get_api_key("qwen","johndoe")
+    if api_key:
+        print_trace("gen_stablediffusion_file() len(api_key)="+str(len(api_key)))
+    else:
+        print_error("gen_stablediffusion_file() does not have api_key.")
+        return None
+
     # stability_engine_id = get_stability_engine_id(stability_api_key)
     stability_engine_id = "stable-diffusion-xl-1024-v1-0"
     # stability_engine_id = "stable-diffusion-v1-6
@@ -2103,7 +2212,7 @@ def gen_stablediffusion_file(prompt: str) -> str:
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {stability_api_key}"
+        "Authorization": f"Bearer {api_key}"
     }
     
     # prompt = "A serene landscape with mountains and a lake at sunset"
@@ -2192,7 +2301,103 @@ def gen_claude_file(prompt: str) -> str:
     return out_url
 
 
-#### SECTION 16 - Post-generation processing:
+def gen_mistral_file(prompt: str) -> str:
+    """Call "mistral" API to generate an image from a prompt text.
+    Get API_KEY from https://console.mistral.ai    
+    From globals:
+    : PROMPT_TEXT  from global variables
+    : WIDTHxHEIGHT from global variables (256x256, 512x512, 1024x1024)
+    : META_API_KEY
+    """
+    #from mistralai import Mistral
+    #import os
+
+    # As per https://www.youtube.com/watch?v=u2diEa4VT4M for local running.
+    #model = "mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+    model = "pixtral-12b-2409"
+
+    # Initialize the Mistral client
+    client = Mistral(api_key=MISTRAL_API_KEY)
+
+    # Define the messages for the chat
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": PROMPT_TEXT
+                }
+            ]
+        }
+    ]
+
+    # Get the chat response
+    chat_response = client.chat.complete(
+        model=model,
+        messages=messages
+    )
+
+    # The response will contain the generated image data
+    image_data = chat_response.choices[0].message.content[0].text
+    return image_data
+    # You'll need to handle the image data appropriately based on the API's response format
+
+
+def gen_meta_file(prompt: str) -> str:
+    """Call "meta" (Facebook) LlamaIndex API to generate an image from a prompt text.
+    Get API_KEY from https://github.com/Strvm/meta-ai-api
+    See https://docs.llamaindex.ai/en/stable/api_reference/tools/text_to_image/
+    See https://www.meta.com/es-la/help/artificial-intelligence/imagine/
+    https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-meta.html
+    
+    From globals:
+    : PROMPT_TEXT  from global variables
+    : WIDTHxHEIGHT from global variables (256x256, 512x512, 1024x1024)
+    : META_API_KEY
+    """
+    api_key = get_api_key("meta","johndoe")
+    if api_key:
+        print_trace("gen_meta_file() len(api_key)="+str(len(api_key)))
+    else:
+        print_error("gen_meta_file() does not have api_key.")
+        return None
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer "+ api_key
+    }
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": "1024x1024"
+    }
+    url = "https://www.meta.ai/api/generate-image"
+
+    func_start_timer = time.perf_counter()
+    # import requests, json
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    
+    if response.status_code == 200:
+        image_url = response.json()["data"][0]["url"]
+    else:
+        return f"gen_meta_file() Error: {response.status_code}, {response.text}"
+
+    func_end_timer = time.perf_counter()
+    func_duration = func_end_timer - func_start_timer
+    print_trace("gen_meta_file() url="+image_url+" func_duration={func_duration:.5f} seconds")
+    return image_url
+
+
+#### SECTION 16 - Post-processing (upscale, watermark, mint NFT):
+
+
+def upscale_image_file(input_filepath: str) -> str:
+    """ Upscale image to higher pixel density, using https://topazai.com (paid)
+    """
+    # TODO: Upscale image
+    # if UPSCALE_IMAGE:
+    return None
 
 
 def add_watermark2png(input_image: str, output_image: str, watermark_text: str) -> str:
@@ -2326,9 +2531,15 @@ def show_summary(in_seq: int) -> None:
 
         # For wall time of xpt imports:
         xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-        print_trace(str(xpt_elapsed_wall_time)+" to import of Python external libraries.")
+        print_info(f"{str(xpt_elapsed_wall_time)} to import of Python external libraries.")
 
-    # TODO: Write wall times to log for longer-term analytics
+        pgm_stop_mem_diff = display_memory() - pgm_strt_mem_used
+        print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed by run {RUNID}.")
+
+        pgm_stop_disk_diff = pgm_strt_disk_free - display_disk_free()
+        print_info(f"{pgm_stop_disk_diff:.6f} GB disk consumed by run {RUNID}.")
+
+        # TODO: Write wall times to log for longer-term analytics
     return None
 
 
@@ -2342,7 +2553,14 @@ if __name__ == "__main__":
     # TODO: load_env_file("???")  # read_env_file(ENV_FILE_PATH)
     read_cmd_args()  # override command line parameters at run time.
     calc_from_globals()
+
     sys_info()
+    pgm_strt_mem_used = display_memory()
+    pgm_strt_disk_free = display_disk_free()
+    # list_disk_space_by_device()
+
+    filepath_prefix = get_filepath_prefix()
+        # Like: /Users/johndoe/Downloads/mondrian-gen-20250105T061101-0700-
 
     artpiece_num = 0
     while True:  # loop forever
@@ -2354,32 +2572,39 @@ if __name__ == "__main__":
 
         if FILE_NAME:  # -fn --filename "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png"
             gened_file_path = prefix_output_file_path(FILE_NAME)
+            exit()
         else:
+            # TODO: Rotate through ai's rather than manually specifying one:
             if ai_svc is None:
                 print_fail(f"-ai \"pgm\" parameter not specified. Is required. Aborting.")
                 exit(9)
             # Generate text-to-image using only one method at a time (for easier post-processing):
             if ai_svc == "dalle2":    # Using text-to-image OpenAI's DALL-E service:
-                gened_file_path = set_output_file_path(artpiece_num,"dalle2","art.png")
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"dalle2","art.png")
                 result = gen_dalle2_file(gened_file_path)
             elif ai_svc == "qwen":
-                gened_file_path = set_output_file_path(artpiece_num,"qwen","art.png")
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"qwen","art.png")
                 result = gen_qwen_file(gened_file_path)
             elif ai_svc == "stability":
-                gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"stab","art.png")
                 result = gen_stablediffusion_file(gened_file_path)
             elif ai_svc == "anthropic":
-                gened_file_path = set_output_file_path(artpiece_num,"stab","art.png")
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"anthropic","art.png")
                 result = gen_claude_file(gened_file_path)
+            elif ai_svc == "meta":
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"meta","art.png")
+                result = gen_meta_file(gened_file_path)
             # TODO: Add "sora"
             # TODO: Add DeepSeek 384x384 Janus from HuggingFace "janus" # https://api-docs.deepseek.com
             # TODO: Add https://chat.qwenlm.ai/ "qwenlm" https://www.youtube.com/watch?v=he9xAr_CKMQ
             elif ai_svc == "pgm": # use local programmatic code:        
-                gened_file_path = set_output_file_path(artpiece_num,ai_svc,"art.png")
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"pgm","art.png")
                 result = gen_one_file(gened_file_path)
             else: # use local programmatic code:        
                 print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Aborting.")
                 exit(9)
+
+        msg_discord(display_cli_parameters() +"\ngen'd: "+gened_file_path)
 
         if SHOW_OUTPUT_FILE:   # --showout
             img = Image.open(gened_file_path)
@@ -2422,9 +2647,9 @@ if __name__ == "__main__":
             #    upscaled_file_path=upscale_image_file(gened_file_path)
 
             watermarked_file_path = None
-            if ADD_WATERMARK and gened_file_path:  # -wm --watermark
-                wmatermarked_file_path = set_output_file_path(artpiece_num,ai_svc,"wmd.png")
-                result = add_watermark2png(gened_file_path, wmatermarked_file_path, WATERMARK_TEXT)
+            if ADD_WATERMARK and os.path.exists(gened_file_path): # -wm --watermark
+                watermarked_file_path = set_output_file_path(artpiece_num,ai_svc,"wmd.png")
+                result = add_watermark2png(gened_file_path, watermarked_file_path, WATERMARK_TEXT)
 
             #TODO: watermarked_file_found = read_watermark(watermarked_file_path)
             #TODO: create_thumbnail_png()
@@ -2504,11 +2729,12 @@ if __name__ == "__main__":
                     "run_id": RUNID, # T0011
                     "git": latest_git_sha1(),
                     "pgm": PROGRAM_NAME,
-                    "start_utc": utc_to_local(pgm_strt_datetimestamp,DATE_OUT_Z),
-                    "tzdb": TZ_DB_VER,
-                    "ai_svc": ai_svc,
-                    "model_id": MODEL_ID,
+                    "start_utc": pgm_strt_datetimestamp,
+                    #"tzdb": TZ_DB_VER,
+                    #"ai_svc": ai_svc,
                     "prompt_text": PROMPT_TEXT,
+                    "prompt_sentiment": sentiment_dict,
+                    "model_id": MODEL_ID,
                     "artpiece_file": gened_file_path,
                     "watermarked_file": watermarked_file_path,
                     "cyphertext_file": cyphertext_file_path,
@@ -2516,10 +2742,12 @@ if __name__ == "__main__":
                     "qrcode_file": qrcode_file_path,
                     "shortened_url": shortened_url,
                     #"gen_parms": ["???", "data science", "machine learning"]
-                    "secs": artpiece_duration
+                    "secs": artpiece_duration,
+                    "rating": None
                 }
                 # Obtain an index where the document was inserted into the database:
                 mongodb_index = insert_mongodb(document)
+                # See https://github.com/mongodb-university/curriculum/tree/main/Atlas-Vector-Search/U3-Using-Atlas-Vector-Search-for-RAG/L3-Preparing-The-Data
                 print_trace(f"main() RUNID={RUNID} -> mongodb_index={mongodb_index}")
 
         if FILES_TO_GEN > 0:   
