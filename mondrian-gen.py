@@ -3,25 +3,12 @@
 
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
 
-git commit -m"v028 + msg_discord :mondrian-gen.py"
+git commit -m"v029 + random ai_svc selection :mondrian-gen.py"
 
-CURRENT STATUS: WORKING but pgm art has too thick lines & no env file retrieve.
+CURRENT STATUS: WORKING but no env file retrieve & watermark
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-This program was created as a base to create other programs quickly yet securely.
-So this is rather "bloated swiss army knife" monolith for use during hackathons.
-However, in the future, utility functions here can be 
-moved to a separate file (Python module) of custom utilities. 
-But they are together here now to make it easier to understand and modify.
-
-Currently, this program has both local programming and Generative AI (GenAI) API calls
-to create (from text prompt) a PNG image file of art in the pure abstract Neoplasticism style
-initiated in 1920s by Piet Mondrian (in Amersfort, Netherlands 1872-1944).
-This is to see how the different ways of creating horizontal and 
-vertical lines of rectangular boxes filled with primary colors
-compare with the intuitive beauty of works manually created by Mondrian, such as
-https://res.cloudinary.com/dcajqrroq/image/upload/v1736178566/mondrian.29-compnum3-268x266_hceym9.png
-
+See https://bomonike.github.io/mondrian-gen for an explanation of this.
 
 #### SECTION 01 - Program Description (to be extracted into __init__.py or README)
 
@@ -176,34 +163,12 @@ flake8  E501 line too long, E222 multiple spaces after operator
 
 12. Craft commands to run this program:
     ./mondrian-gen.py -v -vv -fn "mondrian-gen-R011-20250202T053940-0700-1-pgm-art.png" -md "local"
-    ./mondrian-gen.py -v -vv --mintemail "johndoe@gmail.com" -q -gf -md "local" -ai "dalle2" 
-
-Alternative API: https://niftykit.com/products/minting-api
-
-#### Other articles about tools to generate art:
-<a target="_blank" href="https://www.youtube.com/watch?v=Vgcr6VOwHf0">VIDEO</a>
-* <a target="_blank" href="https://mondriangenerator.io/">Mondrian Generator</a> web-based tool. Allows you to adjust parameters in the left panel: Format (size), Complexity (number of blocks), Colors, Color amount.
-* <a target="_blank" href="https://www.artvy.ai/ai-art-style/piet-mondrian">Artvy</a> generates based on an image you upload for style transfer.
-* <a target="_blank" href="https://neural.love/ai-art-generator/1ed7da32-c7dc-6e2c-957c-7fd88793a662/mondrian-painting">Neural Love</a> generate art under a CC0 license.
-* <a target="_blank" href="https://www.pcmag.com/how-to/how-to-use-dall-e-ai-art-generator">DaLL-E</a> from OpenAI's generates realistic as part of the ChatGPT Plus $20 per month paid version. 
-    See https://platform.openai.com/docs/overview
-* <a target="_blank" href="https://dev.to/ranjancse/systematic-modern-artwork-with-aiconfig-1ol8">AiConfig</a>
-* <a target="_blank" href="https://lastmileai.dev/">LastMileAI</a>
-* https://github.com/unsettledgames/mondrian-generator 
-
-Other Mondrian artists:
-* <a target="_blank" href="https://twitter.com/ArtByPietMondrian">ArtByPietMondrian</a>
-* https://opensea.io/collection/mondriannft
-* https://opensea.io/collection/soupxmondrian
-* https://opensea.io/collection/pepemondrians
-* https://opensea.io/collection/mondrian-on-polygon
+    ./mondrian-gen.py -v -vv --mintemail "johndoe@gmail.com" -q -gf -ai "pgm" -ai "dalle2" 
 
 Commentary:
 
 1. Instead of using Python @Decorators to capture timings (see https://realpython.com/videos/timing-functions-decorators/
 2. TODO: Use Pytest to unit test individual functions with assertions.
-
-TODO: Print
 
 """
 
@@ -218,31 +183,6 @@ pgm_strt_datetimestamp = datetime.now(UTC)
 # = 2025-02-04 04:05:58.423242+00:00 in UTC (Greenwich Mean Time London)
 
 DATE_OUT_Z = False  # Show logs with Z time (in UTC time zone now) instead of local time.
-
-"""
-We begin the program by capturing a time stamp at the earliest possible moment.
-
-Several different ways and modules have been used for time reporting.
-
-Due to deprecations of datetime.utcnow() since version 3.12, we now use 
-datetime.now(UTC) to obtain a datetime object that is 
-“aware” of political time zones rather than “naive” ones that do not.
-See https://docs.python.org/3/library/datetime.html?timetuple=#datetime.datetime.utcnow
-
-To ensure consistency in all logs from machines throughout the world,
-we store time stamps in UTC and in 24-hour clock time.
-Python, PostgreSQL, FastAPI, and others use the precision of 
-ISO 8601 YYYY-MM-DD HH:MM:SS.ssssss+00:00 standard format 
-such as: 2026-02-10 12:24:40.089415+00:00
-(MySQL omits the precision).
-Others add "Z" to indicate the UTC time zone, which is NOT adjusted for DST (Daylight Savings Time).
-Others add a time zone offset, such as the negative "-07:00" indicates a time zone West of UTC/GMT.
-
-Presentation to users is in each user's local time zone and in AM/PM format:
-coverted from UTC ed on the local time zone obtained from operating system settings, such as:
-    2026-02-10 12:24:40.089415 PM MST -0700
-
-"""
 
 def utc_to_local(utc_time_obj) -> str:
     """ Convert from UTC to local time using system's local timezone:
@@ -703,9 +643,7 @@ USE_QISKIT = False   # for Quantum resistant encryption
 ENCRYPTION_KEY = None
 
 ADD_WATERMARK = False  # watermark2png()
-WATERMARK_TEXT = "\"Like Mondrian 2054\" by Wilson Mar 2025. All rights reserved."
-    # WARNING: Art made by text-to-image AI prompts are not copyrightable. 
-    # See https://copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf
+WATERMARK_TEXT = None
 
 GEN_IPFS = False
 UPLOAD_TO_QUICKNODE = False
@@ -2534,10 +2472,10 @@ def show_summary(in_seq: int) -> None:
         print_info(f"{str(xpt_elapsed_wall_time)} to import of Python external libraries.")
 
         pgm_stop_mem_diff = display_memory() - pgm_strt_mem_used
-        print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed by run {RUNID}.")
+        print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run {RUNID}.")
 
         pgm_stop_disk_diff = pgm_strt_disk_free - display_disk_free()
-        print_info(f"{pgm_stop_disk_diff:.6f} GB disk consumed by run {RUNID}.")
+        print_info(f"{pgm_stop_disk_diff:.6f} GB disk consumed during run {RUNID}.")
 
         # TODO: Write wall times to log for longer-term analytics
     return None
@@ -2574,39 +2512,39 @@ if __name__ == "__main__":
             gened_file_path = prefix_output_file_path(FILE_NAME)
             exit()
         else:
-            # TODO: Rotate through ai's rather than manually specifying one:
-            if ai_svc is None:
-                print_fail(f"-ai \"pgm\" parameter not specified. Is required. Aborting.")
-                exit(9)
-            # Generate text-to-image using only one method at a time (for easier post-processing):
+            if ai_svc is None:  # If one is not specified in parm, randomly select one:
+                ai_svcs_list = ["anthropic","dalle2","meta","pgm","stability","qwen"]
+                ai_svc = random.choice(ai_svcs_list)
+                # TODO: Instead, cycle through the GenAI APIs
+
+            if ai_svc == "anthropic":
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"anthropic","art.png")
+                result = gen_claude_file(gened_file_path)
             if ai_svc == "dalle2":    # Using text-to-image OpenAI's DALL-E service:
                 gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"dalle2","art.png")
                 result = gen_dalle2_file(gened_file_path)
+            elif ai_svc == "meta":
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"meta","art.png")
+                result = gen_meta_file(gened_file_path)
+            elif ai_svc == "pgm": # use local programmatic code:        
+                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"pgm","art.png")
+                result = gen_one_file(gened_file_path)
             elif ai_svc == "qwen":
                 gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"qwen","art.png")
                 result = gen_qwen_file(gened_file_path)
             elif ai_svc == "stability":
                 gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"stab","art.png")
                 result = gen_stablediffusion_file(gened_file_path)
-            elif ai_svc == "anthropic":
-                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"anthropic","art.png")
-                result = gen_claude_file(gened_file_path)
-            elif ai_svc == "meta":
-                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"meta","art.png")
-                result = gen_meta_file(gened_file_path)
             # TODO: Add "sora"
             # TODO: Add DeepSeek 384x384 Janus from HuggingFace "janus" # https://api-docs.deepseek.com
             # TODO: Add https://chat.qwenlm.ai/ "qwenlm" https://www.youtube.com/watch?v=he9xAr_CKMQ
-            elif ai_svc == "pgm": # use local programmatic code:        
-                gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"pgm","art.png")
-                result = gen_one_file(gened_file_path)
-            else: # use local programmatic code:        
+            else:
                 print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Aborting.")
                 exit(9)
 
         msg_discord(display_cli_parameters() +"\ngen'd: "+gened_file_path)
 
-        if SHOW_OUTPUT_FILE:   # --showout
+        if SHOW_OUTPUT_FILE:   # -so -showout
             img = Image.open(gened_file_path)
             img.show() # Display the image:
 
@@ -2647,7 +2585,11 @@ if __name__ == "__main__":
             #    upscaled_file_path=upscale_image_file(gened_file_path)
 
             watermarked_file_path = None
-            if ADD_WATERMARK and os.path.exists(gened_file_path): # -wm --watermark
+            if ADD_WATERMARK:
+                # and os.path.exists(watermarked_file_path): # -wm --watermark
+                WATERMARK_TEXT = '\"Mondrian "+ RUNID+" "+ai_svc+"\" by Wilson Mar 2025. All rights reserved.'
+                # See https://copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf
+
                 watermarked_file_path = set_output_file_path(artpiece_num,ai_svc,"wmd.png")
                 result = add_watermark2png(gened_file_path, watermarked_file_path, WATERMARK_TEXT)
 
