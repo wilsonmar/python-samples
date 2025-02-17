@@ -3,12 +3,16 @@
 
 """mondrian-gen.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
 
-git commit -m"v029 + random ai_svc selection :mondrian-gen.py"
+git commit -m"v030 + backup :mondrian-gen.py"
 
 CURRENT STATUS: WORKING but no env file retrieve & watermark
     ERROR: gen_one_file() draw_mondrian() failed. 
 
-See https://bomonike.github.io/mondrian-gen for an explanation of this.
+This is a programmatic workflow to invoke various AI services that 
+generate art (specifically Mondrian-style art) and process it several ways.
+This was written as a way to explore integration of various Python features.
+This is not an "AI Agent" that automously delegate work among agents.
+See https://bomonike.github.io/mondrian-gen for an explanation.
 
 #### SECTION 01 - Program Description (to be extracted into __init__.py or README)
 
@@ -26,7 +30,7 @@ Code here are marked by "SECTION" dividers:
 * SECTION 09 - Set Static Global working constants:
 * SECTION 10 - Read .env file (from disk & USB) to override hard-coded defaults:
 
-* SECTION 11 - System information functions (which can be in a python module)
+* SECTION 11 - System functions (which can be in a python module)
 * SECTION 12 - Utility input processing (sentiment analysis, cryptopgraphy):
 * SECTION 13 - Utility output (file paths, gen QR code, email smtp, Discord, Twitter, etc):
 
@@ -48,15 +52,14 @@ Code here are marked by "SECTION" dividers:
     # See https://wilsonmar.github.io/quantum
     python3 -m pip install functools  # FIXME ERROR: Failed to build installable wheels for some pyproject.toml based projects (functools)
     python3 -m pip install --upgrade -q google-api-python-client google-auth-httplib2 google-auth-oauthlib
-    python3 -m pip install stablediffusionapi
+    python3 -m pip install vaderSentiment
         import smtplib
         from email.mime.text import MIMEText
-    python3 -m pip install anthropic pymongo deepseek mistralai vaderSentiment
-
+    python3 -m pip install stablediffusionapi anthropic pymongo deepseek 
+    python3 -m pip install dspy dspy-ai openai rich cloudinary 
     Download to /Users/johndoe/nltk_data:
     python3 -c "import nltk; nltk.download('vader_lexicon')"
 
-    # Successfully installed stablediffusionapi-0.0.5
     # Successfully installed stablediffusion_api-1.0.7 from https://stability.ai
     # See https://faun.pub/stable-diffusion-enabling-api-and-how-to-run-it-a-step-by-step-guide-7ebd63813c22
     # See https://www.datacamp.com/tutorial/how-to-use-stable-diffusion-3-api
@@ -132,7 +135,7 @@ flake8  E501 line too long, E222 multiple spaces after operator
         -up, --upscale        Upscale image
         -fg, --filesgen FILESGEN
                                 Files to generate integer number
-        -su, --shorturl SHORTURL
+        -su, --shortenurl SHORTEN_URL
                                 Shorten URL for less complex QR Code
         -w, --width WIDTH     Width (pixel size of output file eg 500)
         -he, --height HEIGHT  Height (pixel size of output file eg 500)
@@ -289,6 +292,7 @@ import sys
 import time
 import timeit
 import uuid
+import zipfile
 
 std_stop_datetimestamp = datetime.now(UTC)
 
@@ -303,11 +307,13 @@ try:
     import anthropic
     import cairo  # pip install pycairo (https://pycairo.readthedocs.io/en/latest/)
     #import cryptography
-    from Crypto.PublicKey import RSA  # from pip install pycryptodome
-    from Crypto.Cipher import AES, PKCS1_OAEP
-    from Crypto.Random import get_random_bytes
-    from qiskit.circuit.library import QFT   # see https://docs.quantum.ibm.com/api/qiskit
+    #from Crypto.PublicKey import RSA  # from pip install pycryptodome
+    #from Crypto.Cipher import AES, PKCS1_OAEP
+    #from Crypto.Random import get_random_bytes
+    #from qiskit.circuit.library import QFT   # see https://docs.quantum.ibm.com/api/qiskit
     #from qiskit import QuantumCircuit, execute, Aer
+    import cloudinary, cloudinary.uploader
+    import dspy
     from dotenv import load_dotenv
     from envcloak import load_encrypted_env
     import fernet
@@ -382,7 +388,24 @@ class bcolors:  # ANSI escape sequences:
     ERROR = RED
     FAIL = YELLOW
 
+CLEAR_CLI = True
+
+show_todo = True
+
+show_heading = True
+show_info = True
+show_warning = True
+show_error = True
+show_fail = True
+show_verbose = False
+show_trace = True
+show_dates_in_logs = False
+
+show_sys_info = False
+show_secrets = False
+
 LOG_LVL = False   # If True, log to external file
+    # https://github.com/ArjanCodes/2023-logging/blob/main/logging_papertrail.py
 
 def do_clear_cli() -> None:
     if CLEAR_CLI:
@@ -401,10 +424,10 @@ def print_heading(text_in: str) -> None:
     """
     if show_heading:
         if show_dates_in_logs:
-            out = bcolors.HEADING+bcolors.UNDERLINE, '\n*** ', print_datetime(), f'{text_in}', RESET
+            out = print_datetime() +" "+ text_in
         else:
-            out = bcolors.HEADING+bcolors.UNDERLINE,'\n*** ' , f'{text_in}', RESET
-        print(out)
+            out = text_in
+        print(bcolors.HEADING+bcolors.UNDERLINE + CLI_PFX + out+ RESET)
         if LOG_LVL == "INFO":
             logging.info(text_in)
 
@@ -518,6 +541,26 @@ def print_secret(secret_in: str) -> None:
     return None
 
 
+
+def memory_used() -> float:
+    #import os, psutil  #  psutil-5.9.5
+    process = psutil.Process()
+    mem=process.memory_info().rss / (1024 ** 2)  # in bytes
+    print_trace(str(process))
+    print_trace("memory used()="+str(mem)+" MiB")
+    return mem
+
+def diskspace_free() -> float:
+    #import os, psutil  #  psutil-5.9.5
+    disk = psutil.disk_usage('/')
+    free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
+    print_trace(f"diskspace_free()={free_space_gb:.2f} GB")
+    return free_space_gb
+
+pgm_strt_mem_used = memory_used()
+pgm_strt_disk_free = diskspace_free()
+# list_disk_space_by_device()
+
 #### SECTION 06 - Customize hard-coded values that control program flow.
 
 
@@ -542,30 +585,12 @@ SAVE_PATH = os.path.expanduser("~")  # user home folder path like "/User/johndoe
 
 #def set_hard_coded_defaults() -> None:
 
-CLEAR_CLI = True
-
-show_todo = True
-
-show_heading = True
-show_info = True
-show_warning = True
-show_error = True
-show_fail = True
-LOG_LVL = False
-    # https://github.com/ArjanCodes/2023-logging/blob/main/logging_papertrail.py
-
 DRIVE_VOLUME = "NODE NAME"  # as in "/Volumes/NODE NAME" - the default from manufacturing.
+DO_BACKUP = False
 
-show_dates_in_logs = False
-# DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
+DATE_OUT_Z = False  # save files with Z time (in UTC time zone now) instead of local time.
 
 run_quiet = False  # suppress show_heading, show_info, show_warning, show_error, show_fail
-
-show_verbose = False
-
-show_trace = False
-show_sys_info = False
-show_secrets = False
 
 RUNID = "R011"  # This value should have no spaces or special characters.
    # TODO: Store and increment externally each run (usign Python Generators?) into a database for tying runs to parmeters such as the PROMPT_TEXT, etc. https://www.linkedin.com/learning/learning-python-generators-17425534/
@@ -608,7 +633,7 @@ TILE_SIZE = 10
     # Huggingface https://huggingface.co/spaces/CompVis/latent-diffusion-pytorch
 
 # used to specify what API to use as well as keyring service name
-ai_svc = None   # "dalle2", "qwen", "stability" or "deepseek", "anthropic", etc.
+AI_SVC = None   # "dalle2", "qwen", "stability" or "deepseek", "anthropic", etc.
 keyacct = None   # "johndoe@gmail.com" 
 
 MSG_DISCORD = False
@@ -646,6 +671,7 @@ ADD_WATERMARK = False  # watermark2png()
 WATERMARK_TEXT = None
 
 GEN_IPFS = False
+UPLOAD_TO_CLOUDINARY = False
 UPLOAD_TO_QUICKNODE = False
 GEN_NFT = False
 NFT_MARKETPLACE = "Opensea" # "Opensea","MagicEden", "Rarible", "Superrare"
@@ -728,11 +754,11 @@ def read_cmd_args() -> None:
     parser.add_argument("-e", "--encrypt", action="store_true", help="Encrypt file")
     parser.add_argument("-key", "--key", help="Encryption key")
                        # -key --key like: "J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM="
+    parser.add_argument("-uc", "--cloudinary", action="store_true", help="Upload to Cloudinary")
     parser.add_argument("-256", "--hash", action="store_true", help="Gen SHA256 Hash from output file contents")
     # See https://bomonike.github.io/nft for explanation:
     parser.add_argument("-ipfs", "--ipfs", action="store_true", help="Gen. IPFS CID")
-    parser.add_argument("-qn", "--quicknode", action="store_true", help="Gen. IPFS CID in QuickNode")
-
+    parser.add_argument("-uq", "--quicknode", action="store_true", help="Gen. IPFS CID in QuickNode")
     parser.add_argument("-qr", "--genqr", action="store_true", help="Gen QR Code image file to each URL")
     parser.add_argument("-s", "--sleepsecs", help="Sleep seconds number")
 
@@ -829,8 +855,8 @@ def read_cmd_args() -> None:
         DATE_OUT_Z = True
 
     if args.ai:            # -ai --ai "dalle2", "qwen", "stability", etc.
-        global ai_svc
-        ai_svc = args.ai
+        global AI_SVC       # used to specify what API to use as well as keyring service name   
+        AI_SVC = args.ai
     if args.keyitem:       # -ki --keyitem "gmail", "quicknode"
         global keyitem
         keyitem = args.keyitem
@@ -838,7 +864,7 @@ def read_cmd_args() -> None:
         global keyacct
         keyacct = args.keyacct
 
-    if args.shorturl:       # -su --shorturl
+    if args.shorturl:       # -su --shorenturl
         global SHORTEN_URL
         SHORTEN_URL = args.shorturl
 
@@ -884,14 +910,16 @@ def read_cmd_args() -> None:
     if args.key:               # -key --key "J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM="
         global ENCRYPTION_KEY
         ENCRYPTION_KEY = args.key
+    if args.cloudinary:        # -uc --cloudinary "Upload to Cloudinary"
+        global UPLOAD_TO_CLOUDINARY
+        UPLOAD_TO_CLOUDINARY = True
     if args.hash:              # "-256" ="Hash SHA256"
         global GEN_SHA256
         GEN_SHA256 = True
     if args.ipfs:              # -ipfs --ipfs
         global GEN_IPFS
         GEN_IPFS = True
- 
-    if args.quicknode:
+    if args.quicknode:          # -qn --quicknode
         global UPLOAD_TO_QUICKNODE
         UPLOAD_TO_QUICKNODE = True
 
@@ -1001,6 +1029,14 @@ def calc_from_globals() -> None:
         "asymmetrical placement of colored blocks."
     )
  
+    # For wall time of std imports:
+    std_elapsed_wall_time = std_stop_datetimestamp -  pgm_strt_datetimestamp
+    print_trace(str(std_elapsed_wall_time)+" to import of Python standard libraries.")
+
+    # For wall time of xpt imports:
+    xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
+    print_info(f"{str(xpt_elapsed_wall_time)} to import of Python external libraries.")
+
     return None
 
 
@@ -1090,7 +1126,7 @@ def get_str_from_env_file(key_in: str) -> str:
 
 def list_files_on_removable_drive(drive_path: str) -> None:
     """List all directories and files on a removable USB volumedrive.
-    where drive_path = "/Volumes/YOUR_DRIVE_NAME"
+    where drive_path = "/Volumes/DRIVE_VOLUME"
     """
     #import os
     #from pathlib import Path
@@ -1112,20 +1148,123 @@ def list_files_on_removable_drive(drive_path: str) -> None:
 #### SECTION 11 - System information functions (which can be in a python module)
 
 
-def display_memory() -> float:
-    #import os, psutil  #  psutil-5.9.5
-    process = psutil.Process()
-    mem=process.memory_info().rss / (1024 ** 2)  # in bytes
-    print_trace(str(process))
-    print_verbose(print_datetime()+" memory used="+str(mem)+" MiB")
-    return mem
+def create_zip_file(zip_filepath: str, file_paths: list) -> bool:
+    """Create a zip file containing content within each file path 
+    in a list of file paths such as "/Users/johndoe/Desktop/mondrian-gen.py".
+    """
+    print_verbose("create_zip_file() "+zip_filepath+" from paths "+str(file_paths))
+    try:
+        # import zipfile
+        with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_path in file_paths:
+                zip_file.write(file_path)
+    except Exception as e:
+        print_error("create_zip_file() exception: "+str(e))
+        return False
 
-def display_disk_free() -> float:
-    #import os, psutil  #  psutil-5.9.5
-    disk = psutil.disk_usage('/')
-    free_space_gb = disk.free / (1024 * 1024 * 1024)  # = 1024 * 1024 * 1024
-    print_verbose(f"{print_datetime()} disk space free={free_space_gb:.2f} GB")
-    return free_space_gb
+    print_trace("create_zip_file() done with "+str(len(file_paths))+" paths in "+zip_filepath)
+    return True
+
+def encrypt_file(file_path: str) -> bool:
+    """Encrypt a file using AES-256 encryption."""
+    # import os, import shutil import datetime
+    # import pyAesCrypt
+    print_verbose("encrypt_file() "+file_path)
+    try:
+        # import pyAesCrypt
+        pyAesCrypt.encryptFile(file_path, file_path + ".aes")
+    except Exception as e:
+        print_error("encrypt_file() exception: "+str(e))
+        return False
+
+    print_trace("encrypt_file() done with "+file_path)
+    return True
+
+def decrypt_file(file_path: str) -> bool:
+    """Decrypt a file using AES-256 encryption."""
+    # import os, import shutil import datetime
+    # import pyAesCrypt
+    print_verbose("decrypt_file() "+file_path)
+    try:
+        # import pyAesCrypt
+        pyAesCrypt.decryptFile(file_path, file_path[:-4])
+    except Exception as e:
+        print_error("decrypt_file() exception: "+str(e))
+        return False
+
+    print_trace("decrypt_file() done with "+file_path)
+    return True
+
+
+def save_key_in_keychain(svc: str, acct: str, key: str) -> bool:
+    """ Save the encryption key (password) in the keychain.
+    USAGE: 
+    1. my_secret_key = create_encryption_key() 
+    2. encrypt(my_secret_key)
+    3. save_key_in_keychain("pgm", "mondrian", "my-secret-key")
+    """
+    print_verbose("save_key_in_keychain() "+svc+", "+acct+", len="+str(len(key)))
+    # import keyring
+    keyring.set_password(svc, acct, key)
+
+    # Retrieve a password:
+    retrieved_key = keyring.get_password(svc, acct)
+    if retrieved_key != key:
+        print_error("save_key_in_keychain() key not found in Keychain.")
+        return False
+    else:
+        print_trace(f"save_key_in_keychain() done.")
+        return True
+
+
+def zip_file_paths(source_paths: list, zipup_dir: str) -> bool:
+    """ Back up overwriting whole directories to an 
+    encrypted zip file within a specified backup directory.
+    : source_paths: list of paths to backup
+    : destination to hold zipped files
+    """
+    # import os, import shutil import datetime
+    # List of user folders to backup:
+    if not source_paths:  # not specified in calling code, define defaults:
+        source_paths = ['Documents', 'Pictures', 'Desktop', 'Downloads']
+    
+    # TODO: If run makes use of certain features, back up that data!
+
+    print_verbose(f"zip_file_paths() from {source_paths}")
+    if not source_paths:  # defaults:
+        source_paths = ['Documents', 'Pictures', 'Desktop', 'Downloads']
+
+    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    zipup_dir = os.path.join(os.path.expanduser('~'), 'Backups')
+    zipup_path = os.path.join(zipup_dir, f"zipup_{timestamp}")
+    # Alt: https://github.com/basnijholt/rsync-time-machine.py
+    os.makedirs(zipup_path, exist_ok=True)
+    
+    # TODO: Encrypt folder contents!
+    # TODO: Save encryption key to keyring
+
+    for path in source_paths:
+        user_dir = f"User/{os.path.expanduser("~")}/{path}"
+        if not os.path.exists(user_dir):
+            print_info(f"zip_file_paths() from {user_dir} does not exist!")
+            return False
+        else:
+            try:
+                # shutil.copytree() is an efficient way to copy entire directory structures!
+                shutil.copytree(user_dir, os.path.join(zipup_path, os.path.basename(user_dir)))
+                print_info(f"zip_file_paths() from {user_dir} to {zipup_path}")
+                return True
+            except Exception as e:
+                print_error(f"zip_file_paths() Error {user_dir}: {str(e)}")
+                return False
+
+    # Replace 'output_filename' with your desired zip file name (without .zip extension)
+    # Replace 'folder_to_zip' with the path to the folder you want to zip
+    shutil.make_archive(zipup_path, "zip", zipup_path)
+
+    print_info(f"zip_file_paths() to {zipup_path}")
+    return True
+
 
 def count_files_within_path(directory: str) -> int:
     """Returns the number of files after looking recursively
@@ -1170,11 +1309,15 @@ def is_jupyter() -> bool:
 def sys_info() -> None:
     """Obtain and display system info:
     OS, RunEnv, AppP Program, Memory, Disk spaceCPU.
+    TODO: Output to a file rather than sys.stdout
     """
     if not show_sys_info:   # -si defined among CLI arguments
         return None
 
-    print_trace("print_datetime="+print_datetime())
+    print_trace("sys_info() print_datetime="+print_datetime())
+
+    # print_trace(f"sys_info() logging stack info exc_info="+os.environ.get("exec_info"))
+    # FIXME: TypeError: can only concatenate str (not "NoneType") to str
 
     #from pathlib import Path
     # See https://wilsonmar.github.io/python-samples#run_env
@@ -1192,6 +1335,7 @@ def sys_info() -> None:
     # Example: this_pgm_os_path=/Users/wilsonmar/github-wilsonmar/python-samples/python-samples.py
 
     using_jupyter = is_jupyter()
+    print_trace("using_jupyter="+str(using_jupyter))
     #import os
     jupyter_parent_pid = 'JPY_PARENT_PID' in os.environ
     print_trace("Jupyter? "+str(is_jupyter)+" JPY_PARENT_PID="+str(jupyter_parent_pid))
@@ -1247,8 +1391,11 @@ def sys_info() -> None:
     ip_addresses_str = ', '.join(map(str, ip_addresses_list))
     print_trace("hostname="+hostname+" ip_addresses="+ip_addresses_str)
     # for ip in ip_addresses: print(ip)
+
+    list_disk_space_by_device()  # FIXME: Used number is too low.
+
     print("")
-    
+        
     return None
 
 
@@ -1261,7 +1408,7 @@ def list_disk_space_by_device() -> None:
     partitions = psutil.disk_partitions()
     for partition in partitions:
         print(partition.mountpoint.ljust(28) +
-            partition.device.ljust(15) +
+            partition.device.ljust(16) +
             partition.fstype.ljust(8) +
             partition.opts)
         if partition.mountpoint.startswith('/Volumes/'):
@@ -1276,7 +1423,7 @@ def list_disk_space_by_device() -> None:
                 f"{usage.used / (1024 * 1024 * 1024):.2f} GB".rjust(12) +
                 f"{usage.free / (1024 * 1024 * 1024):.2f} GB".rjust(12) )
         except PermissionError:
-            print_error("Permission denied to access usage information")
+            print_error("list_disk_space_by_device() Permission denied to access usage information")
 
         print()
         return None
@@ -1400,7 +1547,7 @@ def write_file_to_removable_drive(drive_path: str, file_name: str, content: str)
 
 def eject_drive(drive_path: str) -> None:
     """Safely eject removeable drive after use, where
-    drive_path = '/Volumes/YourDriveName'
+    drive_path = '/Volumes/DRIVE_VOLUME'
     """
     try:
         # import subprocess
@@ -1411,6 +1558,40 @@ def eject_drive(drive_path: str) -> None:
     return None
 
 
+def start_backup() -> float:
+    """On macOS, invoke macOS Time Machine drive to backup all files changed.
+    USAGE: run_seconds = start_backup()
+    :param VOLUME: The name of the external volume (e.g., 'T7') 
+       We assume it's properly formatted.
+    : Global flag DO_BACKUP to backup or not.
+    : Global drive within /Volumes/DRIVE_VOLUME
+    : returns func run time in seconds.
+    """
+    if not is_macos():
+        print_error("start_backup() not macOS. No backup initiated.")
+        return None
+
+    # Verify that external USB drive is inserted:
+    try:
+        # import subprocess
+        # Set the backup destination
+        set_destination_command = ["tmutil", "setdestination", f"/Volumes/{DRIVE_VOLUMEVOLUME}"]
+
+        func_start_timer = time.perf_counter()
+        subprocess.run(set_destination_command, check=True)
+        print(f"--volume {DRIVE_VOLUME} used by start_backup()")
+
+        start_backup_command = ["tmutil", "startbackup", "--block"]
+        subprocess.run(start_backup_command, check=True)
+
+        func_duration = time.perf_counter() - func_start_timer
+        print_info(f"start_backup() completed in {func_duration:.5f} seconds")
+    except subprocess.CalledProcessError as e:
+        print(f"start_backup() {e}")
+
+    return func_duration
+
+
 #### SECTION 12 - Utility input processing (sentiment analysis, cryptopgraphy):
 
 
@@ -1418,11 +1599,11 @@ def score_sentiment(sentence: str) -> dict:
     """Calculate a float number assessing the emotional sentiment intensity 
     from the input sentence, based on the VADER sentiment analyzer.
     Based on https://www.geeksforgeeks.org/python-sentiment-analysis-using-vader/
+    TODO: Alternatives to issue sentiment like "approval", "gratitude", "joy", "confusion", etc. https://www.youtube.com/watch?v=D2HurSldDkE&t=28m04s
     USAGE:
     sentiment_dict = score_sentiment("Geeks For Geeks is the best portal for computer science engineering students.")
     sentiment_dict = score_sentiment("The quick brown fox jumps over the lazy dog")
     sentiment_dict = score_sentiment("I am very sad today.")
-
     """
     if not EVAL_SENTIMENT:
         return None
@@ -1438,8 +1619,7 @@ def score_sentiment(sentence: str) -> dict:
     sentiment_dict = sid_obj.polarity_scores(sentence)
        # Example: {'neg': 0.531, 'neu': 0.469, 'pos': 0.0, 'compound': -0.5256}
 
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
     print_trace(f"score_sentiment() {str(sentiment_dict)} in {func_duration:.5f} seconds")
     return sentiment_dict
 
@@ -1461,8 +1641,7 @@ def hash_file_sha256(filename: str) -> str:
             sha256_hash.update(byte_block)
     hash_text = sha256_hash.hexdigest()
 
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
     print_trace(f"hash_file_sha256() {hash_text} in {func_duration:.5f} seconds")
     return hash_text
 
@@ -1501,8 +1680,7 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     # with open('filekey.key', 'wb') as key_file:
     #    key_out.write(key)
 
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
     print_info(f"encrypt_symmetrically() From {file_bytes} bytes to {encrypted_file_bytes} bytes in {func_duration:.5f} seconds")
     return key_out
 
@@ -1575,7 +1753,9 @@ def get_api_key(app_id: str, account_name: str) -> str:
 # def log_event(logger, event_type, message, level='info'):
 
 def prefix_output_file_path(file_name) -> str:
-    """ Add a prefix path (Like /Users/johndoe/Desktop/) to a file name
+    """ Add a prefix path (Like /Users/johndoe/Desktop/) to a file name.
+    This is called each time a file is created.
+    :OUTPUT_PATH_PREFIX: is defined globally.
     """
     print_verbose("prefix_output_file_path() -fn \""+file_name+"\"")
     # Make use of global variable cached so not repeat:
@@ -1592,7 +1772,7 @@ def get_filepath_prefix() -> str:
     #print_verbose("get_filepath_prefix()")
     # Make use of global variable cached so not repeat:
     datetime_stamp = print_datetime()  # from OS, not from created file. Not verified.
-    file_path = PROGRAM_NAME+"-"+RUNID+"-"+datetime_stamp
+    file_path = OUTPUT_PATH_PREFIX + SLASH_CHAR + PROGRAM_NAME+"-"+RUNID+"-"+datetime_stamp
     print_trace("get_filepath_prefix()="+file_path+" len="+str(len(file_path)))
     return file_path
 
@@ -1785,6 +1965,41 @@ def latest_git_sha1() -> str:
         return "Git SHA1 not available"
 
 
+def upload_to_cloudinary(file_path: str) -> str:
+    """Upload a file to cloudinary.com to hold:
+    See https://www.youtube.com/watch?v=dDljAsM3T7c&t=18s
+    https://cloudinary.com/documentation/upload_images#generating_authentication_signatures
+    # Free plan upgrade is $89 per month!
+    """
+    if is_macos():
+        CLOUDINARY_NAME = get_api_key("cloudinary", "mondrian-cloud-name")
+        CLOUDINARY_API_KEY = get_api_key("cloudinary", "mondrian-api")
+        CLOUDINARY_SECRET = get_api_key("cloudinary", "mondrian-secret")
+        cloudinary.config(
+            cloud_name=CLOUDINARY_NAME,
+            api_key=CLOUDINARY_API_KEY,
+            api_secret=CLOUDINARY_SECRET,
+            secure=True
+            # api_proxy = "http://proxy.server:3128"
+        )
+    else:
+        # os.environ.get() of CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_SECRET 
+        exit(9)
+    print_verbose("upload_to_cloudinary() api_key len="+str(len(CLOUDINARY_API_KEY)))
+    try:
+        # import cloudinary cloudinary.uploader
+        CLOUDINARY_URL=f"cloudinary://{CLOUDINARY_API_KEY}:{CLOUDINARY_SECRET}@{CLOUDINARY_NAME}"
+        print_verbose(f"upload_to_cloudinary() len=str(len({CLOUDINARY_URL})")
+        url = cloudinary.uploader.upload(file_path)
+        print_trace("upload_to_cloudinary() url="+url)
+        return url
+    except Exception as e:
+        print_error(f"upload_to_cloudinary() Exception: {e}")
+           # Exception: Must supply api_secret
+           # FIXME: Exception: Invalid Signature b4391938093a78b3cace5146decbc32a4ada28d8. String to sign - 'timestamp=1739480611'.
+        return False
+
+
 def upload_to_ipfs(file_path: str) -> str:
     """Upload a file to IPFS using QuickNode or TatumAPI.
     See https://www.quicknode.com/docs
@@ -1805,8 +2020,8 @@ def upload_to_ipfs(file_path: str) -> str:
     # import time
     func_start_timer = time.perf_counter()
     response_obj = requests.post(endpoint, files=files, headers=headers)
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+
+    func_duration = time.perf_counter() - func_start_timer
 
     data = json.loads(response_obj.text)
     cid = data["Hash"]
@@ -1821,12 +2036,13 @@ def compress_to_thumbnail():
     return
 
 
-def msg_discord(message_in: str) -> None:
+def msg_discord(message_in: str, img_url: str) -> None:
     """Upload a message to Discord.
-    USAGE: msg_discord("here is the message")
+    USAGE: msg_discord("here is the message", "https://....jpg")
     :MSG_DISCORD = True or False to send message
     :DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL...."
     :DISCORD_CHANNEL_NAME = ""
+    :IMG_URL = 
     :message is constructed by calling function.
     To create a webhook in your Discord account:
     1. Create a new channel "messages-from-python-app"
@@ -1838,26 +2054,27 @@ def msg_discord(message_in: str) -> None:
     7. Save Changes" button to create the webhook. 
     """
     # import requests, json
-    if not MSG_DISCORD:
-        return None
-
+    if img_url:  # not empty:
+        # Example: image_url="https://....jpg"
+        # TODO: Ensure files sent to Discord are 50 MB or less: 
+        # if file size > 50 MB:
+            # image_url = compress_image() # to new url.
+        data = {
+            "content": message_in,
+            "embeds": [
+                {
+                "image": {
+                    "url": img_url
+                }
+                }
+            ]
+        }
+    else:
+        data = {
+            "content": message_in
+        }
     headers = {
         "Content-Type": "application/json"
-    }
-    # TODO: Ensure files sent to Discord are 50 MB or less: compress_image()
-    # image_url="https://i.pinimg.com/736x/7a/6f/3f/7a6f3f7a6f3f7a6f3f7a6f3f7a6f3f7a.jpg"
-    #data = {
-    #    "content": message_in
-    #    "embeds": [
-    #        {
-    #        "image": {
-    #            "url": image_url
-    #        }
-    #        }
-    #    ]
-    #}
-    data = {
-        "content": message_in
     }
     try:
         # import requests, json
@@ -1950,8 +2167,7 @@ def gen_one_file(file_path: str) -> bool:
     func_start_timer = time.perf_counter()
     # Generate Mondrian-style art in memory:
     mondrian_grid = generate_mondrian()
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
 
     result = draw_mondrian(mondrian_grid, file_path )
     if not result:
@@ -2007,8 +2223,7 @@ def gen_dalle2_file(gened_file_path: str) -> str:
         with open(gened_file_path, 'wb') as file:
             file.write(response.content)
 
-        func_end_timer = time.perf_counter()
-        func_duration = func_end_timer - func_start_timer
+        func_duration = time.perf_counter() - func_start_timer
         print_trace(f"gen_dalle2_file() func_duration={func_duration:.5f} seconds")
 
         if LOG_LVL:
@@ -2065,8 +2280,7 @@ def gen_qwen_file(gened_file_path: str) -> str:
         with open(gened_file_path, 'wb') as file:
             file.write(response.content)
 
-        func_end_timer = time.perf_counter()
-        func_duration = func_end_timer - func_start_timer
+        func_duration = time.perf_counter() - func_start_timer
         print_trace(f"gen_qwen_file() func_duration={func_duration:.5f} seconds")
 
         if LOG_LVL:
@@ -2184,8 +2398,7 @@ def gen_stablediffusion_file(prompt: str) -> str:
         print(response.text)
         return False
 
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
     print_trace(f"gen_stability_image() func_duration={func_duration:.5f} seconds")
 
     return False
@@ -2321,8 +2534,7 @@ def gen_meta_file(prompt: str) -> str:
     else:
         return f"gen_meta_file() Error: {response.status_code}, {response.text}"
 
-    func_end_timer = time.perf_counter()
-    func_duration = func_end_timer - func_start_timer
+    func_duration = time.perf_counter() - func_start_timer
     print_trace("gen_meta_file() url="+image_url+" func_duration={func_duration:.5f} seconds")
     return image_url
 
@@ -2428,9 +2640,8 @@ def mint_nft(file_path_in: str, desc: str, env: str, email: str, chain: str) -> 
         data = json.loads(response.json())        
         id_value = data["id"]  # Extract the "id" value.
 
-        func_end_timer = time.perf_counter()
-        func_duration = func_end_timer - func_start_timer
-        print_trace(f"mint_nft() CID="+id_value+" func_duration={func_duration:.5f} seconds")
+        func_duration = time.perf_counter() - func_start_timer
+        print_trace(f"mint_nft() CID="+id_value+" for {func_duration:.5f} seconds")
         return id_value
     except requests.exceptions.RequestException as err:
         print_error(f"mint_nft() Error: {err}")
@@ -2463,19 +2674,11 @@ def show_summary(in_seq: int) -> None:
         else:
             print_info(f"{str(pgm_elapsed_wall_time)} Days:Hours:Mins.Secs to gen {in_seq} artpieces.")
 
-        # For wall time of std imports:
-        std_elapsed_wall_time = std_stop_datetimestamp -  pgm_strt_datetimestamp
-        print_trace(str(std_elapsed_wall_time)+" to import of Python standard libraries.")
-
-        # For wall time of xpt imports:
-        xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-        print_info(f"{str(xpt_elapsed_wall_time)} to import of Python external libraries.")
-
-        pgm_stop_mem_diff = display_memory() - pgm_strt_mem_used
+        pgm_stop_mem_diff = memory_used() - pgm_strt_mem_used
         print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run {RUNID}.")
 
-        pgm_stop_disk_diff = pgm_strt_disk_free - display_disk_free()
-        print_info(f"{pgm_stop_disk_diff:.6f} GB disk consumed during run {RUNID}.")
+        pgm_stop_disk_diff = pgm_strt_disk_free - diskspace_free()
+        print_info(f"{pgm_stop_disk_diff:.6f} GB disk space consumed during run {RUNID}.")
 
         # TODO: Write wall times to log for longer-term analytics
     return None
@@ -2483,19 +2686,18 @@ def show_summary(in_seq: int) -> None:
 
 #### SECTION 18 - Main calling function:
 
-if __name__ == "__main__":
-# TODO: Test Run this program different parameters by loading different env files.
+
+def main():
+    # TODO: Test Run this program different parameters by loading different env files.
     """ Loop to generate and process artpieces.
     """
     # After set_hard_coded_defaults()
     # TODO: load_env_file("???")  # read_env_file(ENV_FILE_PATH)
+
     read_cmd_args()  # override command line parameters at run time.
     calc_from_globals()
 
     sys_info()
-    pgm_strt_mem_used = display_memory()
-    pgm_strt_disk_free = display_disk_free()
-    # list_disk_space_by_device()
 
     filepath_prefix = get_filepath_prefix()
         # Like: /Users/johndoe/Downloads/mondrian-gen-20250105T061101-0700-
@@ -2512,10 +2714,12 @@ if __name__ == "__main__":
             gened_file_path = prefix_output_file_path(FILE_NAME)
             exit()
         else:
-            if ai_svc is None:  # If one is not specified in parm, randomly select one:
+            if AI_SVC is None:  # If one is not specified in parm, randomly select one:
                 ai_svcs_list = ["anthropic","dalle2","meta","pgm","stability","qwen"]
                 ai_svc = random.choice(ai_svcs_list)
                 # TODO: Instead, cycle through the GenAI APIs
+            else:
+                ai_svc = AI_SVC.lower()  # ensure lower case.
 
             if ai_svc == "anthropic":
                 gened_file_path = set_output_file_path(filepath_prefix,artpiece_num,"anthropic","art.png")
@@ -2541,8 +2745,6 @@ if __name__ == "__main__":
             else:
                 print_fail(f"-ai \"{ai_svc}\" parameter not recognized. Aborting.")
                 exit(9)
-
-        msg_discord(display_cli_parameters() +"\ngen'd: "+gened_file_path)
 
         if SHOW_OUTPUT_FILE:   # -so -showout
             img = Image.open(gened_file_path)
@@ -2602,6 +2804,16 @@ if __name__ == "__main__":
                 print_trace("Encrypted file: "+cyphertext_file_path+" size: "+\
                     str(get_file_size_on_disk(cyphertext_file_path)))
                 #TODO: test decrypt_symmetrically(cyphertext_file_path,plaintext_file_path,symmetric_key_str) 
+                watermarked_file_path = cyphertext_file_path
+
+                # TODO:
+                # source_dirs = ['/Users/johndoe/Keyvault???']
+                # zipup_dir = '/Volumes/BackupDrive/Backups'
+                # zip_file_paths(source_dirs, zipup_dir)
+
+            if UPLOAD_TO_CLOUDINARY:  #  -uc --cloudinary "Upload to Cloudinary"
+                upload_to_cloudinary(watermarked_file_path)
+                exit()  # DEBUGGING
 
             if UPLOAD_TO_QUICKNODE:
                 if cyphertext_file_path:  # -qn --quicknode
@@ -2632,7 +2844,13 @@ if __name__ == "__main__":
                     url_file_path = set_output_file_path(artpiece_num, ai_svc,"cid.url")
                     save_url_to_file(quicknode_cid_url, url_file_path)
 
-            if SHORTEN_URL and quicknode_cid_url:  # -su --shorturl
+            if MSG_DISCORD:
+                msg_discord(display_cli_parameters() +"\ngen'd: "+\
+                    gened_file_path, None)
+                    # 2nd parm to provide url_file_path is optional.
+                    # TODO: Add link to human rating.
+
+            if SHORTEN_URL and quicknode_cid_url:  # -su --shortenurl
                 shortened_url = shorten_url(quicknode_cid_url)
             else:
                 shortened_url = None
@@ -2685,13 +2903,15 @@ if __name__ == "__main__":
                     "shortened_url": shortened_url,
                     #"gen_parms": ["???", "data science", "machine learning"]
                     "secs": artpiece_duration,
+                    #"mem_used": memory_used(),
+                    #"disk_used": diskspace_used(),
                     "rating": None
                 }
                 # Obtain an index where the document was inserted into the database:
                 mongodb_index = insert_mongodb(document)
                 # See https://github.com/mongodb-university/curriculum/tree/main/Atlas-Vector-Search/U3-Using-Atlas-Vector-Search-for-RAG/L3-Preparing-The-Data
                 print_trace(f"main() RUNID={RUNID} -> mongodb_index={mongodb_index}")
-
+           
         if FILES_TO_GEN > 0:   
             if artpiece_num >= FILES_TO_GEN:
                 # No more files to generate.Infinite loop needs to end:
@@ -2704,4 +2924,9 @@ if __name__ == "__main__":
 #            # Gracefully handle manual interruption:
 #            print("*** Infinite loop manually terminated by user using control+C.")
 
-    # END While loop.
+# END While loop.
+
+if __name__ == "__main__":  
+    # This is top-level code, not imported from a module.
+    # See https://www.youtube.com/watch?v=NB5LGzmSiCs
+    main()
