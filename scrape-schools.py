@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 
-"""scrape-schools.py at https://github.com/wilsonmar/python-samples/blob/main/mondrian-gen.py
+"""scrape-schools.py at https://github.com/wilsonmar/python-samples/blob/main/scrape-schools.py
+
+git commit -m "v003 + loop states :scrape-schools.md"
+
 From https://www.perplexity.ai/search/python-code-to-scrape-this-url-vmdUv5PQS2asEYRmS1DjXw#0
+
 Before running this:
    pip install --upgrade pip
    python3 -m pip install bs4 BeautifulSoup4
@@ -15,6 +19,12 @@ import requests
 from bs4 import beautifulsoup4
 import sqlite3
 
+
+PRINT_US_STATE = True
+SCRAPE_US_STATE = True
+PRINT_SUMMARY = True
+
+
 def create_table(cursor):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS montana_schools (
@@ -24,20 +34,24 @@ def create_table(cursor):
         )
     ''')
 
+
 def insert_data(cursor, district_name, city, county_name):
     cursor.execute('''
         INSERT INTO montana_schools (district_name, city, county_name)
         VALUES (?, ?, ?)
     ''', (district_name, city, county_name))
 
+
+# TODO: Specify filepath of .db file:
 def scrape_and_store(url, db_name="montana_schools.db"):
     """
-    Scrapes school district data from the given URL and stores it in a SQLite database.
+    Scrape school district data from the URL and store it in a SQLite database.
 
     Args:
         url (str): The URL to scrape.
         db_name (str): The name of the SQLite database file.
     """
+    # TODO: Put fetch of URL in separate function:
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
@@ -60,7 +74,7 @@ def scrape_and_store(url, db_name="montana_schools.db"):
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
-    # Create table
+    # TODO: Create table one time for all states:
     create_table(cursor)
 
     # Iterate over rows and insert data
@@ -70,7 +84,7 @@ def scrape_and_store(url, db_name="montana_schools.db"):
             district_name = cols[0].text.strip()
             city = cols[1].text.strip()
             county_name = cols[2].text.strip()
-
+            # TODO: Add url
             insert_data(cursor, district_name, city, county_name)
 
     # Commit changes and close connection
@@ -78,11 +92,61 @@ def scrape_and_store(url, db_name="montana_schools.db"):
     conn.close()
     print(f"Data scraped and stored in '{db_name}' successfully.")
 
-# URL to scrape
-url = "https://www.greatschools.org/schools/districts/Montana/MT/"
 
-# Run the scraper
-scrape_and_store(url)
+# From https://code.activestate.com/recipes/577305-python-dictionary-of-us-states-and-territories/
+states_list = {
+    'AK': 'Alaska', 'AL': 'Alabama', 'AR': 'Arkansas', 'AZ': 'Arizona',
+    'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+    'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'IA': 'Iowa',
+    'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'KS': 'Kansas',
+    'KY': 'Kentucky', 'LA': 'Louisiana', 'MA': 'Massachusetts', 'MD': 'Maryland',
+    'ME': 'Maine', 'MI': 'Michigan', 'MN': 'Minnesota', 'MO': 'Missouri',
+    'MS': 'Mississippi', 'MT': 'Montana', 'NC': 'North Carolina', 'ND': 'North Dakota',
+    'NE': 'Nebraska', 'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico',
+    'NV': 'Nevada', 'NY': 'New York', 'OH': 'Ohio', 'OK': 'Oklahoma',
+    'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+    'VA': 'Virginia', 'VT': 'Vermont', 'WA': 'Washington', 'WI': 'Wisconsin',
+    'WV': 'West Virginia', 'WY': 'Wyoming'
+}
+
+# WARNING: Not all states are in the same time zone. Specific counties can have a differen timezone.
+# From pytz timezones (you can get a look at them typing pytz.all_timezones):
+state2timezone = { 'AK': 'US/Alaska', 'AL': 'US/Central', 'AR': 'US/Central', 'AS': 'US/Samoa', 'AZ': 'US/Mountain', 'CA': 'US/Pacific', 'CO': 'US/Mountain', 'CT': 'US/Eastern', 'DC': 'US/Eastern', 'DE': 'US/Eastern', 'FL': 'US/Eastern', 'GA': 'US/Eastern', 'GU': 'Pacific/Guam', 'HI': 'US/Hawaii', 'IA': 'US/Central', 'ID': 'US/Mountain', 'IL': 'US/Central', 'IN': 'US/Eastern', 'KS': 'US/Central', 'KY': 'US/Eastern', 'LA': 'US/Central', 'MA': 'US/Eastern', 'MD': 'US/Eastern', 'ME': 'US/Eastern', 'MI': 'US/Eastern', 'MN': 'US/Central', 'MO': 'US/Central', 'MP': 'Pacific/Guam', 'MS': 'US/Central', 'MT': 'US/Mountain', 'NC': 'US/Eastern', 'ND': 'US/Central', 'NE': 'US/Central', 'NH': 'US/Eastern', 'NJ': 'US/Eastern', 'NM': 'US/Mountain', 'NV': 'US/Pacific', 'NY': 'US/Eastern', 'OH': 'US/Eastern', 'OK': 'US/Central', 'OR': 'US/Pacific', 'PA': 'US/Eastern', 'PR': 'America/Puerto_Rico', 'RI': 'US/Eastern', 'SC': 'US/Eastern', 'SD': 'US/Central', 'TN': 'US/Central', 'TX': 'US/Central', 'UT': 'US/Mountain', 'VA': 'US/Eastern', 'VI': 'America/Virgin', 'VT': 'US/Eastern', 'WA': 'US/Pacific', 'WI': 'US/Central', 'WV': 'US/Eastern', 'WY': 'US/Mountain', '' : 'US/Pacific', '--': 'US/Pacific' }
+
+
+def main():
+    # TODO: Test Run this program different parameters by loading different env files.
+    """ Loop to generate and process artpieces.
+    """
+    # After set_hard_coded_defaults()
+    # TODO: load_env_file("???")  # read_env_file(ENV_FILE_PATH)
+
+    # global states_list rather than get_states_list()
+    # Loop Through States:
+    states_initiated = 0
+    for st_abbreviation, st_name in states_list.items():
+        states_initiated += 1
+
+        if PRINT_US_STATE:
+            print(f"{st_abbreviation}: {st_name}")
+
+        # URL to scrape
+        url = f"https://www.greatschools.org/schools/districts/{st_name}/{st_abbreviation}/"
+        if SCRAPE_US_STATE:
+            # Run the scraper
+            scrape_and_store(url)
+
+    if PRINT_SUMMARY:
+        print("states_initiated = ", states_initiated)
+
+    # END loop.
+
+if __name__ == "__main__":
+    # This is top-level code, not imported from a module.
+    # See https://www.youtube.com/watch?v=NB5LGzmSiCs
+    main()
+
 
 """
 Create analytics for file 'montana_schools.db' created above
