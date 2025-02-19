@@ -3,7 +3,7 @@
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
 STATUS: working
-git commit -m "v017 + import os :openweather.py"
+git commit -m "v019 + bathymetry :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -11,6 +11,8 @@ REST API calls to openweathermp.org. Response includes
 sunrise and sunset times.
 This creates fuzzy tags for value rangess of 
 cloud, humidity, pressure, wind direction.
+
+bathymetry maps determine depth from sea level at the latitude and longitude location.
 
 Sample CLI putput running this program:
 openweather.org at 01:50 AM (01:50:55) 2024-09-29 reports
@@ -21,7 +23,7 @@ clear sky at "lat=45.48686&lon=-108.97500" country=US
     Latitude:  45.48686° from the Equator &
     Longitude: -108.97500° from the Meridian at Greenwich, UK
 mild 25% humidity at 63.45°F for Dew Point of 27.01°F
-Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
+     Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
 low pressure at 1009 hPa (Hectopascals, aka millibars)
       (vs. normal: 1013.25 hPa at sea level)
     (Ground_level:  878 hPa)
@@ -540,8 +542,8 @@ if station_name == "":
 else:
     print(f" ({station_name})")
 
-print(f"    Latitude:  {my_latitude}° from the Equator &")
-print(f"    Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
+print(f"     Latitude:  {my_latitude}° from the Equator &")
+print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
 # Not print if same: print('Feels like: ',feels_like)
 
 if USE_IMPERIAL_UNITS:
@@ -573,17 +575,17 @@ if temp_k_min != temp_k_max:
 wind_dir = compass_text_from_degrees(wind_deg)
 if USE_IMPERIAL_UNITS:
     wind_mph = kph2mph(wind_kph)
-    print(f"Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
+    print(f"     Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
 else:
-    print(f"Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
+    print(f"     Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
 # See illustration at https://res.cloudinary.com/dcajqrroq/image/upload/v1727494071/compass-800x800_hvwmtu.webp
 if wind_gust_kph > 0:
     if USE_IMPERIAL_UNITS:
         wind_gust_mph = kph2mph(wind_gust_kph)
-        print(f" with gusts: {wind_gust_mph:.2f} mph",end="")
+        print(f" with gusts: {wind_gust_mph:.2f} mph")
     else:
-        print(f" with gusts: {wind_gust_kph:.2f} kph",end="")
-print(f" with Visibility to {visibility} meters")
+        print(f" with gusts: {wind_gust_kph:.2f} kph")
+print(f"\n     Visibility to {visibility} meters")
 
 
 # sea_level returned is a normalized value that allows for comparison between different locations, regardless of their actual elevation.
@@ -606,7 +608,7 @@ adjusted_pressure = adjust_pressure_for_altitude \
 
 pressure_desc = pressure_desc(pressure)
 print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa (Hectopascals, aka millibars)")
-print(f"      (vs. normal: 1013.25 hPa at sea level)")
+print(f"      vs. normal: 1013.25 hPa at sea level)")
 print(f"    (Ground_level:  {grnd_level_hpa} hPa)")
 # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
 
