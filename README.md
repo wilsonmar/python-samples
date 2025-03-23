@@ -11,17 +11,20 @@ Sample Python coding with a lot of security and technical features, all in one r
 * dijkstra-yt.py to calculate shortest path using heapq library
 * endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
 * it-media.py to create a database of IT movies and sort them by rating, year, or title.
-* mondrian-gen.py to generate a png art in the style of Mondrian.
+
+* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
+* <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 
 * num2words.py simply converts a number input to its word.
 * otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
-* openweather.py to obtain from API calls and format weather data as fuzzy tokens
+* <strong>openweather.py</strong> to obtain from API calls and format weather data as fuzzy tokens
+
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
 * perf-ns.py obtains timings in nanosecond-level resolution.
 * plotting.py to create common visualizations using matplotlib.
 * python-samples.py is a conglomeration of many features.
-* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
 * pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
+
 * recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
 * roman2int.py converts Roman numerals to base 10 numbers.
@@ -30,7 +33,7 @@ Sample Python coding with a lot of security and technical features, all in one r
 * try-accept.py to show usage of try/except/else/finally exceptions
 * unittest_calculator.py is an example of how to use Python's Unit Test feature.
 * variables.py to experiment with defining and viewing objects of various data types.
-* youtube-download.py downloads videos based on its URL.
+* <strong>youtube-download.py</strong> downloads videos based on its URL.
 
 ## Experiments being built
 
@@ -84,3 +87,4 @@ Please Master These 10 Python Functions…
 
 Have a single import per line to reduce merge conflicts.
 See https://github.com/asottile/reorder-python-imports?tab=readme-ov-file#why-this-style
+
