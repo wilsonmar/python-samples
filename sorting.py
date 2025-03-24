@@ -2,13 +2,14 @@
 
 """sorting.py at https://github.com/wilsonmar/python-samples/blob/main/sorting.py
 
-This program sorts a list of numbers using several algorithms:
+This program sorts a list of numbers using several algorithms, 
+implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 quick sort, bubble sort, merge sort, 
-TODO: selection sort, insertion sort, and counting sort.
+TODO: selection sort, insertion sort, timsort, counting sort, etc.
 
 STATUS: Working on macOS.
 
-git commit -m "v005 + matplotlib :sorting.py"
+git commit -m "v006 + real matplotlib stats :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -29,6 +30,7 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
    Ruff replaces Flake8, Pylint, Xenon, Radon, Black, isort, pyupgrade, etc.
 
 # TODO: SECTION 1 - Set Utilities, parameters, secrets in .env file
+# TODO: Capture memory to calculate usage for measuring space complexity.
 
 """
 
@@ -54,7 +56,8 @@ SHOW_UNSORTED = True
 SHOW_SORTED = True
 SHOW_RUNTIMES_IN_FUNC = False
 SHOW_RUNTIMES = True
-
+SHOW_RESULTS_CALCS = True
+SHOW_PLOTS = True
 
 def timed_func(func_to_time):
     def timed(*args, **kwargs):
@@ -63,10 +66,6 @@ def timed_func(func_to_time):
         print(time.perf_counter() - start)
         return res
     return timed
-
-
-def fibonicci():
-    pass
 
 
 def bubble_sort(task_name,array):
@@ -269,21 +268,53 @@ def timsort(task_name, items):
     return items
 
 
-def report_elap_time( task_name, elap_time ):
-    """ Display vertically aligned columns:
+def fibonicci_replace(given_array):
+    """ Toy function to sleep instead of
+    replaces each element in the given array with the nearest Fibonicci number.
+    """
+    time.sleep(20 / 1000000)   # 20 microseconds - instead of lookup.
+    return given_array
+
+
+def report_elap_time( task_in, elap_time ):
+    """ Vertically aligned columns of human-reable numbers converted to microseconds/nanoseconds:
     Bubble sort  elap_time:   2.8340 microseconds
     Merge sort   elap_time:  13.3750 microseconds
     Quicksort    elap_time:  10.9170 microseconds
     """
+    print(f"at report_elap_time( task_in=\"{task_in}\"")
+
     if SHOW_RUNTIMES:
         # NOTE: Microseconds (µs) are a millionth of a second.
         elap_time_ms = float(elap_time) * 1000000
         unit_type_label = "microseconds"
         # FEATURE: Display text a fixed number of characters to achieve vertical alignment:
-        print(task_name.ljust(12),f"elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
+        print(task_in.ljust(12),f"elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
+
+    # Store in a matrix of a row for each run's x and y:
+    global results_x
+    global bubble_sort_results
+    global merge_sort_results
+    global quicksort_results
+
+    if task_in == "Bubble sort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        bubble_sort_results.append(elap_time_ms)
+    elif task_in == "Merge sort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        merge_sort_results.append(elap_time_ms)
+    elif task_in == "Quicksort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        quicksort_results.append(elap_time_ms)
+    else:
+        print(f"task_in \"{task_in}\" not found. Programming error.")
+        exit()
 
 
-def plot_multiple_lines(results_array):
+def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_results):
     """
     See https://matplotlib.org/stable/tutorials/pyplot.html
     and https://www.w3schools.com/python/matplotlib_line.asp
@@ -293,7 +324,12 @@ def plot_multiple_lines(results_array):
     plt.xlabel('X - Number of elements')
     plt.ylabel('Y - Microseconds Perf.')
 
-    x = np.array([8, 16, 32, 64, 128, 256, 512, 1024])
+    if SHOW_RESULTS_CALCS:
+       # x1 = np.array([8, 16, 32, 64, 128, 256, 512, 1024])
+       print(f"x1={str(x1)}")
+       print(f"bubble_sort_results = {str(bubble_sort_results)}")
+       print(f"merge_sort_results, {str(merge_sort_results)}")
+       print(f"quicksort_results = {str(quicksort_results)}")
 
     # Floating text "O(log N), O(n), O(1), O(n^2)
     plt.text(50, 2300, "O(n!)", fontsize=12, ha='center', va='center',
@@ -302,18 +338,15 @@ def plot_multiple_lines(results_array):
     plt.text(150, 2000, "O(N^2)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    y1 = np.array([20, 40, 80, 160, 320, 640, 1280, 2560])
-    plt.plot(x, y1, label='Bubble sort')
+    plt.plot(x1, bubble_sort_results, label='Bubble sort')
     plt.text(1000, 2200, "O(n)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    y2 = np.array([2, 4, 50, 100, 200, 230, 240, 256])
-    plt.plot(x, y2, label='Merge sort')
+    plt.plot(x1, merge_sort_results, label='Merge sort')
     plt.text(800, 300, "O(logN)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    y3 = np.array([2, 2, 2, 2, 2, 2, 2, 2])
-    plt.plot(x, y3, label='Memoized')
+    plt.plot(x1, quicksort_results, label='Memoized')
     plt.text(1000, 50, "O(1)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
@@ -335,71 +368,76 @@ if __name__ == "__main__":
     cur_iteration = 1     # of max_val_in_list
     max_val_in_list = 8.0
 
+    # TODO: SECTION 4 - Generate random numbers from the Fibonocci db or gen'd and added to the db.
+
     # TODO: SECTION 6 - Loop-within-loop: Loop thru each algorithm at larger and larger numbers (N).
         # TODO: Iterate until maximum runtime threshold is reached.
 
-    # TODO: SECTION 4 - Generate random numbers from the Fibonocci db or gen'd and added to the db.
+    # Array of numbers increasing geometrically in base 2: 1,2,4,8,16,32,64,128,256,512, etc.
+    array_elements_length = 3
+    array_elements_start = 2
+    elements_array = [array_elements_start * (2**i) for i in range(array_elements_length)]
+    print(str(elements_array))
 
-    num_elements = 8    # Number of entries in my_list
+    # Initialize results:
+    results_x = []
+    bubble_sort_results = []
+    merge_sort_results = []
+    quicksort_results = []
 
-    if LIST_IS_RANDOM:
-        randomness = "random"
-        my_list = []  # initialize list
-        list_strt_value = 1        # Start of range for random numbers (e.g., between 1 and 100)
-        list_max_value = 100
-        for _ in range(num_elements):
-            another_number = random.randint(list_strt_value, list_max_value)
-            my_list.append(another_number)
-    else:  # Construct sequential list:
-        randomness = "sequential"
-        list_strt_value = 1       # Start of range for random numbers (e.g., between 1 and 100)
-        list_max_value = 10
-        my_list = [1, 9, 5, 2, 10, 8, 6, 3, 4, 7]
+    for index, num_elements in enumerate(elements_array):
+        list_strt_value = 1    # Desired start value of range
+        list_max_value = num_elements - list_strt_value + 2
 
-    list_element_count = len(my_list)    # within array for sorting
-    print(f"For run iteration {cur_iteration} to {max_val_in_list} containing " +
-          f"{list_element_count} {randomness} elements:")
+        if LIST_IS_RANDOM:
+            randomness = "random"
+            my_list = []  # initialize list
+            for _ in range(num_elements):
+                another_number = random.randint(list_strt_value, list_max_value)
+                my_list.append(another_number)
+        else:  # Construct sequential list:
+            randomness = "sequential"   # already sorted!
+            if list_strt_value == 0:
+                list_max_value -= 2
+            # import numpy as np  # https://numpy.org/doc/stable/reference/generated/numpy.arange.html
+            my_list = np.arange(list_strt_value, list_max_value, 1 )
 
-    if SHOW_UNSORTED:
-        print("Unsorted list: "+str(my_list))
-    sorted_list = bubble_sort("Bubble sort",my_list)
-    if SHOW_SORTED:
-        print("  Sorted list: "+str(sorted_list) )
-    # TODO: Saved reported times to array for showing at any time.
+        list_element_count = len(my_list)    # within array for sorting
+        results_x.append(list_element_count)
+        print(f"For run iteration {cur_iteration} to {list_max_value} containing " +
+            f"{list_element_count} {randomness} elements:")
 
-    task_name = "Merge sort"
-    sorted_list = merge_sort(task_name,my_list)
-    report_elap_time(task_name, elap_time_merge_sort)
+        if SHOW_UNSORTED:
+            print("Unsorted list: "+str(my_list))
+        sorted_list = bubble_sort("Bubble sort",my_list)
+        if SHOW_SORTED:
+            print("  Sorted list: "+str(sorted_list) )
+        # TODO: Saved reported times to array for showing at any time.
 
-    task_name = "Quicksort"
-    sorted_list = quicksort(task_name,my_list)
-    report_elap_time(task_name, elap_time_quicksort)
+        task_name = "Merge sort"
+        sorted_list = merge_sort(task_name,my_list)
+        report_elap_time(task_name, elap_time_merge_sort)
 
-    """ SAMPLE OUTPUT:
-    For run iteration 1 to 8.0 containing 8 elements:
-    [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    Unsorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    Bubble sort  elap_time:   2.8340 microseconds
-    Sorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    Merge sort   elap_time:  13.3750 microseconds
-    Quicksort    elap_time:  10.9170 microseconds
-    """
+        task_name = "Quicksort"
+        sorted_list = quicksort(task_name,my_list)
+        report_elap_time(task_name, elap_time_quicksort)
 
-    print("\n")
-    # TODO: Increase number in logN for log-log plotting:
-    print(f"For run iteration 2 of 16 numbers:")
-    # my_list = [1, 9, 5, 2, 1, 8, 6, 6, 3, 4, 10, 7, 1, 9, 5, 2]
-    # Output: [1, 1, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10]
-    print("...") # TODO
+        """ SAMPLE OUTPUT:
+        For run iteration 1 to 8.0 containing 8 elements:
+        [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        Unsorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        Bubble sort  elap_time:   2.8340 microseconds
+        Sorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        Merge sort   elap_time:  13.3750 microseconds
+        Quicksort    elap_time:  10.9170 microseconds
+        """
+        # TODO: Add Selection sort, Insertion sort, Counting sort,
+        # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
 
-    # TODO: In results show human-reable numbers converted to microseconds/nanoseconds.
+        cur_iteration += 1
+        print("")
 
-    # TODO: Add Timsort, a combination of sorts. The fastest?
-    # TODO: Add Selection sort, Insertion sort, Counting sort,
-
-    # TODO: Read results of runs to plot using Matplotlib or Seaborn.
-        # See my plotting.py
-
-    # results_array = (Iteration, )
-    x = np.array([1, 2, 3, 4, 5])
-    plot_multiple_lines(x)
+    if SHOW_PLOTS:
+        # Display results of runs to plot using Matplotlib or Seaborn.
+        x = np.array(elements_array)
+        plot_multiple_lines(results_x,bubble_sort_results, merge_sort_results, quicksort_results)
