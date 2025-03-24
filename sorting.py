@@ -2,14 +2,13 @@
 
 """sorting.py at https://github.com/wilsonmar/python-samples/blob/main/sorting.py
 
-This program sorts a list of numbers using several algorithms, 
+This program sorts a list of numbers using several algorithms
+(bubble sort, merge sort, quicksort),
 implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
-quick sort, bubble sort, merge sort, 
-TODO: selection sort, insertion sort, timsort, counting sort, etc.
 
 STATUS: Working on macOS.
 
-git commit -m "v006 + real matplotlib stats :sorting.py"
+git commit -m "v007 + full matplotlib stats :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -37,6 +36,8 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 # For the time taken to execute a small bit of Python code:
 import time    # for timed_func()
 import timeit
+import datetime
+from datetime import datetime
 import random
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
@@ -46,18 +47,6 @@ import numpy as np
 #from insertion_sort import insertion_sort
 #from merge_sort import merge_sorted_lists
 
-
-# Globals:
-SECS2MICROSECS = 1000000
-ITERATIONS_TODO = 10
-LIST_IS_RANDOM = True
-
-SHOW_UNSORTED = True
-SHOW_SORTED = True
-SHOW_RUNTIMES_IN_FUNC = False
-SHOW_RUNTIMES = True
-SHOW_RESULTS_CALCS = True
-SHOW_PLOTS = True
 
 def timed_func(func_to_time):
     def timed(*args, **kwargs):
@@ -282,11 +271,9 @@ def report_elap_time( task_in, elap_time ):
     Merge sort   elap_time:  13.3750 microseconds
     Quicksort    elap_time:  10.9170 microseconds
     """
-    print(f"at report_elap_time( task_in=\"{task_in}\"")
-
+    elap_time_ms = float(elap_time) * 1000000
     if SHOW_RUNTIMES:
         # NOTE: Microseconds (µs) are a millionth of a second.
-        elap_time_ms = float(elap_time) * 1000000
         unit_type_label = "microseconds"
         # FEATURE: Display text a fixed number of characters to achieve vertical alignment:
         print(task_in.ljust(12),f"elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
@@ -311,7 +298,7 @@ def report_elap_time( task_in, elap_time ):
         quicksort_results.append(elap_time_ms)
     else:
         print(f"task_in \"{task_in}\" not found. Programming error.")
-        exit()
+        exit(9)
 
 
 def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_results):
@@ -320,40 +307,76 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     and https://www.w3schools.com/python/matplotlib_line.asp
     """
     # Generate data for 4 lines
-    plt.title('BigO Complexity (FAKE NUMBERS)')
-    plt.xlabel('X - Number of elements')
-    plt.ylabel('Y - Microseconds Perf.')
+    plt.title('BigO Time Complexity by sorting.py')
+    plt.ylabel('Y = Microseconds Transaction Time')
 
-    if SHOW_RESULTS_CALCS:
-       # x1 = np.array([8, 16, 32, 64, 128, 256, 512, 1024])
-       print(f"x1={str(x1)}")
-       print(f"bubble_sort_results = {str(bubble_sort_results)}")
-       print(f"merge_sort_results, {str(merge_sort_results)}")
-       print(f"quicksort_results = {str(quicksort_results)}")
-
-    # Floating text "O(log N), O(n), O(1), O(n^2)
-    plt.text(50, 2300, "O(n!)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
-
-    plt.text(150, 2000, "O(N^2)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
-
+    # no marker='o':
     plt.plot(x1, bubble_sort_results, label='Bubble sort')
-    plt.text(1000, 2200, "O(n)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
-
     plt.plot(x1, merge_sort_results, label='Merge sort')
-    plt.text(800, 300, "O(logN)", fontsize=12, ha='center', va='center',
+    plt.plot(x1, quicksort_results, label='Quicksort')
+
+    current_date = datetime.now()
+    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
+    plt.xlabel(f"X = # tries over {len(x1)} iterations on {run_date}")
+
+    # Calculate positions of floating text:
+
+    if SHOW_RUNTIMES_IN_FUNC:
+       print(f"x1={str(x1)}")
+    last_x1_index = len(x1) -1
+    last_x1 = int(x1[last_x1_index]) -20
+    if SHOW_RESULTS_CALCS:
+       print(f"last_x1_index = {last_x1_index}")
+       print(f"last_x1 = {last_x1}")
+
+    last_bubble_sort_index = len(bubble_sort_results) -1
+    last_bubble_sort_y = int(bubble_sort_results[last_bubble_sort_index]) +0.5
+    if SHOW_RESULTS_CALCS:
+       print(f"last_bubble_sort_index = {last_bubble_sort_index}")
+       print(f"last_bubble_sort_y = {last_bubble_sort_y}")
+    plt.text(last_x1, last_bubble_sort_y, "Bubble sort O(n)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    plt.plot(x1, quicksort_results, label='Memoized')
-    plt.text(1000, 50, "O(1)", fontsize=12, ha='center', va='center',
+    last_merge_sort_index = len(merge_sort_results) -1
+    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.1)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_merge_sort_index = {last_merge_sort_index}")
+       print(f"last_merge_sort_y = {last_merge_sort_y}")
+    plt.text(last_x1, last_merge_sort_y, "Merge sort O(logN)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    plt.legend()
+    last_quicksort_index = len(quicksort_results) -1
+    last_quicksort_y = int(quicksort_results[last_quicksort_index] * .9)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_quicksort_index = {last_quicksort_index}")
+       print(f"last_quicksort_y = {last_quicksort_y}")
+    plt.text(last_x1, last_quicksort_y, "Quicksort O(logN)", fontsize=12, ha='center', va='center',
+            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
-    # TODO: Add labels and title
-    # plt.plot(y1, marker = 'o')
+    # At upper-left corner:
+    plt.plot(bubble_sort_results)
+    plt.text(1, last_bubble_sort_y, "O(n!)", fontsize=12, ha='center', va='center',
+           bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+
+    # At lower-right corner:
+    #fake_list = [10] * len(x1)
+    #plt.plot(fake_list)
+    plt.text(last_x1, 2, "O(1)", fontsize=12, ha='center', va='center',
+           bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+    # TODO: Font Color for floating text.
+
+    # Add a footer:
+#    plt.annotate(f"{run_date}",
+#                xy=(0.5, -0.15),  # Position of the footer
+#                xycoords='axes fraction',  # Use axes coordinates
+#                ha='center',  # Horizontally center the text
+#                va='top',  # Vertically center the text
+#                fontsize=10)  # Set font size
+    # Adjust the layout to make room for the footer
+#   plt.tight_layout()
+
+    # plt.legend()
+
     #plt.plot(y2, marker = '*')
 
     # Display the plot
@@ -365,19 +388,28 @@ if __name__ == "__main__":
     # TODO: SECTION 2 - A Results db is created to store runtimes for each complexity level invocation.
     # TODO: SECTION 3 - A Fibonicci db is accessed to memoize numbers created at O(1) complexity.
 
-    cur_iteration = 1     # of max_val_in_list
-    max_val_in_list = 8.0
+    # Processing Preferences:
+    LIST_IS_RANDOM = True
 
-    # TODO: SECTION 4 - Generate random numbers from the Fibonocci db or gen'd and added to the db.
+    SHOW_UNSORTED = False
+    SHOW_SORTED = False
 
-    # TODO: SECTION 6 - Loop-within-loop: Loop thru each algorithm at larger and larger numbers (N).
-        # TODO: Iterate until maximum runtime threshold is reached.
+    SHOW_ITERATION = False
+    SHOW_RUNTIMES_IN_FUNC = False
+    SHOW_RUNTIMES = False
+    SHOW_RESULTS_CALCS = False
+    SHOW_PLOTS = True
 
     # Array of numbers increasing geometrically in base 2: 1,2,4,8,16,32,64,128,256,512, etc.
-    array_elements_length = 3
+    array_elements_length = 8
     array_elements_start = 2
     elements_array = [array_elements_start * (2**i) for i in range(array_elements_length)]
-    print(str(elements_array))
+    if SHOW_RUNTIMES:
+        print(f"elements_array={str(elements_array)}")
+
+    # TODO: SECTION 4 - Generate random numbers from the Fibonocci db or gen'd and added to the db.
+    # TODO: SECTION 6 - Loop-within-loop: Loop thru each algorithm at larger and larger numbers (N).
+        # TODO: Iterate until maximum runtime threshold is reached.
 
     # Initialize results:
     results_x = []
@@ -385,6 +417,7 @@ if __name__ == "__main__":
     merge_sort_results = []
     quicksort_results = []
 
+    cur_iteration = 1
     for index, num_elements in enumerate(elements_array):
         list_strt_value = 1    # Desired start value of range
         list_max_value = num_elements - list_strt_value + 2
@@ -404,8 +437,9 @@ if __name__ == "__main__":
 
         list_element_count = len(my_list)    # within array for sorting
         results_x.append(list_element_count)
-        print(f"For run iteration {cur_iteration} to {list_max_value} containing " +
-            f"{list_element_count} {randomness} elements:")
+        if SHOW_ITERATION:
+            print(f"For run iteration {cur_iteration} to {list_max_value} containing " +
+                f"{list_element_count} {randomness} elements:")
 
         if SHOW_UNSORTED:
             print("Unsorted list: "+str(my_list))
@@ -422,15 +456,6 @@ if __name__ == "__main__":
         sorted_list = quicksort(task_name,my_list)
         report_elap_time(task_name, elap_time_quicksort)
 
-        """ SAMPLE OUTPUT:
-        For run iteration 1 to 8.0 containing 8 elements:
-        [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-        Unsorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-        Bubble sort  elap_time:   2.8340 microseconds
-        Sorted list: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-        Merge sort   elap_time:  13.3750 microseconds
-        Quicksort    elap_time:  10.9170 microseconds
-        """
         # TODO: Add Selection sort, Insertion sort, Counting sort,
         # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
 
