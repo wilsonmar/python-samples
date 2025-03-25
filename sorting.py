@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v009 optional task_name :sorting.py"
+git commit -m "v011 add mtm non-func code :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -293,6 +293,7 @@ def timsort(items, task_name="TimSort"):
     return items
 
 
+# TODO: Generate random numbers from the Fibonocci db or gen'd and added to the db.
 def fibonicci_replace(given_array):
     """ Toy function to sleep instead of
     replaces each element in the given array with the nearest Fibonicci number.
@@ -440,7 +441,6 @@ if __name__ == "__main__":
     if SHOW_RUNTIMES:
         print(f"elements_array={str(elements_array)}")
 
-    # TODO: Generate random numbers from the Fibonocci db or gen'd and added to the db.
     # TODO: Iterate until maximum runtime threshold is reached.
 
     # Initialize results:
@@ -448,6 +448,7 @@ if __name__ == "__main__":
     bubble_sort_results = []
     merge_sort_results = []
     quicksort_results = []
+    mtm_sort_results =[]
 
     cur_iteration = 1
     for index, num_elements in enumerate(elements_array):
@@ -488,11 +489,17 @@ if __name__ == "__main__":
         sorted_list = quicksort(my_list, task_name)
         report_elap_time(task_name, elap_time_quicksort)
 
+        # TODO: Add Multi-Threading Merge sorting using threads to sort sublists within merge sort.
+        #task_name = "MTM sort"
+        #sorted_list = multi_threaded_merge_sort(my_list, num_threads=4)
+        # FIXME: sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
+               # ValueError: range() arg 3 must not be zero
+        #report_elap_time(task_name, elap_time_mtm_sort)
+
         # TODO: Add Selection sort,
         # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
         # TODO: Add Insertion sort, Counting sort, etc.
-        # TODO: Add Multi-Threading Merge sorting using threads to sort of sublists within merge sort.
-        # TODO: Add GPU merge
+        # TODO: Add run using NVIDIA GPU for merge
 
         cur_iteration += 1
         print("")
@@ -501,3 +508,4 @@ if __name__ == "__main__":
         # Display results of runs to plot using Matplotlib or Seaborn.
         x = np.array(elements_array)
         plot_multiple_lines(results_x,bubble_sort_results, merge_sort_results, quicksort_results)
+            # mtm_sort_results
