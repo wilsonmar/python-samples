@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v008 + RANDOMNESS, imports :sorting.py"
+git commit -m "v009 optional task_name :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -63,7 +63,7 @@ def timed_func(func_to_time):
     return timed
 
 
-def bubble_sort(task_name,array):
+def bubble_sort(array, task_name="Bubble sort"):
     """ The Bubble Sort algorithm has a time complexity of 
     O(n^2) in the worst and average cases, 
     and O(n) in the best case (already sorted list). 
@@ -98,7 +98,7 @@ def bubble_sort(task_name,array):
     return sorted_list
 
 
-def quicksort(task_name,array):
+def quicksort(array, task_name="Quick Sort"):
     """quicksort has worst-case runtime complexity of O(n^2) but otherwise
     best/average case time & space complexity of O(n log n). 
     But it is not considered as "stable" as other sorting algorithms.
@@ -119,7 +119,7 @@ def quicksort(task_name,array):
         less = [i for i in array[1:] if i <= pivot]
         greater = [i for i in array[1:] if i > pivot]
         # WARNING: Function calls itself (is recursive):
-        array = quicksort(task_name,less) + [pivot] + quicksort(task_name,greater)
+        array = quicksort(less) + [pivot] + quicksort(greater)
 
         stop_time = timeit.default_timer()
         global elap_time_quicksort
@@ -134,7 +134,7 @@ def quicksort(task_name,array):
 
 
 # @timed_func cannot be used because of recursive logic.
-def merge_sort(task_name,list_to_sort):
+def merge_sort(list_to_sort, task_name="Merge Sort"):
     """The Merge Sort algorithm has a time complexity of 
     O(n log n). 
     The list is split into sublists of size 1,
@@ -153,8 +153,8 @@ def merge_sort(task_name,list_to_sort):
     left_half = list_to_sort[:mid]
     right_half = list_to_sort[mid:]
 
-    left_half = merge_sort(task_name,left_half)
-    right_half = merge_sort(task_name,right_half)
+    left_half = merge_sort(left_half)
+    right_half = merge_sort(right_half)
 
     # WARNING: Function calls itself (is recursive), so reports elap_time every time:
     stop_time = timeit.default_timer()
@@ -184,7 +184,7 @@ def merge_sort_merge(left, right):
     return merged
 
 
-def insertion_sort(task_name, items, left=0, right=None):
+def insertion_sort(items, left=0, right=None, task_name="Insertion Sort"):
     """ A basic insertion sort, modified slightly to allow sorting
     # a slice of a list rather than the full list if desired.
     # O(n^2) in worst case.
@@ -217,7 +217,7 @@ def insertion_sort(task_name, items, left=0, right=None):
     return items
 
 
-def timsort(task_name, items):
+def timsort(items, task_name="TimSort"):
     """ TimSort was the default in Python until v3.11. 
     # Named for its inventor Tim Peters. https://www.youtube.com/watch?v=rbbTd-gkajw&t=8m39s
     # For avg. complexity of O(n log n), it creates "runs" using insertion_sort, then 
@@ -233,7 +233,7 @@ def timsort(task_name, items):
     # (The real algorithm carefully chooses a subsection size for performance.)
     for i in range(0, len(items), min_subsection_size):
         # WARNING: Recursive function call:
-        insertion_sort(task_name, items, i, min((i + min_subsection_size - 1), len(items) - 1))
+        insertion_sort(items, i, min((i + min_subsection_size - 1), len(items) - 1))
 
     # Move through the list of subsections and merge them using merge_sorted_lists
     # (Again, the real algorithm carefully chooses when to do this.)
@@ -314,7 +314,7 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     """
     # Generate data for 4 lines
     plt.title(f"BigO Time Complexity by sorting.py on {RANDOMNESS} data")
-    plt.ylabel('Y = Microseconds Transaction Time')
+    plt.ylabel('Y = Microseconds Run Time')
 
     # no marker='o':
     plt.plot(x1, bubble_sort_results, label='Bubble sort')
@@ -449,21 +449,22 @@ if __name__ == "__main__":
 
         if SHOW_UNSORTED:
             print("Unsorted list: "+str(my_list))
-        sorted_list = bubble_sort("Bubble sort",my_list)
+        sorted_list = bubble_sort(my_list)
         if SHOW_SORTED:
             print("  Sorted list: "+str(sorted_list) )
         # TODO: Saved reported times to array for showing at any time.
 
         task_name = "Merge sort"
-        sorted_list = merge_sort(task_name,my_list)
+        sorted_list = merge_sort(my_list, task_name)
         report_elap_time(task_name, elap_time_merge_sort)
 
         task_name = "Quicksort"
-        sorted_list = quicksort(task_name,my_list)
+        sorted_list = quicksort(my_list, task_name)
         report_elap_time(task_name, elap_time_quicksort)
 
-        # TODO: Add Selection sort, Insertion sort, Counting sort,
+        # TODO: Add Insertion sort,
         # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
+        # TODO: Add Selection sort, Counting sort, etc.
 
         cur_iteration += 1
         print("")
