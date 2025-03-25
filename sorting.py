@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v007 + full matplotlib stats :sorting.py"
+git commit -m "v008 + RANDOMNESS, imports :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -34,18 +34,24 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 """
 
 # For the time taken to execute a small bit of Python code:
-import time    # for timed_func()
-import timeit
 import datetime
 from datetime import datetime
 import random
+import time    # for timed_func()
+import timeit
 from timeit import default_timer as timer
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-# For timsort():
-#from insertion_sort import insertion_sort
-#from merge_sort import merge_sorted_lists
+
+try:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import numpy as np
+    # For timsort():
+    #from insertion_sort import insertion_sort
+    #from merge_sort import merge_sorted_lists
+except Exception as e:
+    print(f"Python module import failed: {e}")
+    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    exit(9)
 
 
 def timed_func(func_to_time):
@@ -307,7 +313,7 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     and https://www.w3schools.com/python/matplotlib_line.asp
     """
     # Generate data for 4 lines
-    plt.title('BigO Time Complexity by sorting.py')
+    plt.title(f"BigO Time Complexity by sorting.py on {RANDOMNESS} data")
     plt.ylabel('Y = Microseconds Transaction Time')
 
     # no marker='o':
@@ -354,15 +360,15 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
             bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
     # At upper-left corner:
-    plt.plot(bubble_sort_results)
-    plt.text(1, last_bubble_sort_y, "O(n!)", fontsize=12, ha='center', va='center',
-           bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+    #plt.plot(bubble_sort_results)
+    #plt.text(1, last_bubble_sort_y, "O(n!)", fontsize=12, ha='center', va='center',
+    #       bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
 
     # At lower-right corner:
     #fake_list = [10] * len(x1)
     #plt.plot(fake_list)
-    plt.text(last_x1, 2, "O(1)", fontsize=12, ha='center', va='center',
-           bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+    #plt.text(last_x1, 2, "Fake O(1)", fontsize=12, ha='center', va='center',
+    #       bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
     # TODO: Font Color for floating text.
 
     # Add a footer:
@@ -423,13 +429,13 @@ if __name__ == "__main__":
         list_max_value = num_elements - list_strt_value + 2
 
         if LIST_IS_RANDOM:
-            randomness = "random"
+            RANDOMNESS = "random"
             my_list = []  # initialize list
             for _ in range(num_elements):
                 another_number = random.randint(list_strt_value, list_max_value)
                 my_list.append(another_number)
         else:  # Construct sequential list:
-            randomness = "sequential"   # already sorted!
+            RANDOMNESS = "sequential"   # already sorted!
             if list_strt_value == 0:
                 list_max_value -= 2
             # import numpy as np  # https://numpy.org/doc/stable/reference/generated/numpy.arange.html
@@ -439,7 +445,7 @@ if __name__ == "__main__":
         results_x.append(list_element_count)
         if SHOW_ITERATION:
             print(f"For run iteration {cur_iteration} to {list_max_value} containing " +
-                f"{list_element_count} {randomness} elements:")
+                f"{list_element_count} {RANDOMNESS} elements:")
 
         if SHOW_UNSORTED:
             print("Unsorted list: "+str(my_list))
