@@ -37,17 +37,15 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 import datetime
 from datetime import datetime
 import random
+import threading
 import time    # for timed_func()
 import timeit
 from timeit import default_timer as timer
 
 try:
     import matplotlib.pyplot as plt
-    import seaborn as sns
+    # import seaborn as sns
     import numpy as np
-    # For timsort():
-    #from insertion_sort import insertion_sort
-    #from merge_sort import merge_sorted_lists
 except Exception as e:
     print(f"Python module import failed: {e}")
     print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
@@ -134,7 +132,7 @@ def quicksort(array, task_name="Quick Sort"):
 
 
 # @timed_func cannot be used because of recursive logic.
-def merge_sort(list_to_sort, task_name="Merge Sort"):
+def merge_sort(list_to_sort, task_name="Merge sort"):
     """The Merge Sort algorithm has a time complexity of 
     O(n log n). 
     The list is split into sublists of size 1,
@@ -184,7 +182,39 @@ def merge_sort_merge(left, right):
     return merged
 
 
-def insertion_sort(items, left=0, right=None, task_name="Insertion Sort"):
+def multi_threaded_merge_sort(arr, num_threads=4, task_name="MTM sort"):
+    if num_threads <= 1:
+        return merge_sort(arr)
+
+    chunk_size = len(arr) // num_threads
+    sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
+
+    threads = []
+    sorted_sublists = []
+
+    for sublist in sublists:
+        thread = threading.Thread(
+            target=lambda sl=sublist: sorted_sublists.append(merge_sort(sl))
+        )
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+    while len(sorted_sublists) > 1:
+        new_sublists = []
+        for i in range(0, len(sorted_sublists), 2):
+            if i+1 < len(sorted_sublists):
+                new_sublists.append(merge(sorted_sublists[i], sorted_sublists[i+1]))
+            else:
+                new_sublists.append(sorted_sublists[i])
+        sorted_sublists = new_sublists
+
+    return sorted_sublists[0] if sorted_sublists else []
+
+
+def insertion_sort(items, left=0, right=None, task_name="Insertion sort"):
     """ A basic insertion sort, modified slightly to allow sorting
     # a slice of a list rather than the full list if desired.
     # O(n^2) in worst case.
@@ -314,16 +344,13 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     """
     # Generate data for 4 lines
     plt.title(f"BigO Time Complexity by sorting.py on {RANDOMNESS} data")
-    plt.ylabel('Y = Microseconds Run Time')
+    plt.ylabel('y = Microseconds Run Time')
+    plt.xlabel(f"x = N elements (growing within {len(x1)} batches)")
 
     # no marker='o':
     plt.plot(x1, bubble_sort_results, label='Bubble sort')
     plt.plot(x1, merge_sort_results, label='Merge sort')
     plt.plot(x1, quicksort_results, label='Quicksort')
-
-    current_date = datetime.now()
-    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
-    plt.xlabel(f"X = # tries over {len(x1)} iterations on {run_date}")
 
     # Calculate positions of floating text:
 
@@ -341,28 +368,29 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
        print(f"last_bubble_sort_index = {last_bubble_sort_index}")
        print(f"last_bubble_sort_y = {last_bubble_sort_y}")
     plt.text(last_x1, last_bubble_sort_y, "Bubble sort O(n)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
+
+    # At upper-left corner:
+    current_date = datetime.now()
+    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
+    plt.text(50, last_bubble_sort_y, run_date, fontsize=12, ha='center', va='center',
+           bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
     last_merge_sort_index = len(merge_sort_results) -1
-    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.1)
+    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.2)
     if SHOW_RESULTS_CALCS:
        print(f"last_merge_sort_index = {last_merge_sort_index}")
        print(f"last_merge_sort_y = {last_merge_sort_y}")
     plt.text(last_x1, last_merge_sort_y, "Merge sort O(logN)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
     last_quicksort_index = len(quicksort_results) -1
-    last_quicksort_y = int(quicksort_results[last_quicksort_index] * .9)
+    last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
     if SHOW_RESULTS_CALCS:
        print(f"last_quicksort_index = {last_quicksort_index}")
        print(f"last_quicksort_y = {last_quicksort_y}")
     plt.text(last_x1, last_quicksort_y, "Quicksort O(logN)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
-
-    # At upper-left corner:
-    #plt.plot(bubble_sort_results)
-    #plt.text(1, last_bubble_sort_y, "O(n!)", fontsize=12, ha='center', va='center',
-    #       bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
     # At lower-right corner:
     #fake_list = [10] * len(x1)
@@ -392,7 +420,6 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
 if __name__ == "__main__":
 
     # TODO: SECTION 2 - A Results db is created to store runtimes for each complexity level invocation.
-    # TODO: SECTION 3 - A Fibonicci db is accessed to memoize numbers created at O(1) complexity.
 
     # Processing Preferences:
     LIST_IS_RANDOM = True
@@ -413,9 +440,8 @@ if __name__ == "__main__":
     if SHOW_RUNTIMES:
         print(f"elements_array={str(elements_array)}")
 
-    # TODO: SECTION 4 - Generate random numbers from the Fibonocci db or gen'd and added to the db.
-    # TODO: SECTION 6 - Loop-within-loop: Loop thru each algorithm at larger and larger numbers (N).
-        # TODO: Iterate until maximum runtime threshold is reached.
+    # TODO: Generate random numbers from the Fibonocci db or gen'd and added to the db.
+    # TODO: Iterate until maximum runtime threshold is reached.
 
     # Initialize results:
     results_x = []
@@ -462,9 +488,11 @@ if __name__ == "__main__":
         sorted_list = quicksort(my_list, task_name)
         report_elap_time(task_name, elap_time_quicksort)
 
-        # TODO: Add Insertion sort,
+        # TODO: Add Selection sort,
         # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
-        # TODO: Add Selection sort, Counting sort, etc.
+        # TODO: Add Insertion sort, Counting sort, etc.
+        # TODO: Add Multi-Threading Merge sorting using threads to sort of sublists within merge sort.
+        # TODO: Add GPU merge
 
         cur_iteration += 1
         print("")
