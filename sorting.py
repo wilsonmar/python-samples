@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v015 mtm sort :sorting.py"
+git commit -m "v016 stats crossover :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -443,8 +443,7 @@ if __name__ == "__main__":
     for index, num_elements in enumerate(batches_array):
         list_strt_value = 1    # Desired start value of range
         list_max_value = num_elements - list_strt_value + 2
-        if SHOW_ITERATION:
-            print(f"{cur_batch} list_max_value={list_max_value}")
+
         if LIST_IS_RANDOM:
             RANDOMNESS = "random"
             my_list = []  # initialize list
