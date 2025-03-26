@@ -4,7 +4,7 @@
 
 STATUS: working
 
-git commit -m "v022 + pressure hPa alignment :openweather.py"
+git commit -m "v024 + parm, indent main :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -52,7 +52,7 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 # Buikt-in: import os
 from datetime import datetime
 from datetime import timedelta, timezone
-
+import argparse
 # brew install miniconda
 # conda create -n py313
 # conda activate py313
@@ -435,188 +435,205 @@ if __name__ == "__main__":
     if not openweathermap_api_key:
        print("OPENWEATHERMAP_API_KEY has no default! Processing killed")
 
-apispec="lat=" + my_latitude +"&lon=" + my_longitude
-# https://api.openweathermap.org/data/2.5/weather?lat=40.7128&lon=-74.0060&appid={API key}
-#url = "http://api.openweathermap.org/data/2.5/weather?q={}&appid=" + apikey + "&units=metric.format(city)"
-url = "http://api.openweathermap.org/data/2.5/weather?"+apispec+"&appid="+openweathermap_api_key
-#city_input = "q=Billings" # instead of input("Enter City:")
-#city_encoded = urllib.parse.quote(city_input)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on/off flag
+    parser.add_argument(
+        "-z", "--zip",
+        type=str,
+        nargs="+",
+        help="6-digit US Zip Code"
+    )
 
-#if VERBOSE:
-#   print(">>> url=",url)  # contains APIKEY
-   # data= {'coord': {'lon': -108.975, 'lat': 45.4869}, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}], 'base': 'stations', 'main': {'temp': 302.63, 'feels_like': 301.72, 'temp_min': 299.05, 'temp_max': 302.63, 'pressure': 1009, 'humidity': 34, 'sea_level': 1009, 'grnd_level': 879}, 'visibility': 10000, 'wind': {'speed': 3.28, 'deg': 121, 'gust': 4.99}, 'clouds': {'all': 0}, 'dt': 1727569281, 'sys': {'type': 2, 'id': 2006447, 'country': 'US', 'sunrise': 1727529056, 'sunset': 1727571699}, 'timezone': -21600, 'id': 5661766, 'name': 'Laurel', 'cod': 200}
-try:
-    res = requests.get(url)
-    data = res.json()
-except Exception as e:
-    "data= {'cod': '404', 'message': 'city not found'}"
-    print(f">>> Error using city: {city_input} in {e}")
-    exit()
-
-current_datetime = datetime.now()
-
-if VERBOSE:
-    print(">>> returned data=",data)
-
-
-# Extract individual elements:
-lon = data['coord']['lon']
-lat = data['coord']['lat']
-cloud_desc = data['weather'][0]['description']
-icon_code = data['weather'][0]['icon']  # '01n'
-wind_kph = data['wind']['speed']
-wind_deg = data['wind']['deg']
-wind_gust_kph = 0
-try:
-    wind_gust_kph = data['wind']['gust']
-except:
-    wind_gust_kph = 0
-else:
-    wind_gust_kph = 0
-feels_like = data['main']['feels_like']
-temp_k = data['main']['temp']
-temp_k_min = data['main']['temp_min']
-temp_k_max = data['main']['temp_max']
-humidity = data['main']['humidity']
-sea_level_hpa = data['main']['sea_level']
-grnd_level_hpa = data['main']['grnd_level']
-visibility = data['visibility']
-call_dt = data['dt']
-pressure = data['main']['pressure']
-# 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
-country = data['sys']['country']
-sunrise_epoch = data['sys']['sunrise']
-sunset_epoch = data['sys']['sunset']
-timezone = data['timezone']
-call_id = data['id']  # 5661766
-try:
-    station_name = data['name']
-except Exception as e:
-    # print(f">>> Error getting: name in {e}")
-    station_name = ""
-    # exit()
-else:
-    station_name = ""
-cod = data['cod']  # 200
-
-
-#### Calculations from response:
-
-STRFTIME_FORMAT="%I:%M %p (%H:%M:%S) %Y-%m-%d"
-
-tz_offset = timedelta(seconds = timezone)  # = "-1 day, 18:00:00"
-#tz = timezone(tz_offset)
-   # FIXME: TypeError: 'int' object is not callable
-#tz_name = datetime.now(tz).strftime('%Z')
-   # print({tz_name})  # "UTC-0600"
-
-formatted_datetime=current_datetime.strftime(STRFTIME_FORMAT)
-
-sunrise_date_time = datetime.fromtimestamp(sunrise_epoch)
-sunrise_formatted = sunrise_date_time.strftime(STRFTIME_FORMAT)
-
-sunset_date_time = datetime.fromtimestamp(sunset_epoch)
-sunset_formatted = sunset_date_time.strftime(STRFTIME_FORMAT)
-
-call_date_time = datetime.fromtimestamp(call_dt)
-call_formatted = call_date_time.strftime(STRFTIME_FORMAT)
-
-cloud_text = cloud_text(cloud_desc)
-
-temp_c = kelvin2celcius(temp_k)
-# Dew point provides a more consistent and
-# easily interpretable measure of how humid it actually feels outside.
-dew_point_c = get_dew_point_c(temp_c, humidity)
-dew_point_f = celcius2fahrenheit(dew_point_c)
-dew_comfort = dew_desc_f(dew_point_f)
-
-
-#### Print:
-
-print(f"openweather.org at {call_formatted} reports")
-print(f"as {call_id}     at: {formatted_datetime} TZ: {timezone}")
-print(f"          Sunrise: {sunrise_formatted}")
-print(f"          Sunset:  {sunset_formatted}")
-print(f"{cloud_text} at \"{apispec}\"",end="")
-print(f" country={country}",end="")
-if station_name == "":
-    print("")
-else:
-    print(f" ({station_name})")
-
-print(f"     Latitude:  {my_latitude}° from the Equator &")
-print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
-# Not print if same: print('Feels like: ',feels_like)
-
-if USE_IMPERIAL_UNITS:
-   temp_f = celcius2fahrenheit(temp_c)
-   dew_point_c
-   print(f"{dew_comfort} Dew Point of {dew_point_f:.2f}°F",end="")
-   print(f" vs. {BOLD}{temp_f:.2f}°F{RESET} at {humidity}% humidity")
-else:
-   print(f"{dew_comfort} Dew Point of {BOLD}{dew_point_c:.2f}°C{RESET}",end="")
-   print(f" vs. {BOLD}{temp_c:.2f}°C{RESET} at {humidity}% Humidity")
-
-# Don't display min & max temperature if the are bogus:
-if temp_k_min != temp_k_max:
-    temp_c_min = float(temp_k_min) - 273.15
-    temp_c_max = float(temp_k_max) - 273.15
-    if temp_c_min == temp_c_max:
-        if USE_IMPERIAL_UNITS:
-            temp_f_min = celcius2fahrenheit(temp_c_min)
-            temp_f_max = celcius2fahrenheit(temp_c_max)
-            print(f"    Temp. Minimum: {temp_f_min:.2f}°F,",end="")
-            print(f" Maximum: {temp_f_max:.2f}°F")
-        else:
-            print(f"    Temp. Minimum: {temp_c_min:.2f}°C,",end="")
-            print(f" Maximum: {temp_c_max:.2f}°C")
-
-# Convert wind direction to names (such as NWW):
-wind_dir = compass_text_from_degrees(wind_deg)
-if USE_IMPERIAL_UNITS:
-    wind_mph = kph2mph(wind_kph)
-    print(f"     Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
-else:
-    print(f"     Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
-# See illustration at https://res.cloudinary.com/dcajqrroq/image/upload/v1727494071/compass-800x800_hvwmtu.webp
-if wind_gust_kph > 0:
-    if USE_IMPERIAL_UNITS:
-        wind_gust_mph = kph2mph(wind_gust_kph)
-        print(f" with gusts: {wind_gust_mph:.2f} mph")
+    args = parser.parse_args()
+    if args.verbose:
+        VERBOSE = True  # True or False
+    if args.zip:
+        apispec=f"zip={' '.join(map(str, args.zip))}"  # convert list to string.
     else:
-        print(f" with gusts: {wind_gust_kph:.2f} kph")
-print(f"\n     Visibility to {visibility} meters")
+        apispec="lat=" + my_latitude +"&lon=" + my_longitude    # from env file
+
+    # https://api.openweathermap.org/data/2.5/weather?lat=40.7128&lon=-74.0060&appid={API key}
+    #url = "http://api.openweathermap.org/data/2.5/weather?q={}&appid=" + apikey + "&units=metric.format(city)"
+    url = "http://api.openweathermap.org/data/2.5/weather?"+apispec+"&appid="+openweathermap_api_key
+    #city_input = "q=Billings" # instead of input("Enter City:")
+    #city_encoded = urllib.parse.quote(city_input)
+    if VERBOSE:
+        print(f">>> url={url}")
+
+    #if VERBOSE:
+    #   print(">>> url=",url)  # contains APIKEY
+    # data= {'coord': {'lon': -108.975, 'lat': 45.4869}, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}], 'base': 'stations', 'main': {'temp': 302.63, 'feels_like': 301.72, 'temp_min': 299.05, 'temp_max': 302.63, 'pressure': 1009, 'humidity': 34, 'sea_level': 1009, 'grnd_level': 879}, 'visibility': 10000, 'wind': {'speed': 3.28, 'deg': 121, 'gust': 4.99}, 'clouds': {'all': 0}, 'dt': 1727569281, 'sys': {'type': 2, 'id': 2006447, 'country': 'US', 'sunrise': 1727529056, 'sunset': 1727571699}, 'timezone': -21600, 'id': 5661766, 'name': 'Laurel', 'cod': 200}
+    try:
+        res = requests.get(url)
+        data = res.json()
+    except Exception as e:
+        "data= {'cod': '404', 'message': 'city not found'}"
+        print(f">>> Error using city: {city_input} in {e}")
+        exit()
+
+    current_datetime = datetime.now()
+
+    if VERBOSE:
+        print(">>> returned data=",data)
+
+    # Extract individual elements:
+    lon = data['coord']['lon']
+    lat = data['coord']['lat']
+    cloud_desc = data['weather'][0]['description']
+    icon_code = data['weather'][0]['icon']  # '01n'
+    wind_kph = data['wind']['speed']
+    wind_deg = data['wind']['deg']
+    wind_gust_kph = 0
+    try:
+        wind_gust_kph = data['wind']['gust']
+    except:
+        wind_gust_kph = 0
+    else:
+        wind_gust_kph = 0
+    feels_like = data['main']['feels_like']
+    temp_k = data['main']['temp']
+    temp_k_min = data['main']['temp_min']
+    temp_k_max = data['main']['temp_max']
+    humidity = data['main']['humidity']
+    sea_level_hpa = data['main']['sea_level']
+    grnd_level_hpa = data['main']['grnd_level']
+    visibility = data['visibility']
+    call_dt = data['dt']
+    pressure = data['main']['pressure']
+    # 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
+    country = data['sys']['country']
+    sunrise_epoch = data['sys']['sunrise']
+    sunset_epoch = data['sys']['sunset']
+    timezone = data['timezone']
+    call_id = data['id']  # 5661766
+    try:
+        station_name = data['name']
+    except Exception as e:
+        # print(f">>> Error getting: name in {e}")
+        station_name = ""
+        # exit()
+    else:
+        station_name = ""
+    cod = data['cod']  # 200
 
 
-# sea_level returned is a normalized value that allows for comparison between different locations, regardless of their actual elevation.
-# The average sea-level pressure is 1013.25 mb/hPA (Hectopascal).
-# One millibar is equivalent to 100 Pa (Pascals).
-# The SI Atmosphere (atm) average air pressure at sea level
-# of 101,325 pascals (Pa) or 1013.25 hPa (hectopascals).
-# See https://blog.mensor.com/blog/adjusting-barometric-pressure-readings-for-aviation-and-meteorology
-# See https://cumulus.hosiene.co.uk/viewtopic.php?t=8286
-# Example usage of the adjustment functions:
-sea_level_pressure = calculate_sea_level_pressure( \
-    pressure, sea_level_hpa, temp_c)
-pressure_diff = sea_level_pressure - pressure
+    #### Calculations from response:
 
-altitude_to_adjust = sea_level_hpa  # meters
-adjusted_pressure = adjust_pressure_for_altitude \
-    (sea_level_hpa, altitude_to_adjust, temp_c)
+    STRFTIME_FORMAT="%I:%M %p (%H:%M:%S) %Y-%m-%d"
 
-#### Format & display each element:
+    tz_offset = timedelta(seconds = timezone)  # = "-1 day, 18:00:00"
+    #tz = timezone(tz_offset)
+    # FIXME: TypeError: 'int' object is not callable
+    #tz_name = datetime.now(tz).strftime('%Z')
+    # print({tz_name})  # "UTC-0600"
 
-pressure_desc = pressure_desc(pressure)
-print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa}    hPa (HectoPascals, aka millibars)")
-print(f"       vs. normal: 1013.25 hPa at sea level")
-print(f"                    {grnd_level_hpa}    hPa at Ground_level")
-# Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
+    formatted_datetime=current_datetime.strftime(STRFTIME_FORMAT)
 
-#print(f"is {pressure_diff:.2f} \
-#      hPa from adjusted average \
-#      {sea_level_pressure:.2f} hPa")
-# print(f"      vs. {sea_level_hpa} hPa at sea level.")
-# print(f"{hectopascals:.2f} hPa above sea level average of 1013.25 hPA")
-# What is normal for your location's altitude
-# Python code: https://www.perplexity.ai/search/how-adjust-normal-hectopascals-SuInNLlARxadL9GbY.NmBA
-# print(f"      vs. {adjusted_pressure:.2f} hPa normally for local elevation.")
+    sunrise_date_time = datetime.fromtimestamp(sunrise_epoch)
+    sunrise_formatted = sunrise_date_time.strftime(STRFTIME_FORMAT)
+
+    sunset_date_time = datetime.fromtimestamp(sunset_epoch)
+    sunset_formatted = sunset_date_time.strftime(STRFTIME_FORMAT)
+
+    call_date_time = datetime.fromtimestamp(call_dt)
+    call_formatted = call_date_time.strftime(STRFTIME_FORMAT)
+
+    cloud_text = cloud_text(cloud_desc)
+
+    temp_c = kelvin2celcius(temp_k)
+    # Dew point provides a more consistent and
+    # easily interpretable measure of how humid it actually feels outside.
+    dew_point_c = get_dew_point_c(temp_c, humidity)
+    dew_point_f = celcius2fahrenheit(dew_point_c)
+    dew_comfort = dew_desc_f(dew_point_f)
+
+
+    #### Print:
+
+    print(f"openweather.org at {call_formatted} reports")
+    print(f"as {call_id}     at: {formatted_datetime} TZ: {timezone}")
+    print(f"          Sunrise: {sunrise_formatted}")
+    print(f"           Sunset: {sunset_formatted}")
+    print(f"{cloud_text} at \"{apispec}\"",end="")
+    print(f" country={country}",end="")
+    if station_name == "":
+        print("")
+    else:
+        print(f" ({station_name})")
+
+    print(f"     Latitude:  {my_latitude}° from the Equator &")
+    print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
+    # Not print if same: print('Feels like: ',feels_like)
+
+    if USE_IMPERIAL_UNITS:
+        temp_f = celcius2fahrenheit(temp_c)
+        dew_point_c
+        print(f"{dew_comfort} Dew Point of {dew_point_f:.2f}°F",end="")
+        print(f" vs. {BOLD}{temp_f:.2f}°F{RESET} at {humidity}% humidity")
+    else:
+        print(f"{dew_comfort} Dew Point of {BOLD}{dew_point_c:.2f}°C{RESET}",end="")
+        print(f" vs. {BOLD}{temp_c:.2f}°C{RESET} at {humidity}% Humidity")
+
+    # Don't display min & max temperature if the are bogus:
+    if temp_k_min != temp_k_max:
+        temp_c_min = float(temp_k_min) - 273.15
+        temp_c_max = float(temp_k_max) - 273.15
+        if temp_c_min == temp_c_max:
+            if USE_IMPERIAL_UNITS:
+                temp_f_min = celcius2fahrenheit(temp_c_min)
+                temp_f_max = celcius2fahrenheit(temp_c_max)
+                print(f"    Temp. Minimum: {temp_f_min:.2f}°F,",end="")
+                print(f" Maximum: {temp_f_max:.2f}°F")
+            else:
+                print(f"    Temp. Minimum: {temp_c_min:.2f}°C,",end="")
+                print(f" Maximum: {temp_c_max:.2f}°C")
+
+    # Convert wind direction to names (such as NWW):
+    wind_dir = compass_text_from_degrees(wind_deg)
+    if USE_IMPERIAL_UNITS:
+        wind_mph = kph2mph(wind_kph)
+        print(f"     Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
+    else:
+        print(f"     Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
+    # See illustration at https://res.cloudinary.com/dcajqrroq/image/upload/v1727494071/compass-800x800_hvwmtu.webp
+    if wind_gust_kph > 0:
+        if USE_IMPERIAL_UNITS:
+            wind_gust_mph = kph2mph(wind_gust_kph)
+            print(f" with gusts: {wind_gust_mph:.2f} mph")
+        else:
+            print(f" with gusts: {wind_gust_kph:.2f} kph")
+    print(f"\n     Visibility to {visibility} meters")
+
+
+    # sea_level returned is a normalized value that allows for comparison between different locations, regardless of their actual elevation.
+    # The average sea-level pressure is 1013.25 mb/hPA (Hectopascal).
+    # One millibar is equivalent to 100 Pa (Pascals).
+    # The SI Atmosphere (atm) average air pressure at sea level
+    # of 101,325 pascals (Pa) or 1013.25 hPa (hectopascals).
+    # See https://blog.mensor.com/blog/adjusting-barometric-pressure-readings-for-aviation-and-meteorology
+    # See https://cumulus.hosiene.co.uk/viewtopic.php?t=8286
+    # Example usage of the adjustment functions:
+    sea_level_pressure = calculate_sea_level_pressure( \
+        pressure, sea_level_hpa, temp_c)
+    pressure_diff = sea_level_pressure - pressure
+
+    altitude_to_adjust = sea_level_hpa  # meters
+    adjusted_pressure = adjust_pressure_for_altitude \
+        (sea_level_hpa, altitude_to_adjust, temp_c)
+
+    #### Format & display each element:
+
+    pressure_desc = pressure_desc(pressure)
+    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa}    hPa (HectoPascals, aka millibars)")
+    print(f"       vs. normal: 1013.25 hPa at sea level")
+    print(f"                    {grnd_level_hpa}    hPa at Ground_level")
+    # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
+
+    #print(f"is {pressure_diff:.2f} \
+    #      hPa from adjusted average \
+    #      {sea_level_pressure:.2f} hPa")
+    # print(f"      vs. {sea_level_hpa} hPa at sea level.")
+    # print(f"{hectopascals:.2f} hPa above sea level average of 1013.25 hPA")
+    # What is normal for your location's altitude
+    # Python code: https://www.perplexity.ai/search/how-adjust-normal-hectopascals-SuInNLlARxadL9GbY.NmBA
+    # print(f"      vs. {adjusted_pressure:.2f} hPa normally for local elevation.")
