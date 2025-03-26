@@ -4,7 +4,7 @@
 
 STATUS: working
 
-git commit -m "v024 + parm, indent main :openweather.py"
+git commit -m "v025 + millibars :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -615,6 +615,7 @@ if __name__ == "__main__":
     # Example usage of the adjustment functions:
     sea_level_pressure = calculate_sea_level_pressure( \
         pressure, sea_level_hpa, temp_c)
+    sea_millibars = pressure / 100
     pressure_diff = sea_level_pressure - pressure
 
     altitude_to_adjust = sea_level_hpa  # meters
@@ -624,9 +625,9 @@ if __name__ == "__main__":
     #### Format & display each element:
 
     pressure_desc = pressure_desc(pressure)
-    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa}    hPa (HectoPascals, aka millibars)")
+    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa (HectoPascals = {sea_millibars} millibars)")
     print(f"       vs. normal: 1013.25 hPa at sea level")
-    print(f"                    {grnd_level_hpa}    hPa at Ground_level")
+    print(f"                    {grnd_level_hpa}    hPa at ground level")
     # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
 
     #print(f"is {pressure_diff:.2f} \
