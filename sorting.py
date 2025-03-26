@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v012 timings outside tasks :sorting.py"
+git commit -m "v014 parm verbose :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -33,6 +33,7 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 """
 
 # For the time taken to execute a small bit of Python code:
+import argparse
 import datetime
 from datetime import datetime
 import random
@@ -98,10 +99,6 @@ def quicksort(array):
     """
     # A copy of the list is not needed because swaps use indexes:
     if len(array) < 2:
-        stop_time = timeit.default_timer()
-        elap_time = stop_time - strt_time
-        if SHOW_RUNTIMES_IN_FUNC:
-            report_elap_time(task_name, elap_time)
         return array
     else:
         pivot = array[0]
@@ -109,15 +106,6 @@ def quicksort(array):
         greater = [i for i in array[1:] if i > pivot]
         # WARNING: Function calls itself (is recursive):
         array = quicksort(less) + [pivot] + quicksort(greater)
-
-        stop_time = timeit.default_timer()
-        global elap_time_quicksort
-        elap_time = stop_time - strt_time
-        if SHOW_RUNTIMES_IN_FUNC:
-            report_elap_time(task_name, elap_time)
-
-        global elap_time_quicksort
-        elap_time_quicksort =+ elap_time
 
         return array
 
@@ -251,18 +239,20 @@ def timsort(items):
     return items
 
 
-def report_elap_time( task_in, elap_time ):
+def report_elap_time(cur_iteration, task_in, elap_time ):
     """ Vertically aligned columns of human-reable numbers converted to microseconds/nanoseconds:
-    Bubble sort  elap_time:   2.8340 microseconds
-    Merge sort   elap_time:  13.3750 microseconds
-    Quicksort    elap_time:  10.9170 microseconds
+    8 Bubble sort    elap_time:   1390.2921 microseconds
+    8 Insertion sort elap_time:    832.5831 microseconds
+    8 Quicksort      elap_time:    951.2911 microseconds
+    8 Merge sort     elap_time:    178.7501 microseconds
     """
     elap_time_ms = float(elap_time) * 1000000
     if SHOW_RUNTIMES:
         # NOTE: Microseconds (µs) are a millionth of a second.
         unit_type_label = "microseconds"
         # FEATURE: Display text a fixed number of characters to achieve vertical alignment:
-        print(task_in.ljust(12),f"elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
+        # TODO: Print elap_time with leading spaces for a fixed vertical show:
+        print(f"{cur_iteration} {task_in.ljust(14)} elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
 
     # Store in a matrix of a row for each run's x and y:
     global results_x
@@ -388,25 +378,53 @@ if __name__ == "__main__":
     # TODO: SECTION 2 - A Results db is created to store runtimes for each complexity level invocation.
 
     # Processing Preferences:
+    parser = argparse.ArgumentParser()
+    # USAGE: ./sorting.py -v -vv -b 8
+    parser.add_argument('-q', '--quiet', action='store_true', help="Don't show stats in Terminal")  # on flag
+    parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on flag
+    parser.add_argument('-vv', '--trace', action='store_true', help="Increase output trace")  # on flag
+    parser.add_argument(
+        "-b", "--batches",
+        type=str,
+        nargs="+",
+        help="Batches"
+    )
+    args = parser.parse_args()
     LIST_IS_RANDOM = True
 
-    SHOW_UNSORTED = False
     SHOW_SORTED = False
 
     SHOW_ITERATION = False
     SHOW_RUNTIMES_IN_FUNC = False
-    SHOW_RUNTIMES = False
     SHOW_RESULTS_CALCS = False
+
+    if args.trace:
+        SHOW_UNSORTED = True
+    else:
+        SHOW_UNSORTED = False
+    if args.verbose:
+        SHOW_RUNTIMES = True  # True or False
+    else:
+        SHOW_RUNTIMES = False
+
     SHOW_PLOTS = True
+    if args.quiet:
+        SHOW_RESULTS_CALCS = True  # True or False
+    else:
+        SHOW_RESULTS_CALCS = False
 
     # Array of numbers increasing geometrically in base 2: 1,2,4,8,16,32,64,128,256,512, etc.
-    array_elements_length = 8
     array_elements_start = 2
+    if args.batches:
+        array_elements_length = int(' '.join(map(str, args.batches)))  # convert list to string to integer.
+    else:   # defaults:
+        array_elements_length = 8
+
     elements_array = [array_elements_start * (2**i) for i in range(array_elements_length)]
-    if SHOW_RUNTIMES:
+    if SHOW_UNSORTED:
         print(f"elements_array={str(elements_array)}")
 
-    # TODO: Iterate until maximum runtime threshold is reached.
+    # TODO: Stop when maximum run time threshold is reached.
 
     # Initialize results:
     results_x = []
@@ -448,27 +466,27 @@ if __name__ == "__main__":
         task_name = "Bubble sort"
         strt_time = timeit.default_timer()
         sorted_list = bubble_sort(my_list)
-        report_elap_time(task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
 
         if SHOW_SORTED:
             print("  Sorted list: "+str(sorted_list) )
 
         # Now on to "Divide and Conquer" sorting algorithms:
 
-        task_name = "Quicksort"
-        strt_time = timeit.default_timer()
-        sorted_list = quicksort(my_list)
-        report_elap_time(task_name, timeit.default_timer() - strt_time)
-
         task_name = "Insertion sort"
         strt_time = timeit.default_timer()
         sorted_list = insertion_sort(my_list)
-        report_elap_time(task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+
+        task_name = "Quicksort"
+        strt_time = timeit.default_timer()
+        sorted_list = quicksort(my_list)
+        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
 
         task_name = "Merge sort"
         strt_time = timeit.default_timer()
         sorted_list = merge_sort(my_list)
-        report_elap_time(task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
 
         # TODO: Add Multi-Threading Merge sorting using threads to sort sublists within merge sort.
         #task_name = "MTM sort"
@@ -476,7 +494,7 @@ if __name__ == "__main__":
         #sorted_list = multi_threaded_merge_sort(my_list, num_threads=4)
         # FIXME: sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
                # ValueError: range() arg 3 must not be zero
-        #report_elap_time(task_name, timeit.default_timer() - strt_time)
+        #report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
 
         # TODO: Add Selection sort, Counting sort, heapsort, etc.?
         # TODO: Add run using NVIDIA GPU for multi-processing merge?
