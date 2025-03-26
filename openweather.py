@@ -3,7 +3,8 @@
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
 STATUS: working
-git commit -m "v019 + bathymetry :openweather.py"
+
+git commit -m "v020 + Dew Point code words :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -22,11 +23,11 @@ as 5661766     at: 01:52 AM (01:52:23) 2024-09-29 TZ: -21600
 clear sky at "lat=45.48686&lon=-108.97500" country=US
     Latitude:  45.48686° from the Equator &
     Longitude: -108.97500° from the Meridian at Greenwich, UK
-mild 25% humidity at 63.45°F for Dew Point of 27.01°F
-     Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
+mild Dew Point of 36.18°F vs. 52.32°F at 54% humidity
+    Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
 low pressure at 1009 hPa (Hectopascals, aka millibars)
-      (vs. normal: 1013.25 hPa at sea level)
-    (Ground_level:  878 hPa)
+    vs. normal: 1013.25 hPa at sea level with
+                 878 hPa at Gound_level
 
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
@@ -549,13 +550,11 @@ print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
 if USE_IMPERIAL_UNITS:
    temp_f = celcius2fahrenheit(temp_c)
    dew_point_c
-   print(f"{dew_comfort} {humidity}% humidity",end="")
-   print(f" at {BOLD}{temp_f:.2f}°F{RESET}",end="")
-   print(f" for Dew Point of {dew_point_f:.2f}°F")
+   print(f"{dew_comfort} Dew Point of {dew_point_f:.2f}°F",end="")
+   print(f" vs. {BOLD}{temp_f:.2f}°F{RESET} at {humidity}% humidity")
 else:
-   print(f"At a {dew_comfort} {temp_c:.2f}°C",end="")
-   print(f" with Humidity: {humidity}%",end="")
-   print(f" for Dew Point: {dew_point_c:.2f}°C")
+   print(f"{dew_comfort} Dew Point of {BOLD}{dew_point_c:.2f}°C{RESET}",end="")
+   print(f" vs. {BOLD}{temp_c:.2f}°C{RESET} at {humidity}% Humidity")
 
 # Don't display min & max temperature if the are bogus:
 if temp_k_min != temp_k_max:
@@ -607,9 +606,9 @@ adjusted_pressure = adjust_pressure_for_altitude \
 #### Format & display each element:
 
 pressure_desc = pressure_desc(pressure)
-print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa (Hectopascals, aka millibars)")
-print(f"      vs. normal: 1013.25 hPa at sea level)")
-print(f"    (Ground_level:  {grnd_level_hpa} hPa)")
+print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa}    hPa (HectoPascals, aka millibars)")
+print(f"       vs. normal: 1013.25 hPa at sea level")
+print(f"                    {grnd_level_hpa}    hPa at Ground_level")
 # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
 
 #print(f"is {pressure_diff:.2f} \
