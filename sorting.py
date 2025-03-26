@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v014 parm verbose :sorting.py"
+git commit -m "v015 mtm sort :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -152,9 +152,9 @@ def merge_sort(list_to_sort):
     left_half = merge_sort(left_half)
     right_half = merge_sort(right_half)
 
-    return merge_sort_merge(left_half, right_half)
+    return merge(left_half, right_half)
 
-def merge_sort_merge(left, right):
+def merge(left, right):
     merged = []
     i = j = 0
 
@@ -176,7 +176,12 @@ def multi_threaded_merge_sort(arr, num_threads=4):
         return merge_sort(arr)
 
     chunk_size = len(arr) // num_threads
+    if chunk_size == 0:
+        chunk_size = 1
+
     sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
+    if SHOW_RESULTS_CALCS:
+        print(f"len(arr)={len(arr)} // num_threads={num_threads} = chunk_size={chunk_size}")
 
     threads = []
     sorted_sublists = []
@@ -239,7 +244,7 @@ def timsort(items):
     return items
 
 
-def report_elap_time(cur_iteration, task_in, elap_time ):
+def report_elap_time(cur_batch, task_in, elap_time ):
     """ Vertically aligned columns of human-reable numbers converted to microseconds/nanoseconds:
     8 Bubble sort    elap_time:   1390.2921 microseconds
     8 Insertion sort elap_time:    832.5831 microseconds
@@ -252,7 +257,7 @@ def report_elap_time(cur_iteration, task_in, elap_time ):
         unit_type_label = "microseconds"
         # FEATURE: Display text a fixed number of characters to achieve vertical alignment:
         # TODO: Print elap_time with leading spaces for a fixed vertical show:
-        print(f"{cur_iteration} {task_in.ljust(14)} elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
+        print(f"{cur_batch} {task_in.ljust(14)} elap_time: {elap_time_ms:>8.4f} {unit_type_label}")
 
     # Store in a matrix of a row for each run's x and y:
     global results_x
@@ -264,35 +269,25 @@ def report_elap_time(cur_iteration, task_in, elap_time ):
     global mtm_sort_results
 
     if task_in == "Bubble sort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         bubble_sort_results.append(elap_time_ms)
     elif task_in == "Quicksort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         quicksort_results.append(elap_time_ms)
     elif task_in == "Insertion sort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         insertion_sort_results.append(elap_time_ms)
     elif task_in == "Merge sort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         merge_sort_results.append(elap_time_ms)
     elif task_in == "Timsort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         timsort_results.append(elap_time_ms)
     elif task_in == "MTM sort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
         mtm_sort_results.append(elap_time_ms)
     else:
         print(f"task_in \"{task_in}\" not found. Programming error.")
         exit(9)
+    if SHOW_RESULTS_CALCS:
+        print(f"{task_in} => {task_in} => {elap_time_ms}")
 
 
-def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_results):
+def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
     """
     See https://matplotlib.org/stable/tutorials/pyplot.html
     and https://www.w3schools.com/python/matplotlib_line.asp
@@ -307,8 +302,8 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     plt.plot(x1, quicksort_results, label='Quicksort')
     plt.plot(x1, insertion_sort_results, label='Insertion sort')
     plt.plot(x1, merge_sort_results, label='Merge sort')
+    plt.plot(x1, mtm_sort_results, label='MTM sort')
     #plt.plot(x1, timsort_results, label='Timsort')
-    #plt.plot(x1, mtm_sort_results, label='MTM sort')
 
     # Calculate positions of floating text:
 
@@ -358,6 +353,14 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     plt.text(last_x1, last_merge_sort_y, "Merge sort O(logN)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
+    last_mtm_sort_index = len(mtm_sort_results) -1
+    last_mtm_sort_y = int(mtm_sort_results[last_mtm_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_mtm_sort_index = {last_mtm_sort_index}")
+       print(f"last_mtm_sort_y = {last_mtm_sort_y}")
+    plt.text(last_x1, last_mtm_sort_y, "MTM sort O(?logN)", fontsize=12, ha='center', va='center',
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
+
     # TODO: At lower-right corner: timsort()
 
     # TODO: mtm_sort
@@ -392,19 +395,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     LIST_IS_RANDOM = True
 
+    SHOW_UNSORTED = False
     SHOW_SORTED = False
 
-    SHOW_ITERATION = False
     SHOW_RUNTIMES_IN_FUNC = False
-    SHOW_RESULTS_CALCS = False
 
     if args.trace:
-        SHOW_UNSORTED = True
+        SHOW_RESULTS_CALCS = True
     else:
-        SHOW_UNSORTED = False
+        SHOW_RESULTS_CALCS = False
     if args.verbose:
+        SHOW_ITERATION = True
         SHOW_RUNTIMES = True  # True or False
     else:
+        SHOW_ITERATION = False
         SHOW_RUNTIMES = False
 
     SHOW_PLOTS = True
@@ -416,17 +420,17 @@ if __name__ == "__main__":
     # Array of numbers increasing geometrically in base 2: 1,2,4,8,16,32,64,128,256,512, etc.
     array_elements_start = 2
     if args.batches:
-        array_elements_length = int(' '.join(map(str, args.batches)))  # convert list to string to integer.
+        num_of_batches = int(' '.join(map(str, args.batches)))  # convert list to string to integer.
     else:   # defaults:
-        array_elements_length = 8
+        num_of_batches = 8
 
-    elements_array = [array_elements_start * (2**i) for i in range(array_elements_length)]
+    batches_array = [array_elements_start * (2**i) for i in range(num_of_batches)]
     if SHOW_UNSORTED:
-        print(f"elements_array={str(elements_array)}")
+        print(f"{num_of_batches} batches={str(batches_array)}")
 
     # TODO: Stop when maximum run time threshold is reached.
 
-    # Initialize results:
+    # Initialize results across batches:
     results_x = []
     bubble_sort_results = []
     quicksort_results = []
@@ -435,11 +439,12 @@ if __name__ == "__main__":
     timsort_results =[]
     mtm_sort_results =[]
 
-    cur_iteration = 1
-    for index, num_elements in enumerate(elements_array):
+    cur_batch = 1
+    for index, num_elements in enumerate(batches_array):
         list_strt_value = 1    # Desired start value of range
         list_max_value = num_elements - list_strt_value + 2
-
+        if SHOW_ITERATION:
+            print(f"{cur_batch} list_max_value={list_max_value}")
         if LIST_IS_RANDOM:
             RANDOMNESS = "random"
             my_list = []  # initialize list
@@ -453,20 +458,21 @@ if __name__ == "__main__":
             # import numpy as np  # https://numpy.org/doc/stable/reference/generated/numpy.arange.html
             my_list = np.arange(list_strt_value, list_max_value, 1 )
         # TODO: Generate random numbers in Fibonocci seq.
+        if SHOW_UNSORTED:
+            print(f"{cur_batch} {RANDOMNESS} my_list={str(my_list)}")
 
         list_element_count = len(my_list)    # within array for sorting
         results_x.append(list_element_count)
         if SHOW_ITERATION:
-            print(f"For run iteration {cur_iteration} to {list_max_value} containing " +
-                f"{list_element_count} {RANDOMNESS} elements:")
-
+            print(f"Run batch {cur_batch} of {list_element_count} {RANDOMNESS} elements:")
+               # {list_max_value} containing " +
         if SHOW_UNSORTED:
             print("Unsorted list: "+str(my_list))
 
         task_name = "Bubble sort"
         strt_time = timeit.default_timer()
         sorted_list = bubble_sort(my_list)
-        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_batch, task_name, timeit.default_timer() - strt_time)
 
         if SHOW_SORTED:
             print("  Sorted list: "+str(sorted_list) )
@@ -476,34 +482,31 @@ if __name__ == "__main__":
         task_name = "Insertion sort"
         strt_time = timeit.default_timer()
         sorted_list = insertion_sort(my_list)
-        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_batch, task_name, timeit.default_timer() - strt_time)
 
         task_name = "Quicksort"
         strt_time = timeit.default_timer()
         sorted_list = quicksort(my_list)
-        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_batch, task_name, timeit.default_timer() - strt_time)
 
         task_name = "Merge sort"
         strt_time = timeit.default_timer()
         sorted_list = merge_sort(my_list)
-        report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+        report_elap_time(cur_batch, task_name, timeit.default_timer() - strt_time)
 
-        # TODO: Add Multi-Threading Merge sorting using threads to sort sublists within merge sort.
-        #task_name = "MTM sort"
-        #strt_time = timeit.default_timer()
-        #sorted_list = multi_threaded_merge_sort(my_list, num_threads=4)
-        # FIXME: sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
-               # ValueError: range() arg 3 must not be zero
-        #report_elap_time(cur_iteration, task_name, timeit.default_timer() - strt_time)
+        task_name = "MTM sort"
+        strt_time = timeit.default_timer()
+        sorted_list = multi_threaded_merge_sort(my_list, num_threads=4)
+        report_elap_time(cur_batch, task_name, timeit.default_timer() - strt_time)
 
         # TODO: Add Selection sort, Counting sort, heapsort, etc.?
         # TODO: Add run using NVIDIA GPU for multi-processing merge?
 
-        cur_iteration += 1
+        cur_batch += 1
         print("")
 
     if SHOW_PLOTS:
         # Display results of runs to plot using Matplotlib or Seaborn.
-        x = np.array(elements_array)
-        plot_multiple_lines(results_x,bubble_sort_results, merge_sort_results, quicksort_results)
-            # mtm_sort_results
+        x = np.array(batches_array)
+        plot_multiple_lines(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results)
+
