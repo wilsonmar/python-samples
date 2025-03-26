@@ -8,22 +8,21 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v011 add mtm non-func code :sorting.py"
+git commit -m "v012 timings outside tasks :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
 
-
 # Before running this program:
 1. In Terminal:
-    # INSTEAD OF: conda install -c conda-forge ...
+    # INSTEAD OF: uv or  conda install -c conda-forge ...
     python3 -m venv venv
     source venv/bin/activate
 2. Scan Python program using flake8, etc.
 3. Edit the program to define run parameters.
 4. # USAGE: Run this program:
-    chmod +x big-o.py
-    ./big-o.py
+    chmod +x sorting.py
+    ./sorting.py
 5. Within VSCode install Ruff (from Astral Software), written in Rust
    to lint Python code. 
    Ruff replaces Flake8, Pylint, Xenon, Radon, Black, isort, pyupgrade, etc.
@@ -61,7 +60,7 @@ def timed_func(func_to_time):
     return timed
 
 
-def bubble_sort(array, task_name="Bubble sort"):
+def bubble_sort(array):
     """ The Bubble Sort algorithm has a time complexity of 
     O(n^2) in the worst and average cases, 
     and O(n) in the best case (already sorted list). 
@@ -69,8 +68,6 @@ def bubble_sort(array, task_name="Bubble sort"):
     comparing and swapping adjacent elements. 
     The nested loops lead to the quadratic time complexity.
     """
-    strt_time = timeit.default_timer()
-
     # Create a copy of the list to avoid modifying the original:
     sorted_list = array.copy()
     n = len(sorted_list)
@@ -89,22 +86,16 @@ def bubble_sort(array, task_name="Bubble sort"):
         if not swapped:
             break
 
-    stop_time = timeit.default_timer()
-    elap_time = stop_time - strt_time
-    report_elap_time(task_name, elap_time)
-
     return sorted_list
 
 
-def quicksort(array, task_name="Quick Sort"):
+def quicksort(array):
     """quicksort has worst-case runtime complexity of O(n^2) but otherwise
     best/average case time & space complexity of O(n log n). 
-    But it is not considered as "stable" as other sorting algorithms.
+    But it is not considered "stable" as other sorting algorithms.
     Args: list_to_sort: A list of numbers to be sorted.
     Returns: A new list with the numbers sorted in ascending order.
     """
-    strt_time = timeit.default_timer()
-
     # A copy of the list is not needed because swaps use indexes:
     if len(array) < 2:
         stop_time = timeit.default_timer()
@@ -131,8 +122,29 @@ def quicksort(array, task_name="Quick Sort"):
         return array
 
 
+def insertion_sort(items, left=0, right=None):
+    """ This is slightly more efficient than Bubble sort by 
+    working on a slice of a list rather than the full list.
+    # O(n^2) in worst case as it's less efficient on large lists than quicksort, or merge sort.
+    # @author Liam Pulsifer at RealPython
+    """
+    if right is None:  # If None, we want to sort the full list
+        right = len(items) - 1
+    for i in range(left + 1, right + 1): # If right is len(items) - 1, this sorts the full list.
+        current_item = items[i]
+        j = i - 1 # Chose the element right before the current element
+
+        while (j >= left and current_item < items[j]): # Break when the current el is in the right place
+            items[j + 1] = items[j] # Moving this item up
+            j -= 1 # Traversing "leftwards" along the list
+
+        items[j + 1] = current_item # Insert current_item into its correct spot
+
+    return items
+
+
 # @timed_func cannot be used because of recursive logic.
-def merge_sort(list_to_sort, task_name="Merge sort"):
+def merge_sort(list_to_sort):
     """The Merge Sort algorithm has a time complexity of 
     O(n log n). 
     The list is split into sublists of size 1,
@@ -142,8 +154,6 @@ def merge_sort(list_to_sort, task_name="Merge sort"):
     Returns:
         A new list with the numbers sorted in ascending order.
     """
-    strt_time = timeit.default_timer()
-
     if len(list_to_sort) <= 1:
         return list_to_sort
 
@@ -153,15 +163,6 @@ def merge_sort(list_to_sort, task_name="Merge sort"):
 
     left_half = merge_sort(left_half)
     right_half = merge_sort(right_half)
-
-    # WARNING: Function calls itself (is recursive), so reports elap_time every time:
-    stop_time = timeit.default_timer()
-    elap_time = stop_time - strt_time
-    if SHOW_RUNTIMES_IN_FUNC:
-        report_elap_time(task_name, elap_time)
-
-    global elap_time_merge_sort
-    elap_time_merge_sort =+ elap_time
 
     return merge_sort_merge(left_half, right_half)
 
@@ -182,7 +183,7 @@ def merge_sort_merge(left, right):
     return merged
 
 
-def multi_threaded_merge_sort(arr, num_threads=4, task_name="MTM sort"):
+def multi_threaded_merge_sort(arr, num_threads=4):
     if num_threads <= 1:
         return merge_sort(arr)
 
@@ -214,40 +215,7 @@ def multi_threaded_merge_sort(arr, num_threads=4, task_name="MTM sort"):
     return sorted_sublists[0] if sorted_sublists else []
 
 
-def insertion_sort(items, left=0, right=None, task_name="Insertion sort"):
-    """ A basic insertion sort, modified slightly to allow sorting
-    # a slice of a list rather than the full list if desired.
-    # O(n^2) in worst case.
-    # @author Liam Pulsifer
-    """
-    # TODO: Test this insertion_sort
-    strt_time = timeit.default_timer()
-
-    if right is None:  # If None, we want to sort the full list
-        right = len(items) - 1
-    for i in range(left + 1, right + 1): # If right is len(items) - 1, this sorts the full list.
-        current_item = items[i]
-        j = i - 1 # Chose the element right before the current element
-
-        while (j >= left and current_item < items[j]): # Break when the current el is in the right place
-            items[j + 1] = items[j] # Moving this item up
-            j -= 1 # Traversing "leftwards" along the list
-
-        items[j + 1] = current_item # Insert current_item into its correct spot
-
-        stop_time = timeit.default_timer()
-        global elap_time_insertion_sort
-        elap_time = stop_time - strt_time
-        if SHOW_RUNTIMES_IN_FUNC:
-            report_elap_time(task_name, elap_time)
-
-        global elap_time_insertion_sort
-        elap_time_insertion_sort =+ elap_time
-
-    return items
-
-
-def timsort(items, task_name="TimSort"):
+def timsort(items):
     """ TimSort was the default in Python until v3.11. 
     # Named for its inventor Tim Peters. https://www.youtube.com/watch?v=rbbTd-gkajw&t=8m39s
     # For avg. complexity of O(n log n), it creates "runs" using insertion_sort, then 
@@ -255,7 +223,6 @@ def timsort(items, task_name="TimSort"):
     # @author Liam Pulsifer
     """
     # TODO: Test this timsort
-    strt_time = timeit.default_timer()
 
     min_subsection_size = 32
 
@@ -281,25 +248,7 @@ def timsort(items, task_name="TimSort"):
             items[start:start + len(merged_array)] = merged_array # Insert merged array
         size *= 2 # Double the size of the merged chunks each time until it reaches the whole list
 
-        stop_time = timeit.default_timer()
-        global elap_time_timsort
-        elap_time = stop_time - strt_time
-        if SHOW_RUNTIMES_IN_FUNC:
-            report_elap_time(task_name, elap_time)
-
-        global elap_time_timsort
-        elap_time_timsort =+ elap_time
-
     return items
-
-
-# TODO: Generate random numbers from the Fibonocci db or gen'd and added to the db.
-def fibonicci_replace(given_array):
-    """ Toy function to sleep instead of
-    replaces each element in the given array with the nearest Fibonicci number.
-    """
-    time.sleep(20 / 1000000)   # 20 microseconds - instead of lookup.
-    return given_array
 
 
 def report_elap_time( task_in, elap_time ):
@@ -318,21 +267,36 @@ def report_elap_time( task_in, elap_time ):
     # Store in a matrix of a row for each run's x and y:
     global results_x
     global bubble_sort_results
-    global merge_sort_results
     global quicksort_results
+    global insertion_sort_results
+    global merge_sort_results
+    global timsort_results
+    global mtm_sort_results
 
     if task_in == "Bubble sort":
         if SHOW_RESULTS_CALCS:
             print(f"{task_in} => {task_in} => {elap_time_ms}")
         bubble_sort_results.append(elap_time_ms)
-    elif task_in == "Merge sort":
-        if SHOW_RESULTS_CALCS:
-            print(f"{task_in} => {task_in} => {elap_time_ms}")
-        merge_sort_results.append(elap_time_ms)
     elif task_in == "Quicksort":
         if SHOW_RESULTS_CALCS:
             print(f"{task_in} => {task_in} => {elap_time_ms}")
         quicksort_results.append(elap_time_ms)
+    elif task_in == "Insertion sort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        insertion_sort_results.append(elap_time_ms)
+    elif task_in == "Merge sort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        merge_sort_results.append(elap_time_ms)
+    elif task_in == "Timsort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        timsort_results.append(elap_time_ms)
+    elif task_in == "MTM sort":
+        if SHOW_RESULTS_CALCS:
+            print(f"{task_in} => {task_in} => {elap_time_ms}")
+        mtm_sort_results.append(elap_time_ms)
     else:
         print(f"task_in \"{task_in}\" not found. Programming error.")
         exit(9)
@@ -346,12 +310,15 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     # Generate data for 4 lines
     plt.title(f"BigO Time Complexity by sorting.py on {RANDOMNESS} data")
     plt.ylabel('y = Microseconds Run Time')
-    plt.xlabel(f"x = N elements (growing within {len(x1)} batches)")
+    plt.xlabel(f"x = N elements (growing geometrically within {len(x1)} batches)")
 
     # no marker='o':
     plt.plot(x1, bubble_sort_results, label='Bubble sort')
-    plt.plot(x1, merge_sort_results, label='Merge sort')
     plt.plot(x1, quicksort_results, label='Quicksort')
+    plt.plot(x1, insertion_sort_results, label='Insertion sort')
+    plt.plot(x1, merge_sort_results, label='Merge sort')
+    #plt.plot(x1, timsort_results, label='Timsort')
+    #plt.plot(x1, mtm_sort_results, label='MTM sort')
 
     # Calculate positions of floating text:
 
@@ -377,14 +344,6 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     plt.text(50, last_bubble_sort_y, run_date, fontsize=12, ha='center', va='center',
            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
-    last_merge_sort_index = len(merge_sort_results) -1
-    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.2)
-    if SHOW_RESULTS_CALCS:
-       print(f"last_merge_sort_index = {last_merge_sort_index}")
-       print(f"last_merge_sort_y = {last_merge_sort_y}")
-    plt.text(last_x1, last_merge_sort_y, "Merge sort O(logN)", fontsize=12, ha='center', va='center',
-            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
-
     last_quicksort_index = len(quicksort_results) -1
     last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
     if SHOW_RESULTS_CALCS:
@@ -393,21 +352,27 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
     plt.text(last_x1, last_quicksort_y, "Quicksort O(logN)", fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
-    # At lower-right corner:
-    #fake_list = [10] * len(x1)
-    #plt.plot(fake_list)
-    #plt.text(last_x1, 2, "Fake O(1)", fontsize=12, ha='center', va='center',
-    #       bbox=dict(facecolor='white', edgecolor='black', alpha=0.7))
-    # TODO: Font Color for floating text.
+    last_insertion_sort_index = len(insertion_sort_results) -1
+    last_insertion_sort_y = int(insertion_sort_results[last_insertion_sort_index] * 1.1)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_insertion_sort_index = {last_insertion_sort_index}")
+       print(f"last_insertion_sort_y = {last_insertion_sort_y}")
+    plt.text(last_x1, last_insertion_sort_y, "Insertion sort", fontsize=12, ha='center', va='center',
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
 
-    # Add a footer:
-#    plt.annotate(f"{run_date}",
-#                xy=(0.5, -0.15),  # Position of the footer
-#                xycoords='axes fraction',  # Use axes coordinates
-#                ha='center',  # Horizontally center the text
-#                va='top',  # Vertically center the text
-#                fontsize=10)  # Set font size
-    # Adjust the layout to make room for the footer
+    last_merge_sort_index = len(merge_sort_results) -1
+    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_merge_sort_index = {last_merge_sort_index}")
+       print(f"last_merge_sort_y = {last_merge_sort_y}")
+    plt.text(last_x1, last_merge_sort_y, "Merge sort O(logN)", fontsize=12, ha='center', va='center',
+            bbox=dict(facecolor='white', edgecolor='white', alpha=0.7))
+
+    # TODO: At lower-right corner: timsort()
+
+    # TODO: mtm_sort
+
+    # Adjust the layout to make room for the footer:
 #   plt.tight_layout()
 
     # plt.legend()
@@ -446,8 +411,10 @@ if __name__ == "__main__":
     # Initialize results:
     results_x = []
     bubble_sort_results = []
-    merge_sort_results = []
     quicksort_results = []
+    insertion_sort_results = []
+    merge_sort_results = []
+    timsort_results =[]
     mtm_sort_results =[]
 
     cur_iteration = 1
@@ -467,6 +434,7 @@ if __name__ == "__main__":
                 list_max_value -= 2
             # import numpy as np  # https://numpy.org/doc/stable/reference/generated/numpy.arange.html
             my_list = np.arange(list_strt_value, list_max_value, 1 )
+        # TODO: Generate random numbers in Fibonocci seq.
 
         list_element_count = len(my_list)    # within array for sorting
         results_x.append(list_element_count)
@@ -476,30 +444,42 @@ if __name__ == "__main__":
 
         if SHOW_UNSORTED:
             print("Unsorted list: "+str(my_list))
+
+        task_name = "Bubble sort"
+        strt_time = timeit.default_timer()
         sorted_list = bubble_sort(my_list)
+        report_elap_time(task_name, timeit.default_timer() - strt_time)
+
         if SHOW_SORTED:
             print("  Sorted list: "+str(sorted_list) )
-        # TODO: Saved reported times to array for showing at any time.
 
-        task_name = "Merge sort"
-        sorted_list = merge_sort(my_list, task_name)
-        report_elap_time(task_name, elap_time_merge_sort)
+        # Now on to "Divide and Conquer" sorting algorithms:
 
         task_name = "Quicksort"
-        sorted_list = quicksort(my_list, task_name)
-        report_elap_time(task_name, elap_time_quicksort)
+        strt_time = timeit.default_timer()
+        sorted_list = quicksort(my_list)
+        report_elap_time(task_name, timeit.default_timer() - strt_time)
+
+        task_name = "Insertion sort"
+        strt_time = timeit.default_timer()
+        sorted_list = insertion_sort(my_list)
+        report_elap_time(task_name, timeit.default_timer() - strt_time)
+
+        task_name = "Merge sort"
+        strt_time = timeit.default_timer()
+        sorted_list = merge_sort(my_list)
+        report_elap_time(task_name, timeit.default_timer() - strt_time)
 
         # TODO: Add Multi-Threading Merge sorting using threads to sort sublists within merge sort.
         #task_name = "MTM sort"
+        #strt_time = timeit.default_timer()
         #sorted_list = multi_threaded_merge_sort(my_list, num_threads=4)
         # FIXME: sublists = [arr[i:i+chunk_size] for i in range(0, len(arr), chunk_size)]
                # ValueError: range() arg 3 must not be zero
-        #report_elap_time(task_name, elap_time_mtm_sort)
+        #report_elap_time(task_name, timeit.default_timer() - strt_time)
 
-        # TODO: Add Selection sort,
-        # TODO: Add Timsort, which uses selection & merge sorts. The fastest?
-        # TODO: Add Insertion sort, Counting sort, etc.
-        # TODO: Add run using NVIDIA GPU for merge
+        # TODO: Add Selection sort, Counting sort, heapsort, etc.?
+        # TODO: Add run using NVIDIA GPU for multi-processing merge?
 
         cur_iteration += 1
         print("")
