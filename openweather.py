@@ -4,7 +4,7 @@
 
 STATUS: working
 
-git commit -m "v021 + pressure hPa alignment :openweather.py"
+git commit -m "v022 + pressure hPa alignment :openweather.py"
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -21,13 +21,14 @@ as 5661766     at: 01:52 AM (01:52:23) 2024-09-29 TZ: -21600
           Sunrise: 07:12 AM (07:12:11) 2024-09-29
           Sunset:  06:59 PM (18:59:43) 2024-09-29
 clear sky at "lat=45.48686&lon=-108.97500" country=US
-    Latitude:  45.48686° from the Equator &
-    Longitude: -108.97500° from the Meridian at Greenwich, UK
-mild Dew Point of 36.18°F vs. 52.32°F at 54% humidity
-    Wind: 9.15 mph from WSW (215°) with Visibility to 10000 meters
-low pressure at 1009    hPa (Hectopascals, aka millibars)
-    vs. normal: 1013.25 hPa at sea level
-                 878    hPa at Gound_level
+     Latitude:  45.48686° from the Equator &
+     Longitude: -108.97500° from the Meridian at Greenwich, UK
+mild Dew Point of 36.06°F vs. 52.20°F at 54% humidity
+     Wind: 9.94 mph from SW (204°)
+     Visibility to 10000 meters
+normal pressure at 1019    hPa (HectoPascals, aka millibars)
+       vs. normal: 1013.25 hPa at sea level
+                    884    hPa at Ground_level
 
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
