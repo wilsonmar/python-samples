@@ -2,33 +2,34 @@
 # -*- coding: utf-8 -*-
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-STATUS: working
+git commit -m "v026 + distancematrix :openweather.py"
 
-git commit -m "v025 + millibars :openweather.py"
+STATUS: working
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
 REST API calls to openweathermp.org. Response includes
 sunrise and sunset times.
-This creates fuzzy tags for value rangess of 
-cloud, humidity, pressure, wind direction.
+This creates fuzzy value #tags to represent range value about
+cloudiness, humidity, dew point comfort, pressure, wind direction, etc..
 
 bathymetry maps determine depth from sea level at the latitude and longitude location.
 
 Sample CLI putput running this program:
-openweather.org at 01:50 AM (01:50:55) 2024-09-29 reports
-as 5661766     at: 01:52 AM (01:52:23) 2024-09-29 TZ: -21600
-          Sunrise: 07:12 AM (07:12:11) 2024-09-29
-          Sunset:  06:59 PM (18:59:43) 2024-09-29
-clear sky at "lat=45.48686&lon=-108.97500" country=US
-     Latitude:  45.48686° from the Equator &
-     Longitude: -108.97500° from the Meridian at Greenwich, UK
-mild Dew Point of 36.06°F vs. 52.20°F at 54% humidity
-     Wind: 9.94 mph from SW (204°)
+./openweather.py --zip 59911
+openweather.org at 05:17 AM (05:17:58) 2025-03-30 reports
+as 5640284     at: 05:17 AM (05:17:58) 2025-03-30 TZ: -21600
+          Sunrise: 07:17 AM (07:17:13) 2025-03-30 local time
+           Sunset: 08:02 PM (20:02:18) 2025-03-30
+overcast clouds at Bigfork country=US "lat=47.8835415&lon=-113.8893005"
+     Latitude:  47.8835415° North from the Equator &
+     Longitude: -113.8893005° East from the Meridian at Greenwich, UK
+comfortable Dew Point of 20.18°F vs. 22.93°F at 89% humidity
+     Wind: 5.58 mph from ESE (83°)
      Visibility to 10000 meters
-normal pressure at 1019    hPa (HectoPascals, aka millibars)
+normal pressure at 1016 hPa (HectoPascals = 10.16 millibars)
        vs. normal: 1013.25 hPa at sea level
-                    884    hPa at Ground_level
+                    861    hPa at ground level
 
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
@@ -63,6 +64,10 @@ import requests
 import math
 import os
 
+
+# No external 3rd party modules!
+
+
 # Based on: conda install -c conda-forge load_dotenv
 from dotenv import load_dotenv
 # Based on: conda install python-dotenv   # found!
@@ -83,6 +88,7 @@ YELLOW = '\033[33m'
 BLUE = '\033[34m'
 # Styles
 BOLD = '\033[1m'
+GRAY = '\033[90m'
 RESET = '\033[0m'
 
 class bcolors:  # ANSI escape sequences:
@@ -210,13 +216,13 @@ def read_env_file():
     my_latitude = get_str_from_env_file('MY_LATITUDE')
     if my_latitude == None:
         my_latitude = "34.123"
-        print_warning("my_latitude="+my_latitude+" from default!")
+        print_warning(">>> my_latitude="+my_latitude+" from default!")
 
     global my_longitude
     my_longitude = get_str_from_env_file('MY_LONGITUDE')
     if my_longitude == None:
         my_longitude = "104.322"
-        print_warning("my_longitude="+my_longitude+" from default!")
+        print_warning(">>> my_longitude="+my_longitude+" from default!")
 
     return
 
@@ -235,6 +241,36 @@ def get_str_from_env_file(key_in) -> str:
         else:
             print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
         return str(env_var)
+
+
+
+def get_coordinates(zip_code, api_key):
+    # Construct the API URL
+    url = f'https://api.distancematrix.ai/maps/api/geocode/json?address={zip_code}&key={api_key}'
+
+    try:
+        # import requests
+        response = requests.get(url)
+        data = response.json()    # Parse JSON response
+        #print("data=",data)
+        # data={'result': [{'address_components': [{'long_name': 'mountain view', 'short_name': 'mountain view', 'types': ['locality']}, {'long_name': 'ca', 'short_name': 'ca', 'types': ['state']}, {'long_name': 'usa', 'short_name': 'usa', 'types': ['country']}], 'formatted_address': 'Mountain View, CA, USA',
+        # 'geometry': {'location': {'lat': 37.418918000000005, 'lng': -122.07220494999999}, 'location_type': 'APPROXIMATE',
+        # 'viewport': {'northeast': {'lat': 37.418918000000005, 'lng': -122.07220494999999},
+        # 'southwest': {'lat': 37.418918000000005, 'lng': -122.07220494999999}}},
+        # 'place_id': '', 'plus_code': {}, 'types': ['locality', 'political']}], 'status': 'OK'}
+    except Exception as e:
+        print(f">>> get_coordinates of {zip_code} in {e}")
+        exit(9)  # TODO: Handle retry?
+
+    if data['status'] == 'OK':
+        # Extract latitude and longitude
+        latitude = data['result'][0]['geometry']['location']['lat']
+        longitude = data['result'][0]['geometry']['location']['lng']
+        # print(f">>> get_coordinates of {zip_code} is at lat={latitude} & lng={longitude}")
+        return latitude, longitude
+    else:
+        return None, None
+
 
 def get_frost_point_c(t_air_c, dew_point_c):
     """Compute the frost point in degrees Celsius
@@ -320,6 +356,7 @@ def meters2feet(meters):
 def kph2mph(kph):
     return kph * 3.28084
 
+
 def compass_text_from_degrees(degrees):
     # adapted from https://www.campbellsci.com/blog/convert-wind-directions
     compass_sector = [
@@ -347,15 +384,16 @@ def compass_text_from_degrees(degrees):
     return compass_sector[index]
 
 def dew_desc_f(dew_point_f):
-    # Dew Point is the temperature at which air becomes
-    # 100% saturated with water vapor (at 60F=muggy, 70F=humid)
-    # causing condensation to occur.
-    if dew_point_f > 60:
+    # Dew Point is the temperature at which air becomes 100% saturated with water vapor
+    # (at a given pressure) causing condensation to occur (at 60F=muggy, 70F=humid)
+    # https://www.weather.gov/arx/why_dewpoint_vs_humidity
+    if dew_point_f >= 70:
         return RED+"muggy"+RESET
-    elif dew_point_f > 70:
-        return RED+"humid"+RESET
+    elif dew_point_f >= 65:
+        return RED+"sticky"+RESET
     else:
-        return GREEN+"mild"+RESET
+        return GREEN+"comfortable"+RESET
+
 
 def pressure_desc(pressure):
     # Above 1022.689 hPa at sea level for clear skies and calm weather.
@@ -368,6 +406,7 @@ def pressure_desc(pressure):
     else:
         # Normal pressure is between 1009.144 hPa and 1022.689 hPa:
         return GREEN+"normal"+RESET
+
 
 def cloud_text(cloud_desc):
     # Fuzzy names
@@ -384,14 +423,19 @@ def cloud_text(cloud_desc):
         return BLUE+cloud_desc+RESET
 
     elif cloud_desc == "shower rain":
-        return GREEN+cloud_desc+RESET
+        return YELLOW+cloud_desc+RESET
     elif cloud_desc == "rain":
-        return GREEN+cloud_desc+RESET
+        return YELLOW+cloud_desc+RESET
+    elif cloud_desc == "light snow":
+        return YELLOW+cloud_desc+RESET
 
     elif cloud_desc == "thunderstorm":
         return RED+cloud_desc+RESET
     elif cloud_desc == "snow":
         return RED+cloud_desc+RESET
+    else:
+        cloud_desc == "Unknown"
+        return GRAY+cloud_desc+RESET
 
     # "01d" or "01n": Clear sky (day or night)
     # "02d" or "02n": Few clouds
@@ -431,10 +475,6 @@ if __name__ == "__main__":
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
 
-    openweathermap_api_key = get_str_from_env_file('OPENWEATHERMAP_API_KEY')
-    if not openweathermap_api_key:
-       print("OPENWEATHERMAP_API_KEY has no default! Processing killed")
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on/off flag
     parser.add_argument(
@@ -443,14 +483,28 @@ if __name__ == "__main__":
         nargs="+",
         help="6-digit US Zip Code"
     )
-
     args = parser.parse_args()
     if args.verbose:
         VERBOSE = True  # True or False
     if args.zip:
-        apispec=f"zip={' '.join(map(str, args.zip))}"  # convert list to string.
-    else:
-        apispec="lat=" + my_latitude +"&lon=" + my_longitude    # from env file
+        zip_code = ' '.join(map(str, args.zip))  # convert list to string.
+        DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
+        if not DISTANCEMATRIX_API_KEY:
+            print("DISTANCEMATRIX_API_KEY has no default!")
+            apispec=f"zip={zip_code}"
+        else:
+            latitude, longitude = get_coordinates(zip_code, DISTANCEMATRIX_API_KEY)
+            my_latitude = f"{latitude:.7f}"
+            my_longitude = f"{longitude:.7f}"
+            # print(f'--zip {zip_code} is at Latitude {my_latitude}, Longitude {my_longitude}')
+            apispec="lat=" + my_latitude +"&lon=" + my_longitude
+    #else:
+    #    apispec="lat=" + my_latitude +"&lon=" + my_longitude    # from env file
+
+
+    openweathermap_api_key = get_str_from_env_file('OPENWEATHERMAP_API_KEY')
+    if not openweathermap_api_key:
+       print("OPENWEATHERMAP_API_KEY has no default! Processing killed")
 
     # https://api.openweathermap.org/data/2.5/weather?lat=40.7128&lon=-74.0060&appid={API key}
     #url = "http://api.openweathermap.org/data/2.5/weather?q={}&appid=" + apikey + "&units=metric.format(city)"
@@ -469,7 +523,7 @@ if __name__ == "__main__":
     except Exception as e:
         "data= {'cod': '404', 'message': 'city not found'}"
         print(f">>> Error using city: {city_input} in {e}")
-        exit()
+        exit(9)
 
     current_datetime = datetime.now()
 
@@ -479,7 +533,10 @@ if __name__ == "__main__":
     # Extract individual elements:
     lon = data['coord']['lon']
     lat = data['coord']['lat']
-    cloud_desc = data['weather'][0]['description']
+    try:
+        cloud_desc = data['weather'][0]['description']
+    except:
+        cloud_desc = ""
     icon_code = data['weather'][0]['icon']  # '01n'
     wind_kph = data['wind']['speed']
     wind_deg = data['wind']['deg']
@@ -501,20 +558,21 @@ if __name__ == "__main__":
     call_dt = data['dt']
     pressure = data['main']['pressure']
     # 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
-    country = data['sys']['country']
+    try:
+        country_text = ", country=" + data['sys']['country']
+    except:
+        country_text = ""
     sunrise_epoch = data['sys']['sunrise']
     sunset_epoch = data['sys']['sunset']
     timezone = data['timezone']
+
     call_id = data['id']  # 5661766
+    cod = data['cod']  # 200
     try:
-        station_name = data['name']
+        station_name = data['name']  # "Bigfork"
     except Exception as e:
         # print(f">>> Error getting: name in {e}")
         station_name = ""
-        # exit()
-    else:
-        station_name = ""
-    cod = data['cod']  # 200
 
 
     #### Calculations from response:
@@ -552,14 +610,13 @@ if __name__ == "__main__":
 
     print(f"openweather.org at {call_formatted} reports")
     print(f"as {call_id}     at: {formatted_datetime} TZ: {timezone}")
-    print(f"          Sunrise: {sunrise_formatted}")
+    print(f"          Sunrise: {sunrise_formatted} local time")
     print(f"           Sunset: {sunset_formatted}")
-    print(f"{cloud_text} at \"{apispec}\"",end="")
-    print(f" country={country}",end="")
-    if station_name == "":
-        print("")
-    else:
-        print(f" ({station_name})")
+
+    print(f"{cloud_text} at ",end="")
+    if not station_name == None:
+        print(f"{station_name} {country_text}",end="")
+    print(f" {GRAY}\"{apispec}\"{RESET}")
 
     print(f"     Latitude:  {my_latitude}° from the Equator &")
     print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
@@ -625,8 +682,8 @@ if __name__ == "__main__":
     #### Format & display each element:
 
     pressure_desc = pressure_desc(pressure)
-    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa (HectoPascals = {sea_millibars} millibars)")
-    print(f"       vs. normal: 1013.25 hPa at sea level")
+    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa {GRAY}(HectoPascals = {sea_millibars} millibars){RESET}")
+    print(f"       {GRAY}vs. normal: 1013.25 hPa at sea level{RESET}")
     print(f"                    {grnd_level_hpa}    hPa at ground level")
     # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
 
