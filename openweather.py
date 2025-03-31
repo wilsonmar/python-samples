@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-git commit -m "v026 + distancematrix :openweather.py"
+git commit -m "v027 + feels_like :openweather.py"
 
 STATUS: working
 
@@ -16,21 +16,21 @@ cloudiness, humidity, dew point comfort, pressure, wind direction, etc..
 bathymetry maps determine depth from sea level at the latitude and longitude location.
 
 Sample CLI putput running this program:
-./openweather.py --zip 59911
-openweather.org at 05:17 AM (05:17:58) 2025-03-30 reports
-as 5640284     at: 05:17 AM (05:17:58) 2025-03-30 TZ: -21600
-          Sunrise: 07:17 AM (07:17:13) 2025-03-30 local time
-           Sunset: 08:02 PM (20:02:18) 2025-03-30
-overcast clouds at Bigfork country=US "lat=47.8835415&lon=-113.8893005"
-     Latitude:  47.8835415° North from the Equator &
-     Longitude: -113.8893005° East from the Meridian at Greenwich, UK
-comfortable Dew Point of 20.18°F vs. 22.93°F at 89% humidity
-     Wind: 5.58 mph from ESE (83°)
+./openweather.py --zip london --verbose
+openweather.org
+id: 2646003    at: 07:01 AM (07:01:38) 2025-03-31 TZ: 3600
+          Sunrise: 11:37 PM (23:37:41) 2025-03-30 local time
+           Sunset: 12:31 PM (12:31:07) 2025-03-31
+few clouds at Islington , country=GB "lat=51.5286416&lon=-0.1015987"
+     Latitude:  51.5286416° North of the Equator &
+     Longitude: -0.1015987° East of the Meridian at Greenwich, UK
+comfortable Dew Point of 41.58°F vs. 60.87°F at 49% humidity
+     Feels like 58.96°F from Wind: 8.79 mph from S (151°)
      Visibility to 10000 meters
-normal pressure at 1016 hPa (HectoPascals = 10.16 millibars)
-       vs. normal: 1013.25 hPa at sea level
-                    861    hPa at ground level
-
+high +15 pressure at 1028 hPa (HectoPascals = 10.28 millibars)
+          vs. normal 1013.25 hPa at sea level
+                     1024    hPa at ground level
+                
 Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
 Create account at https://home.openweathermap.org/users/sign_up
 ⛈ subscribe to the "One Call API 3.0" with a credit card.
@@ -50,6 +50,9 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 
 """
 # STEP 1 = Setup. Before running this program: Installing Required Libraries & Importing Required Libraries
+
+# pip install yubikey-manager
+
 # Buikt-in: import os
 from datetime import datetime
 from datetime import timedelta, timezone
@@ -63,10 +66,6 @@ import urllib.parse
 import requests
 import math
 import os
-
-
-# No external 3rd party modules!
-
 
 # Based on: conda install -c conda-forge load_dotenv
 from dotenv import load_dotenv
@@ -203,6 +202,72 @@ def open_env_file(env_file) -> str:
     # Wait until variables for print_trace are retrieved:
     #print_trace("env_file="+env_file)
     #print_trace("user_home_dir_path="+user_home_dir_path)
+
+
+def check_yubikey_serial() -> None:
+    """Stop processing unless the Yubikey serioal is found in the .env file.
+    """
+    my_yubikey_serial = get_str_from_env_file('YUBIKEY_SERIAL')
+    #print("my_yubikey_serial="+my_yubikey_serial)
+    if not my_yubikey_serial:  # not in env file:
+        print_warning(">>> No YUBIKEY_SERIAL specified in .env file!")
+        exit(9)
+    else:
+        # https://developers.yubico.com/yubikey-manager/Scripting.html
+        from ykman.device import list_all_devices
+        from yubikit.core.smartcard import SmartCardConnection
+        from yubikit.piv import PivSession
+        # Iterate through all connected Yubikey devices:
+        for device, info in list_all_devices():   # using ykman module:
+            #print(f" Yubikey inserted={info.serial}")
+            # Check if the device serial number is your YubiKey:
+            try:
+                if my_yubikey_serial == info.serial:
+                    print(f">>> YubiKey serial not match with env file! Continuing...")
+                else:
+                    print(f">>> YubiKey serial is not the one connected. Exiting...")
+                #    exit(9)
+            except Exception as e:
+                print(f">>> Error using city: {city_input} in {e}")
+                #exit(9)
+            else:
+                print(f">>> YubiKey not inserted!")
+    return
+
+
+def find_yubikey_by_serial(target_serial):
+    """
+    Check if a connected YubiKey matches the desired serial number.
+
+    Args:
+        target_serial (int): The serial number to match.
+
+    Returns:
+        bool: True if the YubiKey with the target serial is found, False otherwise.
+    """
+    for device, info in list_all_devices():
+        if info.serial == target_serial:
+            print(f"YubiKey found with serial number: {info.serial}")
+            return True
+    print("No YubiKey with the specified serial number was found.")
+    return False
+
+
+def other():
+
+
+    if info.version >= (5, 0, 0):  # The info object provides details about the YubiKey
+        print(f"version={info.version} serial={info.serial}")
+    else:
+        print("ha")
+
+    if info.version >= (5, 0, 0):  # The info object provides details about the YubiKey
+        print(f"version={info.version} serial={info.serial}")
+        if my_yubikey_serial == info.serial:
+            print_info(f">>> YubiKey serial not match with env file! Continuing...")
+        else:
+            print_fatal(f">>> YubiKey serial is not the one connected. Exiting...")
+            exit(9)
 
 def read_env_file():
     """Read .env file containing variables and values.
@@ -350,6 +415,10 @@ def kelvin2celcius(temp_k):
 def celcius2fahrenheit(temp_c):
     return (temp_c * 9/5) + 32
 
+def kelvin2fahrenheit(temp_k):
+    temp_c = kelvin2celcius(temp_k)
+    return celcius2fahrenheit(temp_c)
+
 def meters2feet(meters):
     return meters * 3.28084
 
@@ -376,7 +445,8 @@ def compass_text_from_degrees(degrees):
         "WNW",
         "NW",
         "NNW",
-        "N"]  # 17 index values
+        "N",
+        "?"]  # 17 index values
     # graphic ![python-cardinal-point-compass-windrose-600x600-Brosen svg](https://user-images.githubusercontent.com/300046/142781379-addfa8f7-9394-4751-9ddd-65e681e4a49c.png)
     # graphic from https://www.wikiwand.com/en/Cardinal_direction
     remainder = degrees % 360  # modulo remainder of 270/360 = 196
@@ -474,6 +544,7 @@ if __name__ == "__main__":
 
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
+    check_yubikey_serial()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on/off flag
@@ -484,23 +555,26 @@ if __name__ == "__main__":
         help="6-digit US Zip Code"
     )
     args = parser.parse_args()
+
     if args.verbose:
         VERBOSE = True  # True or False
+
     if args.zip:
-        zip_code = ' '.join(map(str, args.zip))  # convert list to string.
+        zip_code = ' '.join(map(str, args.zip))   # convert list from parms to string.
         DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
         if not DISTANCEMATRIX_API_KEY:
-            print("DISTANCEMATRIX_API_KEY has no default!")
-            apispec=f"zip={zip_code}"
+            print("DISTANCEMATRIX_API_KEY not specified in .env file!")
         else:
+            apispec=f"zip={zip_code}"
             latitude, longitude = get_coordinates(zip_code, DISTANCEMATRIX_API_KEY)
+            latitude_direction = "North of" if latitude >= 0 else "South of"
+            longitude_direction = "West of" if longitude >= 0 else "East of"
             my_latitude = f"{latitude:.7f}"
             my_longitude = f"{longitude:.7f}"
             # print(f'--zip {zip_code} is at Latitude {my_latitude}, Longitude {my_longitude}')
             apispec="lat=" + my_latitude +"&lon=" + my_longitude
     #else:
     #    apispec="lat=" + my_latitude +"&lon=" + my_longitude    # from env file
-
 
     openweathermap_api_key = get_str_from_env_file('OPENWEATHERMAP_API_KEY')
     if not openweathermap_api_key:
@@ -547,10 +621,10 @@ if __name__ == "__main__":
         wind_gust_kph = 0
     else:
         wind_gust_kph = 0
-    feels_like = data['main']['feels_like']
     temp_k = data['main']['temp']
     temp_k_min = data['main']['temp_min']
     temp_k_max = data['main']['temp_max']
+    feels_like_k = data['main']['feels_like']
     humidity = data['main']['humidity']
     sea_level_hpa = data['main']['sea_level']
     grnd_level_hpa = data['main']['grnd_level']
@@ -599,6 +673,8 @@ if __name__ == "__main__":
     cloud_text = cloud_text(cloud_desc)
 
     temp_c = kelvin2celcius(temp_k)
+    feels_like_f = f" Feels like {kelvin2fahrenheit(feels_like_k):.2f}°F"
+
     # Dew point provides a more consistent and
     # easily interpretable measure of how humid it actually feels outside.
     dew_point_c = get_dew_point_c(temp_c, humidity)
@@ -608,19 +684,17 @@ if __name__ == "__main__":
 
     #### Print:
 
-    print(f"openweather.org at {call_formatted} reports")
-    print(f"as {call_id}     at: {formatted_datetime} TZ: {timezone}")
-    print(f"          Sunrise: {sunrise_formatted} local time")
+    print(f"openweather.org")
+    print(f"id: {call_id}    at: {formatted_datetime} TZ: {timezone}")
+    print(f"          Sunrise: {GREEN}{sunrise_formatted}{RESET} local time")
     print(f"           Sunset: {sunset_formatted}")
 
     print(f"{cloud_text} at ",end="")
     if not station_name == None:
         print(f"{station_name} {country_text}",end="")
     print(f" {GRAY}\"{apispec}\"{RESET}")
-
-    print(f"     Latitude:  {my_latitude}° from the Equator &")
-    print(f"     Longitude: {my_longitude}° from the Meridian at Greenwich, UK")
-    # Not print if same: print('Feels like: ',feels_like)
+    print(f"     Latitude:  {my_latitude}° {latitude_direction} the Equator &")
+    print(f"     Longitude: {my_longitude}° {longitude_direction} the Meridian at Greenwich, UK")
 
     if USE_IMPERIAL_UNITS:
         temp_f = celcius2fahrenheit(temp_c)
@@ -645,20 +719,23 @@ if __name__ == "__main__":
                 print(f"    Temp. Minimum: {temp_c_min:.2f}°C,",end="")
                 print(f" Maximum: {temp_c_max:.2f}°C")
 
+
+    print(f"    {feels_like_f} from",end="")
     # Convert wind direction to names (such as NWW):
     wind_dir = compass_text_from_degrees(wind_deg)
     if USE_IMPERIAL_UNITS:
         wind_mph = kph2mph(wind_kph)
-        print(f"     Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
+        print(f" Wind: {wind_mph:.2f} mph from {wind_dir} ({wind_deg}°)",end="")
     else:
-        print(f"     Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
+        print(f" Wind: {wind_kph:.2f} kph from {wind_dir} ({wind_deg}°)",end="")
     # See illustration at https://res.cloudinary.com/dcajqrroq/image/upload/v1727494071/compass-800x800_hvwmtu.webp
     if wind_gust_kph > 0:
         if USE_IMPERIAL_UNITS:
             wind_gust_mph = kph2mph(wind_gust_kph)
-            print(f" with gusts: {wind_gust_mph:.2f} mph")
+            print(f" with gusts: {wind_gust_mph:.2f} mph",end="")
         else:
-            print(f" with gusts: {wind_gust_kph:.2f} kph")
+            print(f" with gusts: {wind_gust_kph:.2f} kph",end="")
+
     print(f"\n     Visibility to {visibility} meters")
 
 
@@ -679,12 +756,16 @@ if __name__ == "__main__":
     adjusted_pressure = adjust_pressure_for_altitude \
         (sea_level_hpa, altitude_to_adjust, temp_c)
 
+    diff_hpa = sea_level_hpa - 1013
+    if diff_hpa > 0:
+        plus_hpa = "+"
+    else:
+        plus_hpa = ""
     #### Format & display each element:
-
     pressure_desc = pressure_desc(pressure)
-    print(f"{RED}{pressure_desc}{RESET} pressure at {sea_level_hpa} hPa {GRAY}(HectoPascals = {sea_millibars} millibars){RESET}")
-    print(f"       {GRAY}vs. normal: 1013.25 hPa at sea level{RESET}")
-    print(f"                    {grnd_level_hpa}    hPa at ground level")
+    print(f"{RED}{pressure_desc} {plus_hpa}{diff_hpa}{RESET} pressure at {sea_level_hpa} hPa {GRAY}(HectoPascals = {sea_millibars} millibars){RESET}")
+    print(f"          {GRAY}vs. normal 1013.25 hPa at sea level{RESET}")
+    print(f"                     {grnd_level_hpa}    hPa at ground level")
     # Pressure changes with altitude, decreasing by about 12 hPa for every 100 meters of elevation.
 
     #print(f"is {pressure_diff:.2f} \
