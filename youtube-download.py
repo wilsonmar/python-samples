@@ -3,7 +3,7 @@
 """ youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v021 + colors & icons for msgs :youtube-download.py"
+git commit -m "v023 + Downie mac app :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -56,6 +56,7 @@ python3 -m pip install argparse yt_dlp logging pytz
 ./youtube-download.py -d ai-database-ops -vid 4SnvMieJiuw -o Downloads -v
 ./youtube-download.py -f youtube-downloads.csv -v -vv
 
+Alternative is $19.99 macOS app https://software.charliemonroe.net/downie/
 """
 
 # import external library (from outside this program):
