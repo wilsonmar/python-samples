@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-samples"
+version = "0.1.0"
+description = "Python samples for various Azure services"
+requires-python = ">=3.8"
+authors = [
+    {name = "Project Author"}
+]
+
+dependencies = [
+    "python-dotenv",
+    "azure-identity",
+    "azure-keyvault-secrets",
+    "azure-storage-blob",
+]
+[tool.setuptools]
+py-modules = []

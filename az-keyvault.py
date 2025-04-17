@@ -2,9 +2,9 @@
 
 """az-keyvault.py at https://github.com/wilsonmar/python-samples/blob/main/az-keyvault.py
 
-git commit -m "v001 + new :az-keyvault.py"
+git commit -m "v002 + uv, pyproject.toml :az-keyvault.py"
 
-STATUS: working on macOS Sequoia 15.3.1
+STATUS: use_dev_credential() working on macOS Sequoia 15.3.1
 
 by Wilson Mar, LICENSE: MIT
 This creates the premissions needed in Azure, then 
@@ -13,11 +13,22 @@ Adds a secret, then read it.
 Based on https://www.perplexity.ai/search/how-to-create-populate-and-use-Q4EyT9iYSSaVQtyUK5N31g#0
 
 Before running this:
-pip install azure-identity
-pip install azure-storage-blob
-pip install azure-keyvault-secrets
-pip install azure-mgmt-keyvault
-pip install azure-mgmt-resource
+deactivate out from within venv
+brew install uv  # new package manager
+uv --help
+uv init   # for pyproject.toml & .python-version files
+uv lock
+uv sync
+uv venv  # to create an environment,
+
+uv pip install python-dotenv
+uv pip install azure-identity
+uv pip install azure-storage-blob
+uv pip install azure-mgmt-keyvault
+uv pip install azure-keyvault-secrets
+uv pip install azure-mgmt-resource
+
+uv run az-keyvault.py
 """
 # Built-in libraries (no pip/conda install needed):
 from datetime import datetime
@@ -33,31 +44,27 @@ import platform
 import random
 
 # import external library (from outside this program):
-try:
-    import argparse
-    from azure.identity import DefaultAzureCredential
-    from azure.storage.blob import BlobServiceClient
-    from azure.identity import ClientSecretCredential
-    from azure.mgmt.keyvault import KeyVaultManagementClient
-    from azure.mgmt.resource import ResourceManagementClient
+#try:
+import argparse
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
+from azure.identity import ClientSecretCredential
+#from azure.mgmt.keyvault import KeyVaultManagementClient
+#from azure.mgmt.resource import ResourceManagementClient
 
-    # Based on: conda install -c conda-forge load_dotenv
-    from dotenv import load_dotenv
-    # After: brew install miniconda
-    # Based on: conda install python-dotenv   # found!
-    # conda create -n py313
-    # conda activate py313
-    # conda install --name py313 requestsa
-    from pytz import timezone
-    import urllib.parse
-    import requests
-except Exception as e:
+# Based on: conda install -c conda-forge load_dotenv
+from dotenv import load_dotenv
+#from pytz import timezone
+#import urllib.parse
+#import requests
+"""except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
-    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    # pyproject.toml file exists
+    print(f"Please activate your virtual environment:\n  uv venv")
     exit(9)
-
+"""
 ## Global variables: Colors Styles:
 RED = '\033[31m'
 GREEN = '\033[32m'
@@ -122,14 +129,13 @@ def use_dev_credential(az_acct_name) -> object:
 
 def use_app_credential(tenant_id, client_id, client_secret) -> object:
     """
-    Returns a credential object for the given account name
-    after app registration
+    Returns a credential object after app registration
     no need for CLI az login.
     """
     try:
         credential = ClientSecretCredential(tenant_id, client_id, client_secret)
         return credential
-    except Error as e:
+    except ClientSecretCredential.exceptions.HTTPError as e:
         print(f"use_app_credential ERROR: {e}")
         return None
 
