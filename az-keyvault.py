@@ -5,6 +5,8 @@
 
 STATUS: use_az_dev_acct() working on macOS Sequoia 15.3.1
 
+__last_commit__ = "v004 sorted region dictionary :az-keyvault.py"
+
 by Wilson Mar, LICENSE: MIT
 This creates the premissions needed in Azure, then 
 creates a Key Vault and sets access policies.
@@ -95,7 +97,6 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "v003 + principal creation notes :az-keyvault.py"
 
 
 # SECTION 02: Capture pgm start date/time
@@ -832,63 +833,63 @@ def pick_closest_region() -> str:
         print("Error: Invalid coordinates. Latitude must be between -90 and 90, and longitude between -180 and 180.")
         return
 
-    # please write python code to show regions of azure as an array named AZURE_REGIONS with region name, latitude, longitude, with location with. Sort by region name.
+    # please write python code to show regions of azure as a dictionary named AZURE_REGIONS with region name, latitude, longitude, with location with. Sort by region name.
     AZURE_REGIONS = {
-    "eastus": (37.3719, -79.8164),           # Virginia, US
-    "eastus2": (36.6681, -78.3889),          # Virginia, US
-    "westus": (37.783, -122.417),            # California
-    "westus2": (47.233, -119.852),           # Washington
-    "westus3": (33.448, -112.074),           # Arizona
-    "centralus": (41.5908, -93.6208),        # Iowa
-    "northcentralus": (43.653, -92.332),     # Illinois
-    "southcentralus": (29.4167, -98.5),      # Texas
-    "westcentralus": (40.890, -110.234),     # Wyoming
-    "canadacentral": (43.653, -79.383),      # Toronto
-    "canadaeast": (46.817, -71.217),         # Quebec City
-    "brazilsouth": (-23.55, -46.633),        # Sao Paulo
-    "northeurope": (53.3478, -6.2597),       # Dublin, Ireland
-    "westeurope": (52.3667, 4.9),            # Amsterdam, Netherlands
-    "uksouth": (51.5074, -0.1278),           # London
-    "ukwest": (52.4796, -1.9036),            # Cardiff
-    "francecentral": (46.3772, 2.3730),      # Paris
-    "francesouth": (43.7102, 7.2620),        # Marseille
-    "switzerlandnorth": (47.451, 8.564),     # Zurich
-    "switzerlandwest": (46.204, 6.143),      # Geneva
-    "germanynorth": (53.55, 10.0),           # Hamburg
-    "germanywestcentral": (50.110, 8.682),   # Frankfurt
-    "norwayeast": (59.913, 10.752),          # Oslo
-    "norwaywest": (60.391, 5.322),           # Bergen
-    "swedencentral": (59.329, 18.068),       # Stockholm
-    "southeastasia": (1.283, 103.833),       # Singapore
-    "eastasia": (22.267, 114.188),           # Hong Kong
-    "australiaeast": (-33.865, 151.209),     # Sydney
-    "australiasoutheast": (-37.814, 144.963), # Melbourne
-    "australiacentral": (-35.282, 149.128),  # Canberra
-    "australiacentral2": (-35.282, 149.128), # Canberra
-    "japaneast": (35.68, 139.77),            # Tokyo
-    "japanwest": (34.6939, 135.5022),        # Osaka
-    "koreacentral": (37.5665, 126.9780),     # Seoul
-    "koreasouth": (35.1796, 129.0756),       # Busan
-    "southindia": (13.0827, 80.2707),        # Chennai
-    "centralindia": (18.5204, 73.8567),      # Pune
-    "westindia": (19.0760, 72.8777),         # Mumbai
-    "jioindiawest": (19.0760, 72.8777),      # Mumbai
-    "jioindiacentral": (18.5204, 73.8567),   # Pune
-    "uaenorth": (25.096, 55.174),            # Dubai
-    "uaecentral": (24.466, 54.366),          # Abu Dhabi
-    "southafricanorth": (-25.731, 28.218),   # Johannesburg
-    "southafricawest": (-33.925, 18.423),    # Cape Town
-    "qatarcentral": (25.2854, 51.5310),      # Doha
-    "polandcentral": (52.2297, 21.0122),     # Warsaw
-    "italynorth": (45.4642, 9.1900),         # Milan
-    "israelnorth": (32.0853, 34.7818),       # Tel Aviv
-    "isrealcentral": (31.046, 34.851),       # Jerusalem
-    "chinanorth": (39.9042, 116.4074),       # Beijing
-    "chinaeast": (31.2304, 121.4737),        # Shanghai
-    "chinanorth2": (39.9042, 116.4074),      # Beijing
-    "chinaeast2": (31.2304, 121.4737),       # Shanghai
-    }  # this needs to be updated occassionally.
-    print_trace(f"pick_closest_region(): from among {len(AZURE_REGIONS.items())} regions")
+        "australiasoutheast": (-37.814, 144.963),   # Melbourne
+        "australiacentral": (-35.282, 149.128),     # Canberra
+        "australiacentral2": (-35.282, 149.128),    # Canberra
+        "southafricawest": (-33.925, 18.423),       # Cape Town
+        "australiaeast": (-33.865, 151.209),        # Sydney
+        "southafricanorth": (-25.731, 28.218),      # Johannesburg
+        "brazilsouth": (-23.55, -46.633),           # Sao Paulo
+        "southeastasia": (1.283, 103.833),          # Singapore
+        "southindia": (13.0827, 80.2707),           # Chennai
+        "centralindia": (18.5204, 73.8567),         # Pune
+        "jioindiacentral": (18.5204, 73.8567),      # Pune
+        "westindia": (19.076, 72.8777),             # Mumbai
+        "jioindiawest": (19.076, 72.8777),          # Mumbai
+        "eastasia": (22.267, 114.188),              # Hong Kong
+        "uaecentral": (24.466, 54.366),             # Abu Dhabi
+        "uaenorth": (25.096, 55.174),               # Dubai
+        "qatarcentral": (25.2854, 51.531),          # Doha
+        "southcentralus": (29.4167, -98.5),         # Texas
+        "isrealcentral": (31.046, 34.851),          # Jerusalem
+        "chinaeast": (31.2304, 121.4737),           # Shanghai
+        "chinaeast2": (31.2304, 121.4737),          # Shanghai
+        "israelnorth": (32.0853, 34.7818),          # Tel Aviv
+        "westus3": (33.448, -112.074),              # Arizona
+        "japanwest": (34.6939, 135.5022),           # Osaka
+        "koreasouth": (35.1796, 129.0756),          # Busan
+        "japaneast": (35.68, 139.77),               # Tokyo
+        "eastus2": (36.6681, -78.3889),             # Virginia, US
+        "eastus": (37.3719, -79.8164),              # Virginia, US
+        "koreacentral": (37.5665, 126.9780),        # Seoul
+        "westus": (37.783, -122.417),               # California
+        "chinanorth": (39.9042, 116.4074),          # Beijing
+        "chinanorth2": (39.9042, 116.4074),         # Beijing
+        "westcentralus": (40.89, -110.234),         # Wyoming
+        "centralus": (41.5908, -93.6208),           # Iowa
+        "northcentralus": (43.653, -92.332),        # Illinois
+        "canadacentral": (43.653, -79.383),         # Toronto
+        "francesouth": (43.7102, 7.2620),           # Marseille
+        "italynorth": (45.4642, 9.19),              # Milan
+        "switzerlandwest": (46.204, 6.143),         # Geneva
+        "francecentral": (46.3772, 2.373),          # Paris
+        "canadaeast": (46.817, -71.217),            # Quebec City
+        "westus2": (47.233, -119.852),              # Washington
+        "switzerlandnorth": (47.451, 8.564),        # Zurich
+        "germanywestcentral": (50.11, 8.682),       # Frankfurt
+        "uksouth": (51.5074, -0.1278),              # London
+        "polandcentral": (52.2297, 21.0122),        # Warsaw
+        "westeurope": (52.3667, 4.9),               # Amsterdam, Netherlands
+        "ukwest": (52.4796, -1.9036),               # Cardiff
+        "northeurope": (53.3478, -6.2597),          # Dublin, Ireland
+        "germanynorth": (53.55, 10.0),              # Hamburg
+        "swedencentral": (59.329, 18.068),          # Stockholm
+        "norwayeast": (59.913, 10.752),             # Oslo
+        "norwaywest": (60.391, 5.322),              # Bergen
+    }  # This needs to be updated occassionally.
+    # print_trace(f"pick_closest_region(): from among {len(AZURE_REGIONS.items())} regions")
         # Equivalent of CLI: az account list-locations --output table --query "length([])" 
         # Equivalent of CLI: az account list-locations --query "[?contains(regionalDisplayName, '(US)')]" -o table
         # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
@@ -901,11 +902,13 @@ def pick_closest_region() -> str:
         distances.append((region, distance))
     
     # Sort by distance and return the n closest:
-    n:int = 1
+    n:int = 3
     closest_regions = sorted(distances, key=lambda x: x[1])[:n]
-    print_info(f"pick_closest_region(): {closest_regions}")
+    print_verbose(f"pick_closest_region({n}:): {closest_regions}")
+    closest_region = closest_regions[0][0]  # the first region ID in the list
+    print_info(f"pick_closest_region(of {len(AZURE_REGIONS.items())} in Azure:): {closest_region}")
     
-    return closest_regions
+    return closest_region
 
 
 # TODO: set the principal with the appropriate level of permissions (typically Directory.Read.All for these operations).
@@ -1207,7 +1210,7 @@ if __name__ == "__main__":
 
     #### STAGE 5 - Azure Resource Group for Azure Key Vault at a location:
     
-    pick_closest_region()
+    my_location = pick_closest_region()
     exit()
 
     my_keyvault_name = define_keyvault_name(my_location)
