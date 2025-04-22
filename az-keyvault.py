@@ -4,9 +4,19 @@
 """az-keyvault.py at https://github.com/wilsonmar/python-samples/blob/main/az-keyvault.py
 
 STATUS: use_az_dev_acct() working on macOS Sequoia 15.3.1
+"""
 
-__last_commit__ = "v004 sorted region dictionary :az-keyvault.py"
+__last_commit__ = "v005 keyvault created :az-keyvault.py"
 
+# Unlike regular comments in code, docstrings are available at runtime to the interpreter:
+__repository__ = "https://github.com/wilsonmar/python-samples"
+__author__ = "Wilson Mar"
+__copyright__ = "See the file LICENSE for copyright and license info"
+__license__ = "See the file LICENSE for copyright and license info"
+__linkedin__ = "https://linkedin.com/in/WilsonMar"
+# Using semver.org format per PEP440: change on every commit:
+
+"""
 by Wilson Mar, LICENSE: MIT
 This creates the premissions needed in Azure, then 
 creates a Key Vault and sets access policies.
@@ -63,6 +73,7 @@ uv add python-dotenv
 uv add azure-functions
 uv add azure-identity
 uv add azure-keyvault-secrets
+
 uv add azure-mgmt-compute
 uv add azure-mgmt-keyvault
 uv add azure-mgmt-network
@@ -75,6 +86,7 @@ uv add requests
 # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
 uv add flask requests python-dotenv pylint matplotlib pillow
 uv add numpy
+uv add pythonping
 uv add psutil  #  psutil-7.0.0
 uv add uuid
 uv add platform   # https://docs.python.org/3/library/platform.html
@@ -89,14 +101,6 @@ REMEMBER on CLI after running uv run az-keyvault.py: deactivate
 """
 
 # SECTION 01. Set metadata about this program
-
-# Unlike regular comments in code, docstrings are available at runtime to the interpreter:
-__repository__ = "https://github.com/wilsonmar/python-samples"
-__author__ = "Wilson Mar"
-__copyright__ = "See the file LICENSE for copyright and license info"
-__license__ = "See the file LICENSE for copyright and license info"
-__linkedin__ = "https://linkedin.com/in/WilsonMar"
-# Using semver.org format per PEP440: change on every commit:
 
 
 # SECTION 02: Capture pgm start date/time
@@ -149,7 +153,8 @@ try:
     from azure.mgmt.keyvault import KeyVaultManagementClient
     from azure.mgmt.resource import ResourceManagementClient
     from azure.storage.blob import BlobServiceClient
-    # from msgraph.core import GraphClient
+    from azure.mgmt.storage import StorageManagementClient
+    # from msgraph.core import GraphClient   # doesn't work if included?
     # Microsoft Authentication Library (MSAL) for Python
     # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
     # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
@@ -159,6 +164,7 @@ try:
     from pathlib import Path
     import platform # https://docs.python.org/3/library/platform.html
     import psutil  #  psutil-5.9.5
+    from pythonping import ping
     import requests
     import uuid
 except Exception as e:
@@ -180,7 +186,9 @@ DELETE_KV_AFTER = True
 LIST_ALL_PROVIDERS = False
 DEBUG = False
 
-KEYVAULT_NAME = "kv-westus-2504210416UTC"
+# TODO: Define these as parameters:
+KEYVAULT_NAME = "kv-westcentralus-897e56"  # also used as resource group name
+STORAGE_ACCOUNT_NAME = "store2westcentralus"
 
 
 #### Utility Functions:
@@ -299,16 +307,16 @@ def print_heading(text_in):
 def print_fail(text_in):  # when program should stop
     if show_fail:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), bcolors.FAIL, f'{text_in}', bcolors.RESET)
         else:
-            print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+            print('***', bcolors.FAIL, f'{text_in}', bcolors.RESET)
 
 def print_error(text_in):  # when a programming error is evident
     if show_fail:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), bcolors.ERROR, f'{text_in}', bcolors.RESET)
         else:
-            print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+            print('***', bcolors.ERROR, f'{text_in}', bcolors.RESET)
 
 def print_warning(text_in):
     if show_warning:
@@ -556,9 +564,9 @@ def macos_sys_info():
     this_pgm_name = os.path.basename(os.path.normpath(sys.argv[0]))
     print_trace("this_pgm_name = "+this_pgm_name)
 
-    this_pgm_last_commit = __last_commit__
-        # Adapted from https://www.python-course.eu/python3_formatted_output.php
-    print_trace("this_pgm_last_commit = "+this_pgm_last_commit)
+    #this_pgm_last_commit = __last_commit__
+    #    # Adapted from https://www.python-course.eu/python3_formatted_output.php
+    #print_trace("this_pgm_last_commit = "+this_pgm_last_commit)
 
     this_pgm_os_path = os.path.realpath(sys.argv[0])
     print_trace("this_pgm_os_path = "+this_pgm_os_path)
@@ -628,10 +636,10 @@ def use_az_dev_acct(az_acct_name) -> object:
     """
     try:
         credential = DefaultAzureCredential()
-        blob_service_client = BlobServiceClient(
-            account_url="https://{az_acct_name}.blob.core.windows.net",
-            credential=credential
-        )
+        #blob_service_client = BlobServiceClient(
+        #    account_url="https://{az_acct_name}.blob.core.windows.net",
+        #    credential=credential
+        #)
         print_info(f"use_az_dev_acct(credential: \"{my_acct_name}\")")
         return credential
             # <azure.identity._credentials.default.DefaultAzureCredential object at 0x106be6ba0>
@@ -662,7 +670,7 @@ def get_user_principal_id(credential) -> str:
 
     try:
         # Call Microsoft Graph to get the signed-in user's details:
-        # Ping tthe /me endpoint on Microsoft Graph for the signed-in user's profile:
+        # Call the /me endpoint on Microsoft Graph for the signed-in user's profile:
         headers = {
             "Authorization": f"Bearer {token}"
         }
@@ -817,15 +825,18 @@ def pick_closest_region() -> str:
     #except KeyError as e:   
     #    pass  # do below.
 
+    # TODO:
+    # print_info(f"-lat \"{latitude}\"  # (North/South) from parms being used.")
+    # print_info(f"-long (MY_LONGITUDE West/East of GMT) from .env): \"{longitude}\"")
     try:
-        latitude = float(os.environ["MY_LATITUDE"])  # EntraID
-        print_info(f"-lat (MY_LATITUDE North/South) from .env): \"{latitude}\"")
+        latitude = float(os.environ["MY_LATITUDE"])
+        print_info(f"MY_LATITUDE = \"{latitude}\"  # (North/South) from .env being used. ")
     except KeyError as e:   
         pass  # do below.
 
     try:
-        longitude = float(os.environ["MY_LONGITUDE"])  # EntraID
-        print_info(f"-long (MY_LONGITUDE West/East of GMT) from .env): \"{longitude}\"")
+        longitude = float(os.environ["MY_LONGITUDE"])
+        print_info(f"MY_LONGITUDE = \"{longitude}\"  # (East/West of GMT) from .env being used. ")
     except KeyError as e:   
         pass  # do below.
 
@@ -895,6 +906,9 @@ def pick_closest_region() -> str:
         # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
             # Remove "|length(@)"
 
+    # TODO: Identify the longest region name (germanywestcentral) and announce its number of characters (18)
+        # for use in keyvault name which must be no longer than 24 characters long.
+
     num_regions = 1
     distances = []
     for region, (region_lat, region_lon) in AZURE_REGIONS.items():
@@ -909,6 +923,142 @@ def pick_closest_region() -> str:
     print_info(f"pick_closest_region(of {len(AZURE_REGIONS.items())} in Azure:): {closest_region}")
     
     return closest_region
+
+
+def create_storage_account(credential, subscription_id, resource_group_name, my_location) -> str:
+    """
+    Returns an Azure storage account object for the given account name
+    At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
+    Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
+    # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
+        See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
+    # TODO: PrivateLink endpoints
+    """
+    #from azure.identity import DefaultAzureCredential
+    #from azure.mgmt.storage import StorageManagementClient
+    #from azure.storage.blob import BlobServiceClient
+    #import os
+
+    if STORAGE_ACCOUNT_NAME:  # already created and specified in parameters:
+        print_info(f"create_storage_account() name: \"{STORAGE_ACCOUNT_NAME}\" from parm ")
+        return STORAGE_ACCOUNT_NAME
+    
+    # WARNING: No underlines or dashes in storage account name up to 24 characters:
+    storage_account_name = f"store2{my_location}"
+       # Example: STORAGE_ACCOUNT_NAME="store2westcentralus"
+    try:
+        # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
+        storage_client = StorageManagementClient(
+            credential=credential,
+            subscription_id=subscription_id,
+            #resource_group=resource_group,
+            #storage_account_name=storage_account_name,
+            #location=my_location
+        )
+    except Exception as e:
+        print_error(f"create_storage_account() ERROR: {e}")
+        return None
+
+    # BEFORE: List all storage accounts in the subscription:
+    if DEBUG:
+        storage_accounts = storage_client.storage_accounts.list()
+        for account in storage_accounts:
+            print_verbose(f"Storage Account: {account.name}, Location: {account.location}")
+
+    # Define storage account parameters:
+    parameters = {
+        "location": my_location,
+        "kind": "StorageV2",
+        "sku": {"name": "Standard_LRS"},
+        "minimum_tls_version": "TLS1_2",
+        "deleteRetentionPolicy": {
+            "enabled": True,
+            "days": 14  # Set between 1 and 365
+        }
+    }  # LRS = Locally-redundant storage
+    # TODO: Set soft delete policies, 
+    # For update: https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
+    try:  # Create the storage account:
+        poller = storage_client.storage_accounts.begin_create(
+            resource_group_name=resource_group_name,
+            account_name=storage_account_name,
+            parameters=parameters
+        )        
+        # Wait for completion:
+        account_result = poller.result()
+        print_info(f"create_storage_account() name: \"{account_result.name}\" ")
+        return account_result  # storage_account_name
+    except Exception as e:
+        print_error(f"create_storage_account() ERROR: {e}")
+        return None
+
+def ping_storage_acct(storage_account_name) -> str:
+    """
+    CAUTION: This is not currently used due to "Destination Host Unreachable" error.
+    Returns the ping utility latency to a storage account within the Azure cloud.
+    """
+    ping_host = storage_account_name + ".blob.core.windows.net"
+    try:
+        # from pythonping import ping
+        response = ping(ping_host, count=5, timeout=2)
+        response_text = f"Min-Avg-Max Latency: {response.rtt_min_ms:.2f}-{response.rtt_avg_ms:.2f}-{response.rtt_max_ms:.2f} ms"
+        response_text =+ f"  Packet loss: {response.packet_loss * 100:.0f}%"
+        return response_text
+    except Exception as e:  # such as "Destination Host Unreachable"
+        print_error(f"ping_storage_acct() ERROR: {e}")
+        return None
+ 
+def measure_http_latency(storage_account_name, attempts=5) -> str:
+    """
+    Returns the HTTP latency to a storage account within the Azure cloud.
+    """
+    # import requests
+    # import time
+
+    url = storage_account_name + ".blob.core.windows.net"
+    latencies = []
+    for _ in range(attempts):
+        start = time.time()
+        try:
+            response = requests.get(url, timeout=5)
+            latency = (time.time() - start) * 1000  # ms
+            latencies.append(latency)
+        except requests.RequestException:
+            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
+            # <Code>InvalidQueryParameterValue</Code>
+            # <Message>
+            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
+            # </Message>
+            # <QueryParameterName>comp</QueryParameterName>
+            # <QueryParameterValue/>
+            # <Reason/>
+            # </Error>
+            latencies.append(None)
+
+    valid_latencies = [l for l in latencies if l is not None]
+    if valid_latencies:
+        avg_latencies = sum(valid_latencies)/len(valid_latencies)
+        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
+    else:
+        print_error(f"measure_http_latency(): requests failed to {url}")
+        return None
+
+
+# def create_storage_blob():
+#     See https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-delete-python
+
+# def delete_storage_blob():
+#     """
+#     A blob that was soft deleted due to the delete_retention_policy.
+#     See https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-delete-python
+#     See https://learn.microsoft.com/en-us/rest/api/storageservices/delete-blob
+#     """
+#     # from azure.identity import DefaultAzureCredential
+      # from azure.storage.blob import BlobServiceClient
+      # First, delete all snapshots under the storageaccount:
+      # undelete_storage_blob():
+
+# def access_storage_blob():
 
 
 # TODO: set the principal with the appropriate level of permissions (typically Directory.Read.All for these operations).
@@ -960,7 +1110,7 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-def create_get_resource_group(credential, resource_group_name, my_location, subscription_id) -> object:
+def create_get_resource_group(credential, resource_group_name, my_location, subscription_id) -> str:
     """
     Create Resource Group if the resource_group_name is not already defined.
     Return json object such as {'additional_properties': {}, 'id': '/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/az-keyvault-for-python-250413', 'name': 'az-keyvault-for-python-250413', 'type': 'Microsoft.Resources/resourceGroups', 'properties': <azure.mgmt.resource.resources.v2024_11_01.models._models_py3.ResourceGroupProperties object at 0x1075ec1a0>, 'location': 'westus', 'managed_by': None, 'tags': None}
@@ -1000,10 +1150,11 @@ def create_get_resource_group(credential, resource_group_name, my_location, subs
         rg_result = resource_client.resource_groups.create_or_update(
             resource_group_name, {"location": my_location}
         )
-        print_info(f"create_get_resource_group() {str(rg_result)}")
-        return rg_result  # JSON
+        return rg_result
     except Exception as e:
-        print_error(f"create_get_resource_group() ERROR: {e}")
+        print_error(f"create_get_resource_group() {str(rg_result)}")
+        print_error(f"create_get_resource_group() {e}")
+        # FIXME: ERROR: (InvalidApiVersionParameter) The api-version '2024-01-01' is invalid. The supported versions are 2024-11-01
         return None
 
 
@@ -1026,25 +1177,32 @@ def delete_resource_group(credential, resource_group_name, subscription_id) -> i
 
 def define_keyvault_name(my_location) -> str:
     """
-    Come up with a keyvault name
+    Come up with a globally unique keyvault name that's 24 characters long.
     """
+    if KEYVAULT_NAME:  # defined by parameter:
+        print_info(f"-kv \"{KEYVAULT_NAME}\"  # (AZURE_KEYVAULT_NAME) being used.")
+        return KEYVAULT_NAME
+    # else see if .env file has a value:
     try:
         keyvault_name = os.environ["AZURE_KEYVAULT_NAME"]  # EntraID
-        print_info(f"-kv (AZURE_KEYVAULT_NAME from .env): \"{keyvault_name}\"")
+        print_info(f"AZURE_KEYVAULT_NAME = \"{keyvault_name}\"  # from .env file being used.")
         return keyvault_name
     except KeyError as e:
         pass
 
-    try:
-        # no override provided, so make one up:
-        my_keyvault_root = os.environ["AZURE_KEYVAULT_ROOT_NAME"]
-    except KeyError as e:
-        my_keyvault_root = "kv"
+    # With the longest region name being 18:
+    keyvault_name = f"{my_location}-{uuid.uuid4().hex[:6]}"
+        # keyvault_name = f"kv-{uuid.uuid4().hex[:8]}"
+        # TODO: Calcuate how many characters can fit within 24 character limit.
 
-    # PROTIP: Define datestamps Timezone UTC: https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
-    keyvault_name = f"{my_keyvault_root}-{my_location}-{get_log_datetime()}"
+    # Alternative: 
+    # Commented out prefix takes too much room from the 24-char limit: 
+    #    my_keyvault_root = os.environ["AZURE_KEYVAULT_ROOT_NAME"]
+    #except KeyError as e:
+    #    my_keyvault_root = "kv"
+    # keyvault_name = f"{my_keyvault_root}-{my_location}-{get_log_datetime()}"
+        # PROTIP: Define datestamps Timezone UTC: https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
         # EX: kv-westus-2504210416UTC  # max length: 24 characters
-        # Alternative: UUID: keyvault_name = f"kv-{uuid.uuid4().hex[:8]}"
     return keyvault_name
 
 
@@ -1057,31 +1215,30 @@ def check_keyvault(credential, keyvault_name, vault_url) -> int:
     #from azure.keyvault.secrets import SecretClient
     #from azure.core.exceptions import HttpResponseError
     #import sys
+    
     client = SecretClient(vault_url=vault_url, credential=credential)
         # Expected: "<azure.keyvault.secrets._client.SecretClient object at 0x106fc42f0>")
     if not client:
-        print(f"check_keyvault() failed to obtain client: \"{client}\")")
-        return False
-
+        print_fail(f"check_keyvault(client) failed to obtain client: \"{client}\")")
+        exit(9)
     secrets = client.list_properties_of_secrets()
         # Expected: <iterator object azure.core.paging.ItemPaged at 0x106911550>
     if not secrets:
-        print(f"check_keyvault() failed to obtain secrets: \"{secrets}\") ...")
-        return False
+        print_fail(f"check_keyvault(client) failed to obtain secrets: \"{secrets}\") ...")
+        exit(9)
 
     try:
         for secret in secrets:
             # CAUTION: Avoid printing out {secret.name} values in logs:
-            # print(f"check_keyvault( Vault \"{keyvault_name}\" exists with secrets.")
+            print_verbose(f"check_keyvault(\"{keyvault_name}\" exists with secrets.")
             return True
         else:
-            print("check_keyvault() Vault exists but contains no secrets.")
-            return False
-
+            print_info(f"check_keyvault({keyvault_name}) Vault exists but contains no secrets.")
+            return True
     except Exception as e:
-        #print(f"Key Vault not recognized in check_keyvault({keyvault_name}): {e}")
+        print_fail(f"Key Vault not recognized in check_keyvault({keyvault_name}): {e}")
         # This is expected if the Key Vault does not exist.
-        return False
+        return False  # KeyVault not found, so create it!
 
 
 def create_keyvault(credential, subscription_id, resource_group, keyvault_name, location, tenant_id, user_principal_id) -> object:
@@ -1108,7 +1265,7 @@ def create_keyvault(credential, subscription_id, resource_group, keyvault_name, 
         {
             "location": location,
             "properties": {
-                "c": tenant_id,
+                "tenant_id": tenant_id,
                 "sku": {"name": "standard", "family": "A"},
                 "access_policies": [{
                     "tenant_id": tenant_id,
@@ -1118,7 +1275,7 @@ def create_keyvault(credential, subscription_id, resource_group, keyvault_name, 
             }
         }
     ).result()
-    # Replace <service-principal-object-id> with your SP’s object ID.
+    # TODO: CAUTION: set permissions to least privilege.
 
 
 def delete_keyvault(credential, keyvault_name, vault_url) -> bool:
@@ -1211,45 +1368,42 @@ if __name__ == "__main__":
     #### STAGE 5 - Azure Resource Group for Azure Key Vault at a location:
     
     my_location = pick_closest_region()
-    exit()
-
-    my_keyvault_name = define_keyvault_name(my_location)
-
-    rp_result = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
-    if not rp_result:
-        print(f"create_get_resource_group() failed with JSON: \"{rp_result}\"")
-        exit(9)
+    if KEYVAULT_NAME:
+        my_resource_group = KEYVAULT_NAME
+        my_keyvault_name = KEYVAULT_NAME
     else:
-        print(f"create_get_resource_group(for KeyVault: \"{my_keyvault_name}\")")
-        # Equivalent of CLI: az group list -o table
-    
+        my_keyvault_name = define_keyvault_name(my_location)
+        my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
+        # TODO: Add tags to resource group.
+    my_storage_account_name = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
+    # ping_storage_acct(my_storage_account_name)
+    # measure_http_latency(my_storage_account_name, attempts=5)
+
     vault_url = f"https://{my_keyvault_name}.vault.azure.net"
     rc = check_keyvault(my_credential, my_keyvault_name, vault_url)
-    if rc: 
-        print(f"check_keyvault(): \"{rc}\")")
-    #else: # False (not found), so create it:
+    if rc is True: 
+        print_verbose(f"Key Vault \"{my_keyvault_name}\" already exists.")
+    if rc is False:  # False (does not exist), so create it:
+        create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
 
-    exit(9)
-
-    create_keyvault(my_credential, my_subscription_id, my_keyvault_name, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
-
+    print("DEBUGGING EXIT")
+    exit()
 
     #### List Azure Key Vaults:
     # Equivalent of Portal: List Key Vaults: https://portal.azure.com/#browse/Microsoft.KeyVault%2Fvaults
     # TODO: List costs like https://portal.azure.com/#view/HubsExtension/BrowseCosts.ReactView
     # PRICING: STANDARD SKU: $0.03 per 10,000 app restart operation, plus $3 for cert renewal, PLUS $1/HSM/month.
         # See https://www.perplexity.ai/search/what-is-the-cost-of-running-a-Fr6DTbKQSWKzpdSGv6qyiw
-
     
-    #### STAGE 5 - Azure Resource Group for Azure Key Vault at a location:
+    #### STAGE 6 - Azure Resource Group for Azure Key Vault at a location:
 
-    my_principal_id = os.environ["AZURE_KEYVAULT_PRINCIPAL_ID"]
+    #my_principal_id = os.environ["AZURE_KEYVAULT_PRINCIPAL_ID"]
 
     # Before: Register an app in Azure and create a client secret.
     my_app_id = os.environ["AZURE_APP_ID"]
     my_client_id = os.environ["AZURE_CLIENT_ID"]
     my_client_secret = os.environ["AZURE_CLIENT_SECRET"]
-    my_principal_id = get_app_principal_id(my_credential, my_app_id, my_tenant_id)
+    #my_principal_id = get_app_principal_id(my_credential, my_app_id, my_tenant_id)
     if not my_principal_id:
         print(f"get_app_principal_id() failed with JSON: \"{my_principal_id}\" ")
         exit(9)
