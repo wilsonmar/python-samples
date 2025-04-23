@@ -6,6 +6,8 @@
 STATUS: use_az_dev_acct() working on macOS Sequoia 15.3.1
 """
 
+#### SECTION 01. Metadata about this program file:
+
 __last_commit__ = "v005 keyvault created :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
@@ -100,10 +102,7 @@ REMEMBER on CLI after running uv run az-keyvault.py: deactivate
 
 """
 
-# SECTION 01. Set metadata about this program
-
-
-# SECTION 02: Capture pgm start date/time
+#### SECTION 02: Capture pgm start date/time
 
 # See https://bomonike.github.io/python-samples/#StartingTime
 # Built-in libraries (no pip/conda install needed):
@@ -121,12 +120,18 @@ pgm_strt_epoch_timestamp = time.time()
 pgm_strt_local_timestamp = time.localtime()
 # NOTE: Can't display the dates until formatting code is run below
 
+#### SECTION 03: Built-in Imports
 
+# Python’s Standard library of built-in modules imported as
+      # listed at https://docs.python.org/3/library/*.html
+std_strt_timestamp = time.monotonic()
+import argparse
 import base64
+# import boto3  # for aws python
 from contextlib import redirect_stdout
 import io
 import json
-import logging
+import logging   # see https://realpython.com/python-logging/
 import math
 from typing import Dict, List, Tuple
 import os
@@ -140,9 +145,12 @@ import sys
 import platform
 import random  # for UUID and other random number generation
 from tokenize import Number
+std_stop_timestamp = time.monotonic()
 
 
-# import external library (from outside this program):
+#### SECTION 04: Import external library (from outside this program):
+
+xpt_strt_timestamp =  time.monotonic()
 try:
     import argparse
     from azure.mgmt.resource import ResourceManagementClient
@@ -159,7 +167,7 @@ try:
     # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
     # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
     from dotenv import load_dotenv
-    import pytz   # for aware comparisons
+    import pytz   # pytz-2021.3 for time zone handling
     import urllib.parse
     from pathlib import Path
     import platform # https://docs.python.org/3/library/platform.html
@@ -175,91 +183,75 @@ except Exception as e:
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
     exit(9)
+xpt_stop_timestamp =  time.monotonic()
 
-#### Parameters from call arguments:
+
+#### SECTION 05: Parameters from call arguments:
+# USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
+
+parser = argparse.ArgumentParser(description="Azure Key Vault")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
+parser.add_argument("-q", "--quiet", action="store_true", help="Quiet")
+parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
+parser.add_argument("-l", "--log", help="Log to external file")
+
+parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
+parser.add_argument("-s", "--storage", help="Storage Name")
+
+# -h = --help (list arguments)
+args = parser.parse_args()
+
+show_fail = True       # Always show
+show_error = True      # Always show
+
+SHOW_QUIET = args.quiet
+if SHOW_QUIET:  # -vv
+    show_warning = False   # -wx  Don't display warning
+    show_todo = False      # -td  Display TODO item for developer
+    show_info = False      # -qq  Display app's informational status and results for end-users
+else:
+    show_warning = True    # -wx  Don't display warning
+    show_todo = True       # -td  Display TODO item for developer
+    show_info = True       # -qq  Display app's informational status and results for end-users
+
+SHOW_VERBOSE = args.verbose
+if SHOW_VERBOSE:  # -vv
+    SHOW_SUMMARY = True
+    show_heading = True    # -q  Don't display step headings before attempting actions
+    show_verbose = True    # -v  Display technical program run conditions
+    show_sys_info = True
+else:
+    show_heading = False    # -q  Don't display step headings before attempting actions
+    show_verbose = False   # -v  Display technical program run conditions
+    show_sys_info = False
+
+SHOW_DEBUG = args.debug  # print metadata before use by code during troubleshooting
+if SHOW_DEBUG:  # -vv
+    show_trace = True      # -vv Display responses from API calls for debugging code
+else:
+    show_trace = False     # -vv Display responses from API calls for debugging code
+
+show_secrets = False   # Never show
+show_dates_in_logs = False
+LOG_DOWNLOADS = args.log
+
+KEYVAULT_NAME = args.keyvault  # also used as resource group name
+STORAGE_ACCOUNT_NAME = args.storage
 
 ENV_FILE="python-samples.env"
-show_sys_info = True
 
+# TODO: Make these configurable
 DELETE_RG_AFTER = True
 DELETE_KV_AFTER = True
 LIST_ALL_PROVIDERS = False
-DEBUG = False
 
-# TODO: Define these as parameters:
-KEYVAULT_NAME = "kv-westcentralus-897e56"  # also used as resource group name
-STORAGE_ACCOUNT_NAME = "store2westcentralus"
+# PROTIP: Global variable referenced within functions:
+# values obtained from .env file can be overriden in program call arguments:
+ 
 
-
-#### Utility Functions:
-
-def get_user_local_time() -> str:
-    """ 
-    Returns a string formatted with datetime stamp in local timezone.
-    Example: "07:17 AM (07:17:54) 2025-04-21 MDT"
-    """
-    now: datetime = datetime.now()
-    local_tz = datetime.now(timezone.utc).astimezone().tzinfo
-    return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d} {local_tz}'
-
-
-def get_log_datetime() -> str:
-    """
-    Returns a formatted datetime string in UTC (GMT) timezone so all logs are aligned.
-    Example: 2504210416UTC for a minimal with year, month, day, hour, minute, second and timezone code.
-    """
-    #from datetime import datetime
-    # importing timezone from pytz module
-    #from pytz import timezone
-
-    # To get current time in (non-naive) UTC timezone
-    # instead of: now_utc = datetime.now(timezone('UTC'))
-    # Based on https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
-    fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
-    time_str = fts.strftime("%y%m%d%H%M%Z")  # EX: "...-250419" UTC %H%M%Z https://strftime.org
-
-    # See https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
-    # time_str=datetime.utcnow().strftime('%F %T.%f')
-        # for ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
-    # time_str=now_utc.strftime(MY_DATE_FORMAT)
-
-    # Alternative: Converting to Asia/Kolkata time zone using the .astimezone method:
-    # now_asia = now_utc.astimezone(timezone('Asia/Kolkata'))
-    # Format the above datetime using the strftime()
-    # print('Current Time in Asia/Kolkata TimeZone:',now_asia.strftime(format))
-    # if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
-
-    return time_str
-
-
-def print_separator():
-    """ Put a blank line in CLI output. Used in case the technique changes throughout this code. """
-    print(" ")
-
+#### SECTION 06: Print Utility Functions:
 
 ## Global variables: Colors Styles:
-RED = '\033[31m'
-GREEN = '\033[32m'
-YELLOW = '\033[33m'
-BLUE = '\033[34m'
-CVIOLET = '\033[35m'
-CBEIGE = '\033[36m'
-CWHITE = '\033[37m'
-GRAY = '\033[90m'
-
-HEADING = '\033[37m'   # [37 white
-FAIL = '\033[91m'      # [91 red
-ERROR = '\033[91m'     # [91 red
-WARNING = '\033[93m'   # [93 yellow
-INFO = '\033[92m'      # [92 green
-VERBOSE = '\033[95m'   # [95 purple
-TRACE = '\033[96m'     # [96 blue/green
-                # [94 blue (bad on black background)
-
-BOLD = '\033[1m'       # Begin bold text
-UNDERLINE = '\033[4m'  # Begin underlined text
-RESET = '\033[0m'   # switch back to default color
-
 class bcolors:  # ANSI escape sequences:
     BOLD = '\033[1m'       # Begin bold text
     UNDERLINE = '\033[4m'  # Begin underlined text
@@ -275,22 +267,10 @@ class bcolors:  # ANSI escape sequences:
     CVIOLET = '\033[35m'
     CBEIGE = '\033[36m'
     CWHITE = '\033[37m'
+    GRAY = '\033[90m'
 
     RESET = '\033[0m'   # switch back to default color
 
-# PROTIP: Global variable referenced within functions:
-# values obtained from .env file can be overriden in program call arguments:
-show_fail = True       # Always show
-show_error = True      # Always show
-show_warning = True    # -wx  Don't display warning
-show_todo = True       # -td  Display TODO item for developer
-show_info = True       # -qq  Display app's informational status and results for end-users
-show_heading = True    # -q  Don't display step headings before attempting actions
-show_verbose = True    # -v  Display technical program run conditions
-show_trace = True      # -vv Display responses from API calls for debugging code
-show_secrets = False   # Never show
-
-show_dates_in_logs = False
 
 def print_separator():
     """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. 
@@ -359,7 +339,122 @@ def no_newlines(in_string):
     return ''.join(in_string.splitlines())
 
 
-#### Python script control and timing utilities:
+def print_samples():
+    """Display what different type of output look like.
+    """
+    # See https://wilsonmar.github.io/python-samples/#PrintColors
+    if not show_print_samples:
+        return None
+    print_heading("show_print_samples")
+    print_fail("sample fail")
+    print_error("sample error")
+    print_warning("sample warning")
+    print_todo("sample task to do")
+    print_info("sample info")
+    print_verbose("sample verbose")
+    print_trace("sample trace")
+    print_secret("1234567890123456789")
+    return True
+
+def print_env_vars():
+    """List all environment variables, one line each using pretty print (pprint)
+    """
+    # import os
+    # import pprint
+    environ_vars = os.environ
+    print_heading("User's Environment variable:")
+    pprint.pprint(dict(environ_vars), width = 1)
+
+
+#### SECTION 07: Time Utility Functions:
+
+
+def get_user_local_time() -> str:
+    """ 
+    Returns a string formatted with datetime stamp in local timezone.
+    Example: "07:17 AM (07:17:54) 2025-04-21 MDT"
+    """
+    now: datetime = datetime.now()
+    local_tz = datetime.now(timezone.utc).astimezone().tzinfo
+    return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d} {local_tz}'
+
+
+def get_log_datetime() -> str:
+    """
+    Returns a formatted datetime string in UTC (GMT) timezone so all logs are aligned.
+    Example: 2504210416UTC for a minimal with year, month, day, hour, minute, second and timezone code.
+    """
+    #from datetime import datetime
+    # importing timezone from pytz module
+    #from pytz import timezone
+
+    # To get current time in (non-naive) UTC timezone
+    # instead of: now_utc = datetime.now(timezone('UTC'))
+    # Based on https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
+    fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
+    time_str = fts.strftime("%y%m%d%H%M%Z")  # EX: "...-250419" UTC %H%M%Z https://strftime.org
+
+    # See https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
+    # time_str=datetime.utcnow().strftime('%F %T.%f')
+        # for ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
+    # time_str=now_utc.strftime(MY_DATE_FORMAT)
+
+    # Alternative: Converting to Asia/Kolkata time zone using the .astimezone method:
+    # now_asia = now_utc.astimezone(timezone('Asia/Kolkata'))
+    # Format the above datetime using the strftime()
+    # print('Current Time in Asia/Kolkata TimeZone:',now_asia.strftime(format))
+    # if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
+
+    return time_str
+
+
+def print_wall_times():
+    """Prints All the timings together for consistency of output:
+    Instead of datetime.datetime.now(), time.perf_counter(), time.monotonic()
+    """
+    print_heading("Wall times (hh:mm:sec.microsecs):")
+    # TODO: Write to log for longer-term analytics
+
+    # For wall time of std imports:
+    std_elapsed_wall_time = std_stop_timestamp -  std_strt_timestamp
+    print_verbose("for import of Python standard libraries: "+ \
+        f"{std_elapsed_wall_time:.4f}")
+
+    # For wall time of xpt imports:
+    xpt_elapsed_wall_time = xpt_stop_timestamp -  xpt_strt_timestamp
+    print_verbose("for import of Python extra    libraries: "+ \
+        f"{xpt_elapsed_wall_time:.4f}")
+
+    pgm_stop_timestamp =  time.monotonic()
+    pgm_elapsed_wall_time = pgm_stop_timestamp -  pgm_strt_timestamp
+    # pgm_stop_perftimestamp = time.perf_counter()
+    print_verbose(f"for whole program run:                   "+ \
+        f"{pgm_elapsed_wall_time:.4f}")
+
+
+#### SECTION 08: Python script control utilities:
+
+# See https://bomonike.github.io/python-samples/#ParseArguments
+
+def do_clear_cli():
+    if clear_cli:
+        import os
+        # QUESTION: What's the output variable?
+        lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
+def set_cli_parms(count):
+    """Present menu and parameters to control program
+    """
+    import click
+    @click.command()
+    @click.option('--count', default=1, help='Number of greetings.')
+    #@click.option('--name', prompt='Your name',
+    #              help='The person to greet.')
+    def set_cli_parms(count):
+        for x in range(count):
+            click.echo(f"Hello!")
+    # Test by running: ./python-examples.py --help
+
 
 def open_env_file(env_file) -> str:
     """Return a Boolean obtained from .env file based on key provided.
@@ -390,33 +485,8 @@ def open_env_file(env_file) -> str:
     #print_trace("user_home_dir_path="+user_home_dir_path)
 
 
-def print_wall_times():
-    """Prints All the timings together for consistency of output:
-    """
-    print_heading("Wall times (hh:mm:sec.microsecs):")
-    # TODO: Write to log for longer-term analytics
 
-    # For wall time of std imports:
-    std_stop_datetimestamp = datetime.datetime.now()
-    std_elapsed_wall_time = std_stop_datetimestamp -  std_strt_datetimestamp
-    print_verbose("for import of Python standard libraries: "+ \
-        str(std_elapsed_wall_time))
-
-    # For wall time of xpt imports:
-    xpt_stop_datetimestamp = datetime.datetime.now()
-    xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
-    print_verbose("for import of Python extra    libraries: "+ \
-        str(xpt_elapsed_wall_time))
-
-    pgm_stop_datetimestamp = datetime.datetime.now()
-    pgm_elapsed_wall_time = pgm_stop_datetimestamp -  pgm_strt_datetimestamp
-    pgm_stop_perftimestamp = time.perf_counter()
-    print_verbose("for whole program run: "+ \
-        str(pgm_elapsed_wall_time))
-
-
-
-# SECTION 08. Obtain program environment metadata
+#### SECTION 09. Obtain program environment metadata
 
 # See https://wilsonmar.github.io/python-samples/#run_env
 
@@ -625,7 +695,21 @@ def macos_sys_info():
         # left-to-right order of fields are re-arranged from the function's output.
 
 
-#### Azure core utilities:
+def about_disk_space():
+    statvfs = os.statvfs(".")
+    # Convert to bytes, multiply by statvfs.f_frsize and divide for Gigabyte
+    # representation:
+    GB = 1000000
+    disk_total = ((statvfs.f_frsize * statvfs.f_blocks) /
+                  statvfs.f_frsize) / GB
+    disk_free = ((statvfs.f_frsize * statvfs.f_bfree) / statvfs.f_frsize) / GB
+    # disk_available = ((statvfs.f_frsize * statvfs.f_bavail ) / statvfs.f_frsize ) / GB
+    disk_list = [disk_total, disk_free]
+    return disk_list
+
+
+#### SECTION 10. Azure cloud core utilities:
+
 
 def use_az_dev_acct(az_acct_name) -> object:
     """
@@ -691,13 +775,13 @@ def get_user_principal_id(credential) -> str:
 
 # def job roles permissions RBAC:
     """
-    The different personas/roles in an enterprise, each with dansboards and alerts:
-    A. TechOps (SREs) who establish, monitor, troubleshoot, and restore the services (CA, dashbords, alerts) that others to operate. See https://github.com/bregman-arie/sre-checklist
+    The different personas/roles in an enterprise, each with job-relevant dashboards and alerts:
+    A. TechOps (SREs) who establish, troubleshoot, and restore the services (CA, dashbords, alerts) that others to operate. See https://github.com/bregman-arie/sre-checklist
     B. SecOps who enable people, Web (Flask, Django, FastAPI) apps & Serverless Functios accessing secrets based on RBAC policies
     C. Managers with authority to permanently delete (purge) secrets and backups https://learn.microsoft.com/en-us/azure/key-vault/policy-reference
     D. AppDevs who request, obtain, use, rotate secrets (but not delete) access to Networks, Apps. and Functions
     E. End Users who make use of Networks, Apps. and Functions built by others
-    F. DataOps to regularly backup and rotate secrets and manage log storage. Data governance
+    F. DataOps to regularly backup and rotate secrets, manage log storage. Data governance. Migrate data.
     """
 
 def use_app_credential(tenant_id, client_id, client_secret) -> object:
@@ -925,6 +1009,37 @@ def pick_closest_region() -> str:
     return closest_region
 
 
+def obtain_storage_object(credential, subscription_id) -> object:
+    """
+    Returns an Azure storage client object for the given credential and subscription ID.
+    At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
+    Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
+    # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
+        See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
+    # TODO: PrivateLink endpoints
+    """
+    #from azure.identity import DefaultAzureCredential
+    #from azure.mgmt.storage import StorageManagementClient
+    #from azure.storage.blob import BlobServiceClient
+    #import os
+
+    try:
+        # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
+        storage_client = StorageManagementClient(
+            credential=credential,
+            subscription_id=subscription_id,
+            #resource_group=resource_group,
+            #storage_account_name=storage_account_name,
+            #location=my_location
+        )
+        print_verbose(f"obtain_storage_object(): {storage_client}")
+        return storage_client
+    except Exception as e:
+        print_error(f"obtain_storage_object(): {e}")
+        return None
+
+
+
 def create_storage_account(credential, subscription_id, resource_group_name, my_location) -> str:
     """
     Returns an Azure storage account object for the given account name
@@ -939,31 +1054,41 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
     #from azure.storage.blob import BlobServiceClient
     #import os
 
-    if STORAGE_ACCOUNT_NAME:  # already created and specified in parameters:
+    # Fetch current account properties
+    storage_client = obtain_storage_object(credential, subscription_id)
+    if not storage_client:
+        print_verbose(f"obtain_storage_object(): {storage_client}")
+        print_error("create_storage_account(): failed to fetch storage_client")
+        exit(9)
+
+    try:
+        STORAGE_ACCOUNT_NAME
+    except NameError:
+        pass
+    else:  # STORAGE_ACCOUNT_NAME is defined:
         print_info(f"create_storage_account() name: \"{STORAGE_ACCOUNT_NAME}\" from parm ")
         return STORAGE_ACCOUNT_NAME
-    
-    # WARNING: No underlines or dashes in storage account name up to 24 characters:
-    storage_account_name = f"store2{my_location}"
-       # Example: STORAGE_ACCOUNT_NAME="store2westcentralus"
-    try:
-        # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
-        storage_client = StorageManagementClient(
-            credential=credential,
-            subscription_id=subscription_id,
-            #resource_group=resource_group,
-            #storage_account_name=storage_account_name,
-            #location=my_location
-        )
-    except Exception as e:
-        print_error(f"create_storage_account() ERROR: {e}")
-        return None
 
-    # BEFORE: List all storage accounts in the subscription:
-    if DEBUG:
+    # WARNING: No underlines or dashes in storage account name up to 24 characters:
+    fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
+    date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
+    # Max. my_location is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
+    storage_account_name = f"{my_location}{date_str}"  # no dashes/underlines
+       # Example: STORAGE_ACCOUNT_NAME="germanywestcentral-2504"
+
+    try:
+        # Fetch current storage account properties:
+        account_props = storage_client.storage_accounts.get_properties(resource_group_name, storage_account_name)
+        print_verbose(f"create_storage_account(): {account_props}")
+    except Exception as e:
+        print_verbose(f"create_storage_account(): {e}")
+        pass  # to create storage account below
+    else:  # if storage account already exists:
+        # List all storage accounts in the subscription for credential:
         storage_accounts = storage_client.storage_accounts.list()
         for account in storage_accounts:
             print_verbose(f"Storage Account: {account.name}, Location: {account.location}")
+        return storage_account_name
 
     # Define storage account parameters:
     parameters = {
@@ -986,10 +1111,10 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
         )        
         # Wait for completion:
         account_result = poller.result()
-        print_info(f"create_storage_account() name: \"{account_result.name}\" ")
+        print_info(f"create_storage_account(\"{account_result.name}\") created!")
         return account_result  # storage_account_name
     except Exception as e:
-        print_error(f"create_storage_account() ERROR: {e}")
+        print_error(f"create_storage_account(): {e}")
         return None
 
 def ping_storage_acct(storage_account_name) -> str:
@@ -1292,7 +1417,7 @@ def delete_keyvault(credential, keyvault_name, vault_url) -> bool:
         return False
 
 
-def populate_keyvault_secret(credential, keyvault_name, secret_name, secret_value) -> object:
+def populate_keyvault_secret(credential, keyvault_name, secret_name, secret_value) -> bool:
     """ Equivalent to az keyvault secret set --name "{$secret_name}" --value "{$secret_value}" --vault-name "{$keyvault_name}" 
     """
     # from azure.keyvault.secrets import SecretClient
@@ -1300,7 +1425,7 @@ def populate_keyvault_secret(credential, keyvault_name, secret_name, secret_valu
         secret_client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())    
         if secret_client:
             rp_secret = secret_client.set_secret(secret_name, secret_value)
-        return rp_secret
+        return True
     except Exception as e:
        print(f"populate_keyvault_secret() ERROR: {e}")
            # <urllib3.connection.HTTPSConnection object at 0x1054a5a90>: Failed to resolve 'az-keyvault-2504190459utc.vault.azure.net' ([Errno 8] nodename nor servname provided, or not known)
@@ -1314,22 +1439,30 @@ def get_keyvault_secret(credential, keyvault_name, secret_name) -> object:
         secret_client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())
         if secret_client:
             rp_secret = secret_client.get_secret(secret_name)
-        return rp_secret
+            if rp_secret:
+                return rp_secret
+        return None
     except Exception as e:
        print(f"get_keyvault_secret() ERROR: {e}")
-       return False
+       return None
 
 
-def delete_keyvault_secret(credential, keyvault_name, secret_name) -> object:
+def delete_keyvault_secret(credential, keyvault_name, secret_name) -> bool:
     """ Equivalent to CLI: az keyvault secret delete --name "{$secret_name}" --vault-name "{$keyvault_name}" 
     """
     try:
         secret_client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())
-        rp_secret = secret_client.delete_secret(secret_name)
-        return rp_secret
+        if secret_client:
+            rp_secret = secret_client.delete_secret(secret_name)
+            if rp_secret:
+                return True
+        return False
     except Exception as e:
        print(f"delete_keyvault_secret() ERROR: {e}")
        return False
+
+
+#### SECTION 10. Main control loop:
 
 
 if __name__ == "__main__":
@@ -1386,6 +1519,7 @@ if __name__ == "__main__":
     if rc is False:  # False (does not exist), so create it:
         create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
 
+    print_wall_times()
     print("DEBUGGING EXIT")
     exit()
 
