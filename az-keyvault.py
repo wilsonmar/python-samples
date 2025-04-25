@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: MPL-2.0
 """az-keyvault.py at https://github.com/wilsonmar/python-samples/blob/main/az-keyvault.py
 
-STATUS: use_az_dev_acct() working on macOS Sequoia 15.3.1
+STATUS: working on macOS Sequoia 15.3.1
 """
 
 #### SECTION 01. Metadata about this program file:
 
-__last_commit__ = "v005 keyvault created :az-keyvault.py"
+__last_commit__ = "v006 parms :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -34,6 +34,9 @@ Serverless function (Azure Functions)
 2. Use your email address, phone, credit card to create an account and log into Azure Portal.
 3. In "Entra Admin Center" (previously Azure Active Directory) https://entra.microsoft.com/#home
 4. Get a Subscription Id and Tenant Id to place in the .env file
+
+   AIPROJECT_CONNECTION_STRING=<your-connection-string>
+   See https://learn.microsoft.com/en-us/azure/ai-foundry/tutorials/copilot-sdk-create-resources?tabs=macos
 
 5. Create a new Azure AD Enterprise application. Store the Application (client) ID in your .env file.
 6. Get the app's Service Principal Id, which is similar to a user account but to access resources used by apps & services.
@@ -67,34 +70,42 @@ uv init   # for pyproject.toml & .python-version files https://packaging.python.
 uv lock
 uv sync
 uv venv  # to create an environment,
+source .venv/bin/activate
 
 uv python install 3.12
-# Instead of requirements.txt:
-uv add pathlib
-uv add python-dotenv
-uv add azure-functions
-uv add azure-identity
-uv add azure-keyvault-secrets
+# Instead of uv pip install -r requirements.txt, uv add ...
+    aiohttp   # for async features
+    pathlib
+    pylint 
+    python-dotenv
 
-uv add azure-mgmt-compute
-uv add azure-mgmt-keyvault
-uv add azure-mgmt-network
-uv add azure-mgmt-resource
-uv add azure-mgmt-storage
-uv add azure-storage-blob
-#uv add msgraph-core           # for msgraph.core.GraphClient
-uv add pytz
-uv add requests
-# For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
-uv add flask requests python-dotenv pylint matplotlib pillow
-uv add numpy
-uv add pythonping
-uv add psutil  #  psutil-7.0.0
-uv add uuid
-uv add platform   # https://docs.python.org/3/library/platform.html
+    azure-functions
+    azure-ai-projects 
+    azure-ai-inference   # instead of azure-ai-foundry
+    azure-identity
+    azure-keyvault-secrets
+    azure-mgmt-compute
+    azure-mgmt-keyvault
+    azure-mgmt-network
+    azure-mgmt-resource
+    azure-mgmt-storage
+    azure-storage-blob
+    pytz
+    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    flask
+    matplotlib   # or plotly
+    pillow
+    numpy
+    pythonping
+    psutil  #  psutil-7.0.0
+    uuid
+    platform   # https://docs.python.org/3/library/platform.html
+    # NOT msgraph-core           # for msgraph.core.GraphClient
 
 source .venv/bin/activate
-uv run az-keyvault.py
+
+# Repeat this CLI command after customizing with the email you use for Azure:
+uv run az-keyvault.py -v -vv -u "wmar@joliet.k12.mt.us"
 
 PROTIP: Each function displays its own error messages. Function callers display expected responses.
 
@@ -140,6 +151,8 @@ from pathlib import Path
 import pwd                # https://www.geeksforgeeks.org/pwd-module-in-python/
 import signal
 import site
+import shutil     # for disk space calcs
+import socket
 import subprocess
 import sys
 import platform
@@ -160,6 +173,7 @@ try:
     import azure.functions as func
     from azure.mgmt.keyvault import KeyVaultManagementClient
     from azure.mgmt.resource import ResourceManagementClient
+    from azure.mgmt.resource import SubscriptionClient
     from azure.storage.blob import BlobServiceClient
     from azure.mgmt.storage import StorageManagementClient
     # from msgraph.core import GraphClient   # doesn't work if included?
@@ -186,70 +200,8 @@ except Exception as e:
 xpt_stop_timestamp =  time.monotonic()
 
 
-#### SECTION 05: Parameters from call arguments:
-# USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
 
-parser = argparse.ArgumentParser(description="Azure Key Vault")
-parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
-parser.add_argument("-q", "--quiet", action="store_true", help="Quiet")
-parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
-parser.add_argument("-l", "--log", help="Log to external file")
-
-parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
-parser.add_argument("-s", "--storage", help="Storage Name")
-
-# -h = --help (list arguments)
-args = parser.parse_args()
-
-show_fail = True       # Always show
-show_error = True      # Always show
-
-SHOW_QUIET = args.quiet
-if SHOW_QUIET:  # -vv
-    show_warning = False   # -wx  Don't display warning
-    show_todo = False      # -td  Display TODO item for developer
-    show_info = False      # -qq  Display app's informational status and results for end-users
-else:
-    show_warning = True    # -wx  Don't display warning
-    show_todo = True       # -td  Display TODO item for developer
-    show_info = True       # -qq  Display app's informational status and results for end-users
-
-SHOW_VERBOSE = args.verbose
-if SHOW_VERBOSE:  # -vv
-    SHOW_SUMMARY = True
-    show_heading = True    # -q  Don't display step headings before attempting actions
-    show_verbose = True    # -v  Display technical program run conditions
-    show_sys_info = True
-else:
-    show_heading = False    # -q  Don't display step headings before attempting actions
-    show_verbose = False   # -v  Display technical program run conditions
-    show_sys_info = False
-
-SHOW_DEBUG = args.debug  # print metadata before use by code during troubleshooting
-if SHOW_DEBUG:  # -vv
-    show_trace = True      # -vv Display responses from API calls for debugging code
-else:
-    show_trace = False     # -vv Display responses from API calls for debugging code
-
-show_secrets = False   # Never show
-show_dates_in_logs = False
-LOG_DOWNLOADS = args.log
-
-KEYVAULT_NAME = args.keyvault  # also used as resource group name
-STORAGE_ACCOUNT_NAME = args.storage
-
-ENV_FILE="python-samples.env"
-
-# TODO: Make these configurable
-DELETE_RG_AFTER = True
-DELETE_KV_AFTER = True
-LIST_ALL_PROVIDERS = False
-
-# PROTIP: Global variable referenced within functions:
-# values obtained from .env file can be overriden in program call arguments:
- 
-
-#### SECTION 06: Print Utility Functions:
+#### SECTION 05: Print Utility Functions:
 
 ## Global variables: Colors Styles:
 class bcolors:  # ANSI escape sequences:
@@ -356,6 +308,152 @@ def print_samples():
     print_secret("1234567890123456789")
     return True
 
+
+def get_str_from_env_file(key_in) -> str:
+    """Return a value of string data type from OS environment or .env file
+    (using pip python-dotenv)
+    """
+    # TODO: Default ENV_FILE name:
+    ENV_FILE="python-samples.env"
+
+    env_var = os.environ.get(key_in)
+    if not env_var:  # yes, defined=True, use it:
+        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
+        return None
+    else:
+        # PROTIP: Display only first characters of a potentially secret long string:
+        if len(env_var) > 5:
+            print_trace(key_in + "=\"" + str(env_var[:5]) +" (remainder removed)")
+        else:
+            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
+        return str(env_var)
+
+
+
+#### SECTION 08: Python script control utilities:
+
+# See https://bomonike.github.io/python-samples/#ParseArguments
+
+def do_clear_cli():
+    if clear_cli:
+        import os
+        # QUESTION: What's the output variable?
+        lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
+def set_cli_parms(count):
+    """Present menu and parameters to control program
+    """
+    import click
+    @click.command()
+    @click.option('--count', default=1, help='Number of greetings.')
+    #@click.option('--name', prompt='Your name',
+    #              help='The person to greet.')
+    def set_cli_parms(count):
+        for x in range(count):
+            click.echo(f"Hello!")
+    # Test by running: ./python-examples.py --help
+
+
+def open_env_file(env_file) -> str:
+    """Return a Boolean obtained from .env file based on key provided.
+    """
+    # from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+
+    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
+
+    # PROTIP: Check if .env file on global_env_path is readable:
+    if not os.path.isfile(global_env_path):
+        print_error(global_env_path+" (global_env_path) not found!")
+    #else:
+    #    print_info(global_env_path+" (global_env_path) readable.")
+
+    path = pathlib.Path(global_env_path)
+    # Based on: pip3 install python-dotenv
+    from dotenv import load_dotenv
+       # See https://www.python-engineer.com/posts/dotenv-python/
+       # See https://pypi.org/project/python-dotenv/
+    load_dotenv(global_env_path)  # using load_dotenv
+
+    # Wait until variables for print_trace are retrieved:
+    #print_trace("env_file="+env_file)
+    #print_trace("user_home_dir_path="+user_home_dir_path)
+
+
+#### SECTION 05: Parameters from call arguments:
+# USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
+
+parser = argparse.ArgumentParser(description="Azure Key Vault")
+parser.add_argument("-q", "--quiet", action="store_true", help="Quiet")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
+parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
+parser.add_argument("-l", "--log", help="Log to external file")
+
+parser.add_argument("-u", "--user", help="User email (for credential)")
+parser.add_argument("-z", "--zip", help="6-digit Zip code (in USA)")
+parser.add_argument("-sub", "--subscription", help="Subscription ID (for costing)")
+parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
+parser.add_argument("-st", "--storage", help="Storage Name")
+
+# -h = --help (list arguments)
+args = parser.parse_args()
+
+show_fail = True       # Always show
+show_error = True      # Always show
+
+SHOW_QUIET = args.quiet
+if SHOW_QUIET:  # -vv
+    show_warning = False   # -wx  Don't display warning
+    show_todo = False      # -td  Display TODO item for developer
+    show_info = False      # -qq  Display app's informational status and results for end-users
+else:
+    show_warning = True    # -wx  Don't display warning
+    show_todo = True       # -td  Display TODO item for developer
+    show_info = True       # -qq  Display app's informational status and results for end-users
+
+SHOW_VERBOSE = args.verbose
+if SHOW_VERBOSE:  # -vv
+    SHOW_SUMMARY = True
+    show_heading = True    # -q  Don't display step headings before attempting actions
+    show_verbose = True    # -v  Display technical program run conditions
+    show_sys_info = True
+else:
+    show_heading = False    # -q  Don't display step headings before attempting actions
+    show_verbose = False   # -v  Display technical program run conditions
+    show_sys_info = False
+
+SHOW_DEBUG = args.debug  # print metadata before use by code during troubleshooting
+if SHOW_DEBUG:  # -vv
+    show_trace = True      # -vv Display responses from API calls for debugging code
+else:
+    show_trace = False     # -vv Display responses from API calls for debugging code
+
+show_secrets = False   # Never show
+show_dates_in_logs = False
+LOG_DOWNLOADS = args.log
+
+AZURE_ACCT_NAME = args.user
+AZURE_SUBSCRIPTION_ID = args.subscription
+
+KEYVAULT_NAME = args.keyvault  # also used as resource group name
+STORAGE_ACCOUNT_NAME = args.storage
+
+# if args.zip in get_longitude_latitude()
+
+
+ENV_FILE="python-samples.env"
+
+# TODO: Make these configurable
+DELETE_RG_AFTER = True
+DELETE_KV_AFTER = True
+LIST_ALL_PROVIDERS = False
+
+# PROTIP: Global variable referenced within functions:
+# values obtained from .env file can be overriden in program call arguments:
+ 
 def print_env_vars():
     """List all environment variables, one line each using pretty print (pprint)
     """
@@ -432,63 +530,11 @@ def print_wall_times():
         f"{pgm_elapsed_wall_time:.4f}")
 
 
-#### SECTION 08: Python script control utilities:
-
-# See https://bomonike.github.io/python-samples/#ParseArguments
-
-def do_clear_cli():
-    if clear_cli:
-        import os
-        # QUESTION: What's the output variable?
-        lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
-
-def set_cli_parms(count):
-    """Present menu and parameters to control program
-    """
-    import click
-    @click.command()
-    @click.option('--count', default=1, help='Number of greetings.')
-    #@click.option('--name', prompt='Your name',
-    #              help='The person to greet.')
-    def set_cli_parms(count):
-        for x in range(count):
-            click.echo(f"Hello!")
-    # Test by running: ./python-examples.py --help
-
-
-def open_env_file(env_file) -> str:
-    """Return a Boolean obtained from .env file based on key provided.
-    """
-    # from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-
-    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
-
-    # PROTIP: Check if .env file on global_env_path is readable:
-    if not os.path.isfile(global_env_path):
-        print_error(global_env_path+" (global_env_path) not found!")
-    #else:
-    #    print_info(global_env_path+" (global_env_path) readable.")
-
-    path = pathlib.Path(global_env_path)
-    # Based on: pip3 install python-dotenv
-    from dotenv import load_dotenv
-       # See https://www.python-engineer.com/posts/dotenv-python/
-       # See https://pypi.org/project/python-dotenv/
-    load_dotenv(global_env_path)  # using load_dotenv
-
-    # Wait until variables for print_trace are retrieved:
-    #print_trace("env_file="+env_file)
-    #print_trace("user_home_dir_path="+user_home_dir_path)
-
-
 
 #### SECTION 09. Obtain program environment metadata
 
-# See https://wilsonmar.github.io/python-samples/#run_env
+
+# See https://bomonike.github.io/python-samples/#run_env
 
 def os_platform():
     """Return a friendly name for the operating system
@@ -560,13 +606,6 @@ def macos_version_name(release_in):
     print_trace("macos_platform_release="+macos_platform_release)
     return macos_platform_release
 
-def get_mem_used() -> str:
-    # import os, psutil  #  psutil-5.9.5
-    process = psutil.Process()
-    mem=process.memory_info().rss / (1024 ** 2)  # in bytes
-    print_trace(str(process))
-    return str(mem)
-    # to print_verbose("get_mem_used(): "+str(mem)+" MiB used.")
 
 def macos_sys_info():
     if not show_sys_info:   # defined among CLI arguments
@@ -689,42 +728,230 @@ def macos_sys_info():
 
 
     # TODO: Make this function for call before & after run:
-    #    disk_list = about_disk_space()
+    #    disk_list = get_disk_free()
     #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
     #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
         # left-to-right order of fields are re-arranged from the function's output.
 
 
-def about_disk_space():
-    statvfs = os.statvfs(".")
-    # Convert to bytes, multiply by statvfs.f_frsize and divide for Gigabyte
-    # representation:
-    GB = 1000000
-    disk_total = ((statvfs.f_frsize * statvfs.f_blocks) /
-                  statvfs.f_frsize) / GB
-    disk_free = ((statvfs.f_frsize * statvfs.f_bfree) / statvfs.f_frsize) / GB
-    # disk_available = ((statvfs.f_frsize * statvfs.f_bavail ) / statvfs.f_frsize ) / GB
-    disk_list = [disk_total, disk_free]
-    return disk_list
+def get_mem_used() -> str:
+    # import os, psutil  #  psutil-5.9.5
+    process = psutil.Process()
+    mem=process.memory_info().rss / (1024 ** 2)  # in bytes
+    print_trace(str(process))
+    return str(mem)
+    # to print_verbose("get_mem_used(): "+str(mem)+" MiB used.")
+
+
+def get_disk_free():
+    # import shutil
+    # Replace '/' with your target path (e.g., 'C:\\' on Windows)
+    usage = shutil.disk_usage('/')
+    pct_free = ( float(usage.free) / float(usage.total) ) * 100
+    gb = 1024 * 1024 * 1024
+    disk_gb_free = float(usage.free) / gb
+    return f"{disk_gb_free:.2f} ({pct_free:.2f}%)"
+
+
+def handle_fatal_exit():
+    """
+    Handle fatal exit with a message first.
+    """
+    print_trace("handle_fatal_exit() called.")
+    sys.exit(9)
+
+
+#### SECTION 10. Cloud utility APIs:
+
+
+def get_ip_address() -> str:
+    """
+    Returns IP address of client running this program.
+    TODO: If this is running as a web server (like Flask or Django), extract it from the request headers
+    from the user making a request to your site:
+    See https://www.perplexity.ai/search/python-code-to-get-client-ip-a-6au51O4RTtO_NY2pImnyrw#0
+    """
+
+    try:
+        ext_ip_address = requests.get('https://api.ipify.org').text
+        # import socket  (built-in)
+        hostname = socket.gethostname()
+        int_ip_address = socket.gethostbyname(hostname)
+        print_info(f"get_ip_address(): \"{int_ip_address}\" for hostname \"{hostname}\" ")
+        print_info(f"get_ip_address(): \"{ext_ip_address}\" ... ")
+        return ext_ip_address
+    except Exception as e:   
+        print_error(f"get_ip_address(): {e}")
+        return None
+
+
+def get_ip_geo_coordinates(ip_address=None) -> (str, str):
+    """
+    Returns latitude and longitude for a given IP address by calling the DistanceMatrix API.
+    # CODING EXAMPLE: Return of two variable values that travel together.
+    """
+    # Validate ip_address input:
+    if not ip_address:
+        ip_address = get_ip_address()
+        print_verbose(f"get_ip_geo_coordinates(using: \"{ip_address}\" ... ")
+    if not ip_address:
+        print_error(f"get_ip_geo_coordinates() ip_address not valid/specified!")
+        return None, None
+
+    # Try getting latitude and longitude from IP address by calling the ip2geotools 
+    try:  # no API key needed for limited ipapi.co free tier:
+        url = f'https://ipapi.co/{ip_address}/json/'
+        response = requests.get(url).json()
+        latitude = response.get('latitude')
+        longitude = response.get('longitude')
+        print_info(f"get_ip_geo_coordinates({ip_address}): lat={latitude} & lng={longitude}")
+        return latitude, longitude
+    except Exception as e:   
+        print_error(f"get_ip_geo_coordinates(ipapi.co call): {e}")
+        return None, None
+
+
+def get_geo_coordinates(zip_code) -> (float, float):
+    """
+    Returns latitude and longitude for a given zip code by calling the DistanceMatrix API.
+    # CODING EXAMPLE: Return of two variable values that travel together.
+    """
+    # Validate zip_code input:
+    if not zip_code:
+        print_error(f"get_geo_coordinates() zip_code not valid/specified!")
+    
+        # OPTION C: Try getting latitude and longitude from IP address by calling the ip2geotools 
+        latitude, longitude = get_ip_geo_coordinates("")
+        print_verbose(f"get_geo_coordinates(): lat={latitude} & lng={longitude}")
+        print("MAIN DEBUGGING")
+        exit()
+    # Instead of DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
+    try:
+        DISTANCEMATRIX_API_KEY = os.environ["DISTANCEMATRIX_API_KEY"]
+    except KeyError as e:   
+        print_error(f"get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
+        pass
+
+    if not DISTANCEMATRIX_API_KEY:
+        print_error(f"get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
+        return None, None
+
+    # Construct the API URL: CAUTION: This is a paid API, so do not expose the API key in logs.
+    url = f'https://api.distancematrix.ai/maps/api/geocode/json?address={zip_code}&key={DISTANCEMATRIX_API_KEY}' 
+    print_verbose(f"get_geo_coordinates() zip: \"{zip_code}\" URL = \"{url}\" ")
+    try:
+        # import requests
+        response = requests.get(url)
+        data = response.json()    # Parse JSON response
+        #print("data=",data)
+        # data={'result': [{'address_components': [{'long_name': 'mountain view', 'short_name': 'mountain view', 'types': ['locality']}, {'long_name': 'ca', 'short_name': 'ca', 'types': ['state']}, {'long_name': 'usa', 'short_name': 'usa', 'types': ['country']}], 'formatted_address': 'Mountain View, CA, USA',
+        # 'geometry': {'location': {'lat': 37.418918000000005, 'lng': -122.07220494999999}, 'location_type': 'APPROXIMATE',
+        # 'viewport': {'northeast': {'lat': 37.418918000000005, 'lng': -122.07220494999999},
+        # 'southwest': {'lat': 37.418918000000005, 'lng': -122.07220494999999}}},
+        # 'place_id': '', 'plus_code': {}, 'types': ['locality', 'political']}], 'status': 'OK'}
+    except Exception as e:
+        print_error(f"get_geo_coordinates(\"{zip_code}\") {e}")
+        return None, None
+
+    if data['status'] == 'OK':
+        # Extract latitude and longitude
+        latitude = data['result'][0]['geometry']['location']['lat']
+        longitude = data['result'][0]['geometry']['location']['lng']
+        print_verbose(f"get_geo_coordinates(\"{zip_code}\") is at lat={latitude} & lng={longitude}")
+        return latitude, longitude
+    else:
+        print_error(f"get_geo_coordinates(\"{zip_code}\") failed: {data}")
+        return None, None
+
+
+def get_longitude_latitude() -> (float, float):
+    """
+    Returns longitude and latitude, determined various ways:
+    A. From parm --zipcode which calls the DistanceMatrix API.
+    B. From .env file containing "MY_LONGITUDE" and "MY_LATITUDE" variable values
+    C. From lookup based on user's IP address.
+    D. From hard-coded defaults.
+    """
+    # NOTE: No parms -lat & -long defined.
+
+    # OPTION A. From parm --zipcode, which calls the DistanceMatrix API.
+    if args.zip:
+        zip_code = args.zip   # zip_code = ' '.join(map(str, args.zip))   # convert list from parms to string.
+        print_trace(f"get_longitude_latitude() -zip: \"{zip_code}\" ")
+        latitude, longitude = get_geo_coordinates(zip_code)
+    else:  
+        # OPTION B. From .env file containing "MY_LONGITUDE" and "MY_LATITUDE" variable values
+        try:
+            latitude = float(os.environ["MY_LATITUDE"])
+            # latitude = get_str_from_env_file('MY_LATITUDE')
+            print_info(f"MY_LATITUDE = \"{latitude:.7f}\"  # (North/South) from .env being used. ")
+        except KeyError as e:   
+            latitude = 0
+            pass  # do below.
+
+        try:
+            longitude = float(os.environ["MY_LONGITUDE"])
+            # longitude = get_str_from_env_file('MY_LONGITUDE')
+            print_info(f"MY_LONGITUDE = \"{longitude:.7f}\"  # (East/West of GMT) from .env being used. ")
+        except KeyError as e:   
+            longitude = 0
+            pass  # do below.
+
+    if not (latitude and longitude):
+        ip_address = get_ip_address()
+        if ip_address:
+            # print_info(f"get_ip_address() = \"{ip_address}\"")
+            latitude, longitude = get_ip_geo_coordinates(ip_address)
+            print_verbose(f"get_longitude_latitude() latitude={str(latitude)} longitude={str(longitude)} from {ip_address}")
+    
+    if not (latitude and longitude):
+        # OPTION D. From hard-coded default values (for demos of how other parts of this program runs)
+        latitude = 34.123
+        print_warning(f"get_longitude_latitude() latitude={latitude:.7f} from default!")
+        longitude = -104.322
+        print_warning(f"get_longitude_latitude() longitude={longitude:.7f} from default!")
+
+    if latitude and longitude:
+        # format response:
+        latitude_direction = "North" if latitude >= 0 else "South"
+        longitude_direction = "West" if longitude >= 0 else "East"
+        print_info(f"get_longitude_latitude() latitude={latitude:.7f} {latitude_direction}, longitude={longitude:.7f} {longitude_direction}")
+        return latitude, longitude
+    else:
+        print_error("get_longitude_latitude() failed to get values!")
+        return None, None
 
 
 #### SECTION 10. Azure cloud core utilities:
 
 
-def use_az_dev_acct(az_acct_name) -> object:
+def get_acct_credential() -> object:
     """
-    Returns an Azure cloud credential object for the given account name
+    Returns an Azure cloud credential object for the given user account name (email)
     for local development after CLI:
-    az cloud set -n AzureCloud   // return to Public Azure.
+    az cloud set -n AzureCloud   # return to Public Azure.
     az login
     """
+
+    if AZURE_ACCT_NAME:  # defined by parameter:
+        print_info(f"-u or -user \"{AZURE_ACCT_NAME}\"  # (AZURE_ACCT_NAME) being used.")
+        my_acct_name = AZURE_ACCT_NAME
+        pass   # to get credential object
+    else:   # see if .env file has a value:
+        try:
+            my_acct_name = os.environ["AZURE_ACCT_NAME"]
+            print_info(f"AZURE_ACCT_NAME = \"{my_acct_name}\"  # from .env file being used.")
+        except Exception as e:
+            print_error(f"-u or -user / AZURE_ACCT_NAME in .env not provided for get_acct_credential()")
+            handle_fatal_exit()
+
     try:
         credential = DefaultAzureCredential()
         #blob_service_client = BlobServiceClient(
         #    account_url="https://{az_acct_name}.blob.core.windows.net",
         #    credential=credential
         #)
-        print_info(f"use_az_dev_acct(credential: \"{my_acct_name}\")")
+        print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
         return credential
             # <azure.identity._credentials.default.DefaultAzureCredential object at 0x106be6ba0>
     except blob_service_client.exceptions.HTTPError as errh:
@@ -784,6 +1011,7 @@ def get_user_principal_id(credential) -> str:
     F. DataOps to regularly backup and rotate secrets, manage log storage. Data governance. Migrate data.
     """
 
+
 def use_app_credential(tenant_id, client_id, client_secret) -> object:
     """
     Returns a credential object after app registration
@@ -797,7 +1025,45 @@ def use_app_credential(tenant_id, client_id, client_secret) -> object:
         return None
 
 
-def register_subscriber_providers(credential, subscription_id) -> bool:
+def get_azure_subscription_id(credential) -> str:
+    """
+    Returns subscription ID string from credential object.
+    Equivalent of CLI to list: az account show --query id --output tsv
+    Portal: https://portal.azure.com/#@jetbloom.com/resource/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/overview
+    """
+    if AZURE_SUBSCRIPTION_ID:  # defined by parameter:
+        print_info(f"-sub or -subscription \"{AZURE_SUBSCRIPTION_ID}\"  # (AZURE_SUBSCRIPTION_ID) being used.")
+        return AZURE_SUBSCRIPTION_ID
+    else:   # see if .env file has a value:
+        print_trace(f"get_azure_subscription_id( \"{str(credential)}\" ")
+        try:
+            subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
+            print_info(f"AZURE_SUBSCRIPTION_ID = \"{subscription_id}\"  # from .env file being used.")
+            return subscription_id
+        except Exception as e:
+            print_fail(f"-sub or -subscription / AZURE_SUBSCRIPTION_ID in .env not defined for get_azure_subscription_id()")
+            pass  # to below to get a subscription_id
+        finally:
+            pass
+
+    # Authenticate using Azure CLI credentials
+    # credential = AzureCliCredential()  <- from function input.
+
+    # Initialize the SubscriptionClient:
+    # from azure.identity import AzureCliCredential
+    # from azure.mgmt.resource import SubscriptionClient
+    subscription_client = SubscriptionClient(credential)
+
+    # List all subscriptions and print their IDs and display names
+    for subscription in subscription_client.subscriptions.list():
+        print(f"Subscription Name: {subscription.display_name}, ID: {subscription.subscription_id}")
+    # PROTIP: Pick the first one to use:
+    subscription_id = subscription.subscription_id
+    print_info(f"get_azure_subscription_id(): \"{subscription_id}\" ")
+    return subscription_id 
+
+
+def register_subscription_providers(credential, subscription_id) -> bool:
     """
     Ensure providers are registered for the Subscription ID provided,
     which requires getting the long (300+) list of providers
@@ -829,7 +1095,7 @@ def register_subscriber_providers(credential, subscription_id) -> bool:
         # Get all providers and their registration states:
         all_providers = {provider.namespace: provider.registration_state for provider in resource_client.providers.list()}
 
-        print_heading(f"register_subscriber_providers() {len(all_providers)}:")
+        print_heading(f"register_subscription_providers() {len(all_providers)}:")
         for provider in required_providers:
             reg_state = all_providers.get(provider, None)
             if reg_state != "Registered":  # Register providers if not registered:
@@ -838,11 +1104,10 @@ def register_subscriber_providers(credential, subscription_id) -> bool:
                     # NOTE: If a provider is in the “Registering” state, you don’t need to wait for all regions to complete—resource creation can proceed as soon as the region you need is ready.
             else:
                 print_trace(f"   \"{provider}\" already registered.")
-
         return True
 
     except Exception as e:
-        print_error(f"register_subscriber_providers() ERROR: {e}")
+        print_error(f"register_subscription_providers() ERROR: {e}")
         return False
 
 
@@ -857,6 +1122,7 @@ def get_tenant_id() -> str:
             az account show --query tenantId -o tsv
     The Tenant ID uniquely identifies the Microsoft Entra (formerly Azure AD) directory you use.
     Obtain from Portal at: https://portal.azure.com/#view/Microsoft_AAD_IAM/TenantProperties.ReactView
+    Organization ID at https://portal.azure.com/#view/Microsoft_AAD_IAM/DirectorySwitchBlade/subtitle/
     """
     try:
         tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
@@ -871,8 +1137,8 @@ def get_tenant_id() -> str:
         if tenant_id:
             print_info(f"get_tenant_id(): \"{tenant_id}\"")
             return tenant_id
-   
-   
+
+
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great circle distance between two points 
@@ -891,7 +1157,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     r = 6371  # Radius of earth in kilometers
     return c * r   
 
-def pick_closest_region() -> str:
+def closest_az_region(latitude: float, longitude: float) -> str:
     """
     This identifies the Azure region/location for a given geo longitude and latitude.
     based on the ping speed and distance from each Azure region.
@@ -899,32 +1165,8 @@ def pick_closest_region() -> str:
     WARNING: The variable name "location" is reserved by Azure for its current region name.
     PROTIP: Notice how variables are defined with float and integers hints.
     """
-    # First,  use the AZURE_LOCATION parameter from CLI calls:
-    # Second, use the AZURE_LOCATION variable in .env file:
-    # Third,  use the geo lookup based on MY_LATITUDE (North/South) and MY_LONGITUDE (East/West of GMT)
-    #try:
-    #    my_location = os.environ["AZURE_LOCATION"]  # EntraID
-    #    print_info(f"-location (AZURE_LOCATION from .env): \"{my_location}\"")
-    #    return my_location
-    #except KeyError as e:   
-    #    pass  # do below.
-
-    # TODO:
-    # print_info(f"-lat \"{latitude}\"  # (North/South) from parms being used.")
-    # print_info(f"-long (MY_LONGITUDE West/East of GMT) from .env): \"{longitude}\"")
-    try:
-        latitude = float(os.environ["MY_LATITUDE"])
-        print_info(f"MY_LATITUDE = \"{latitude}\"  # (North/South) from .env being used. ")
-    except KeyError as e:   
-        pass  # do below.
-
-    try:
-        longitude = float(os.environ["MY_LONGITUDE"])
-        print_info(f"MY_LONGITUDE = \"{longitude}\"  # (East/West of GMT) from .env being used. ")
-    except KeyError as e:   
-        pass  # do below.
-
-    if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+    # CODING EXAMPLE: Ensure valid inputs into function:
+    if not (-90 <= float(latitude) <= 90) or not (-180 <= float(longitude) <= 180):
         print("Error: Invalid coordinates. Latitude must be between -90 and 90, and longitude between -180 and 180.")
         return
 
@@ -984,7 +1226,7 @@ def pick_closest_region() -> str:
         "norwayeast": (59.913, 10.752),             # Oslo
         "norwaywest": (60.391, 5.322),              # Bergen
     }  # This needs to be updated occassionally.
-    # print_trace(f"pick_closest_region(): from among {len(AZURE_REGIONS.items())} regions")
+    # print_trace(f"closest_az_region(): from among {len(AZURE_REGIONS.items())} regions")
         # Equivalent of CLI: az account list-locations --output table --query "length([])" 
         # Equivalent of CLI: az account list-locations --query "[?contains(regionalDisplayName, '(US)')]" -o table
         # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
@@ -1002,9 +1244,9 @@ def pick_closest_region() -> str:
     # Sort by distance and return the n closest:
     n:int = 3
     closest_regions = sorted(distances, key=lambda x: x[1])[:n]
-    print_verbose(f"pick_closest_region({n}:): {closest_regions}")
+    print_verbose(f"closest_az_region({n}:): {closest_regions}")
     closest_region = closest_regions[0][0]  # the first region ID in the list
-    print_info(f"pick_closest_region(of {len(AZURE_REGIONS.items())} in Azure:): {closest_region}")
+    print_info(f"closest_az_region(of {len(AZURE_REGIONS.items())} in Azure:): \"{closest_region}\" ")
     
     return closest_region
 
@@ -1028,6 +1270,7 @@ def obtain_storage_object(credential, subscription_id) -> object:
         storage_client = StorageManagementClient(
             credential=credential,
             subscription_id=subscription_id,
+            # api_version="2024-01-01" 
             #resource_group=resource_group,
             #storage_account_name=storage_account_name,
             #location=my_location
@@ -1040,11 +1283,12 @@ def obtain_storage_object(credential, subscription_id) -> object:
 
 
 
-def create_storage_account(credential, subscription_id, resource_group_name, my_location) -> str:
+def create_storage_account(credential, subscription_id, resource_group_name, new_location) -> str:
     """
     Returns an Azure storage account object for the given account name
     At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
     Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
+    az storage account create --name mystorageacct --resource-group mygroup --location eastus --sku Standard_LRS --kind StorageV2 --api-version 2024-08-01
     # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
         See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
     # TODO: PrivateLink endpoints
@@ -1057,17 +1301,20 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
     # Fetch current account properties
     storage_client = obtain_storage_object(credential, subscription_id)
     if not storage_client:
-        print_verbose(f"obtain_storage_object(): {storage_client}")
-        print_error("create_storage_account(): failed to fetch storage_client")
+        print_error("create_storage_account(): obtain_storage_object() failed to fetch storage_client! ")
         exit(9)
+    else:  # redundant
+        print_trace(f"create_storage_account(): {storage_client}")
 
-    try:
-        STORAGE_ACCOUNT_NAME
-    except NameError:
-        pass
-    else:  # STORAGE_ACCOUNT_NAME is defined:
-        print_info(f"create_storage_account() name: \"{STORAGE_ACCOUNT_NAME}\" from parm ")
+    if STORAGE_ACCOUNT_NAME:  # defined by parameter:
+        print_info(f"--storage \"{STORAGE_ACCOUNT_NAME}\"  # (STORAGE_ACCOUNT_NAME) from parms being used.")
         return STORAGE_ACCOUNT_NAME
+    try:
+        storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
+        print_info(f"STORAGE_ACCOUNT_NAME = \"{STORAGE_ACCOUNT_NAME}\"  # from .env file being used.")
+        return storage_account_name
+    except KeyError as e:
+        pass
 
     # WARNING: No underlines or dashes in storage account name up to 24 characters:
     fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
@@ -1075,11 +1322,13 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
     # Max. my_location is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
     storage_account_name = f"{my_location}{date_str}"  # no dashes/underlines
        # Example: STORAGE_ACCOUNT_NAME="germanywestcentral-2504"
+    # Alternative: STORAGE_ACCOUNT_NAME = f"pythonazurestorage{random.randint(1,100000):05}"
+    print_info(f"create_storage_account() considering name: \"{storage_account_name}\" ")
 
     try:
         # Fetch current storage account properties:
         account_props = storage_client.storage_accounts.get_properties(resource_group_name, storage_account_name)
-        print_verbose(f"create_storage_account(): {account_props}")
+        print_verbose(f"create_storage_account() properties: {account_props}")
     except Exception as e:
         print_verbose(f"create_storage_account(): {e}")
         pass  # to create storage account below
@@ -1090,10 +1339,12 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
             print_verbose(f"Storage Account: {account.name}, Location: {account.location}")
         return storage_account_name
 
-    # Define storage account parameters:
+    # CAUTION: API version needs update occassionally:
+    # See https://learn.microsoft.com/en-us/python/api/azure-mgmt-storage/azure.mgmt.storage.storagemanagementclient?view=azure-python
     parameters = {
-        "location": my_location,
+        "location": new_location,
         "kind": "StorageV2",
+        "api_version": "2024-01-01",
         "sku": {"name": "Standard_LRS"},
         "minimum_tls_version": "TLS1_2",
         "deleteRetentionPolicy": {
@@ -1103,18 +1354,22 @@ def create_storage_account(credential, subscription_id, resource_group_name, my_
     }  # LRS = Locally-redundant storage
     # TODO: Set soft delete policies, 
     # For update: https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
+    # https://learn.microsoft.com/en-us/rest/api/storagerp/storage-accounts/create?view=rest-storagerp-2024-01-01&tabs=HTTP
     try:  # Create the storage account:
         poller = storage_client.storage_accounts.begin_create(
             resource_group_name=resource_group_name,
             account_name=storage_account_name,
+            api_version="2024-01-01",
             parameters=parameters
-        )        
+        )
         # Wait for completion:
         account_result = poller.result()
         print_info(f"create_storage_account(\"{account_result.name}\") created!")
         return account_result  # storage_account_name
     except Exception as e:
         print_error(f"create_storage_account(): {e}")
+        # FIXME: api_version="2024-03-01" -> API version 2024-03-01 does not have operation group 'storage_accounts' 
+        # See https://www.perplexity.ai/search/azure-api-version-2024-03-01-d-7aatmHRXQ32L0PF3zaraxg#0
         return None
 
 def ping_storage_acct(storage_account_name) -> str:
@@ -1235,7 +1490,7 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-def create_get_resource_group(credential, resource_group_name, my_location, subscription_id) -> str:
+def create_get_resource_group(credential, resource_group_name, new_location, subscription_id) -> str:
     """
     Create Resource Group if the resource_group_name is not already defined.
     Return json object such as {'additional_properties': {}, 'id': '/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/az-keyvault-for-python-250413', 'name': 'az-keyvault-for-python-250413', 'type': 'Microsoft.Resources/resourceGroups', 'properties': <azure.mgmt.resource.resources.v2024_11_01.models._models_py3.ResourceGroupProperties object at 0x1075ec1a0>, 'location': 'westus', 'managed_by': None, 'tags': None}
@@ -1273,8 +1528,9 @@ def create_get_resource_group(credential, resource_group_name, my_location, subs
 
         # Provision the resource group:
         rg_result = resource_client.resource_groups.create_or_update(
-            resource_group_name, {"location": my_location}
+            resource_group_name, {"location": new_location}
         )
+        print_info(f"create_get_resource_group() new resource_group_name: \"{resource_group_name}\"")
         return rg_result
     except Exception as e:
         print_error(f"create_get_resource_group() {str(rg_result)}")
@@ -1315,19 +1571,15 @@ def define_keyvault_name(my_location) -> str:
     except KeyError as e:
         pass
 
-    # With the longest region name being 18:
+    # TODO: Calcuate how many characters can fit within 24 character limit.
+    # With the longest region name being 18, such as "westcentralus-fa5bdb":
     keyvault_name = f"{my_location}-{uuid.uuid4().hex[:6]}"
-        # keyvault_name = f"kv-{uuid.uuid4().hex[:8]}"
-        # TODO: Calcuate how many characters can fit within 24 character limit.
-
-    # Alternative: 
-    # Commented out prefix takes too much room from the 24-char limit: 
+        # So no room for prefix "kv-" as in
     #    my_keyvault_root = os.environ["AZURE_KEYVAULT_ROOT_NAME"]
     #except KeyError as e:
     #    my_keyvault_root = "kv"
-    # keyvault_name = f"{my_keyvault_root}-{my_location}-{get_log_datetime()}"
+    # Also no room for both: "{my_keyvault_root}-{my_location}-{get_log_datetime()}"
         # PROTIP: Define datestamps Timezone UTC: https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
-        # EX: kv-westus-2504210416UTC  # max length: 24 characters
     return keyvault_name
 
 
@@ -1369,8 +1621,9 @@ def check_keyvault(credential, keyvault_name, vault_url) -> int:
 def create_keyvault(credential, subscription_id, resource_group, keyvault_name, location, tenant_id, user_principal_id) -> object:
     """
     # 1. Ensure the credential is for a service principal with Key Vault Contributor or Contributor RBAC role assignments.
-    # Equivalent to CLI: az keyvault create --name "{$keyvault_name}" -g "${resc_group}" --enable-rbac-authorization
+    # Equivalent to CLI: az keyvault create --name "{$keyvault_name}" -g "${resc_group}" --enable-rbac-authorization 
     # 2. Create the Key Vault using azure-mgmt-keyvault
+    Alternative is https://registry.terraform.io/modules/Azure/avm-res-keyvault-vault/azurerm/latest
     """
     resource_client = ResourceManagementClient(credential, subscription_id)
     if not resource_client:
@@ -1470,37 +1723,33 @@ if __name__ == "__main__":
     #### STAGE 1 - Show starting environment:
 
     print_info(f"Started: {get_user_local_time()}, in logs: {get_log_datetime()} ")
-    print_info(f"Started: {get_mem_used()} MiB being used.")
+    print_info(f"Started: {get_mem_used()} MiB RAM being used.")
+    print_info(f"Started: {get_disk_free()} GB disk space free.")
+
 
     #### STAGE 2 - Load environment variables, Azure Account:
+
 
     open_env_file(ENV_FILE)
     macos_sys_info()
 
+
     #### STAGE 3 - Load Azure environment variables, Azure Account:
 
-    # TODO: Fill in values from parms, .env:
-    my_acct_name = os.environ["AZURE_ACCT_NAME"]
-    my_credential=use_az_dev_acct(my_acct_name)
-    
-    # if AZURE_USER_PRINCIPAL_ID:
-    #    my_user_principal_id = os.environ["AZURE_USER_PRINCIPAL_ID"]
+
+    my_credential = get_acct_credential()
     my_user_principal_id = get_user_principal_id(my_credential)
-    print_info(f"get_user_principal_id(): {my_user_principal_id} ...")
-
-    # Equivalent of CLI to list: az account show --query id --output tsv
-    my_subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
-        # Equivalent of CLI: az account show --query tenantId --output tsv
-        # https://portal.azure.com/#@jetbloom.com/resource/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/overview
-    register_subscriber_providers(my_credential, my_subscription_id)
-    
-    #### STAGE 4 - Azure Tenant ID from making a subprocess call of CLI from within Python:
-
+    my_subscription_id = get_azure_subscription_id(my_credential)
+    register_subscription_providers(my_credential, my_subscription_id)
     my_tenant_id = get_tenant_id()
 
-    #### STAGE 5 - Azure Resource Group for Azure Key Vault at a location:
-    
-    my_location = pick_closest_region()
+    longitude, latitude = get_longitude_latitude() # from parms or .env file calling get_geo_coordinates()
+    my_location = closest_az_region(longitude, latitude)
+
+
+    #### STAGE 4 - Azure Resource Group for Azure Key Vault at a location:
+
+
     if KEYVAULT_NAME:
         my_resource_group = KEYVAULT_NAME
         my_keyvault_name = KEYVAULT_NAME
@@ -1508,16 +1757,17 @@ if __name__ == "__main__":
         my_keyvault_name = define_keyvault_name(my_location)
         my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
         # TODO: Add tags to resource group.
-    my_storage_account_name = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
-    # ping_storage_acct(my_storage_account_name)
-    # measure_http_latency(my_storage_account_name, attempts=5)
-
     vault_url = f"https://{my_keyvault_name}.vault.azure.net"
     rc = check_keyvault(my_credential, my_keyvault_name, vault_url)
     if rc is True: 
         print_verbose(f"Key Vault \"{my_keyvault_name}\" already exists.")
     if rc is False:  # False (does not exist), so create it:
         create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
+
+    # my_storage_account_name = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
+    # ping_storage_acct(my_storage_account_name)
+    # measure_http_latency(my_storage_account_name, attempts=5)
+    exit()
 
     print_wall_times()
     print("DEBUGGING EXIT")
