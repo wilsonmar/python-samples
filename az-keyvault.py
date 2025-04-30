@@ -4,11 +4,14 @@
 """az-keyvault.py at https://github.com/wilsonmar/python-samples/blob/main/az-keyvault.py
 
 STATUS: working on macOS Sequoia 15.3.1
+No known vulnerabilities found by pip-audit -r requirements.txt
+ruff check az-keyvault.py
 """
 
 #### SECTION 01. Metadata about this program file:
 
-__last_commit__ = "v006 parms :az-keyvault.py"
+__commit_date__ = "2025-04-29"
+__last_commit__ = "v008 + ai svc globals, client, lang detection :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -80,6 +83,7 @@ uv python install 3.12
     python-dotenv
 
     azure-functions
+    azure-ai-contentsafety
     azure-ai-projects 
     azure-ai-inference   # instead of azure-ai-foundry
     azure-identity
@@ -90,16 +94,18 @@ uv python install 3.12
     azure-mgmt-resource
     azure-mgmt-storage
     azure-storage-blob
-    pytz
-    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    azure-ai-textanalytics==5.3.0
+    click
     flask
     matplotlib   # or plotly
-    pillow
     numpy
-    pythonping
-    psutil  #  psutil-7.0.0
-    uuid
+    pillow
     platform   # https://docs.python.org/3/library/platform.html
+    psutil  #  psutil-7.0.0
+    pythonping
+    pytz
+    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    uuid
     # NOT msgraph-core           # for msgraph.core.GraphClient
 
 source .venv/bin/activate
@@ -139,25 +145,20 @@ std_strt_timestamp = time.monotonic()
 import argparse
 import base64
 # import boto3  # for aws python
-from contextlib import redirect_stdout
-import io
+from dotenv import load_dotenv   # install python-dotenv
 import json
 import logging   # see https://realpython.com/python-logging/
 import math
-from typing import Dict, List, Tuple
 import os
 import pathlib
 from pathlib import Path
+import platform # https://docs.python.org/3/library/platform.html
 import pwd                # https://www.geeksforgeeks.org/pwd-module-in-python/
-import signal
 import site
 import shutil     # for disk space calcs
 import socket
 import subprocess
 import sys
-import platform
-import random  # for UUID and other random number generation
-from tokenize import Number
 std_stop_timestamp = time.monotonic()
 
 
@@ -166,33 +167,33 @@ std_stop_timestamp = time.monotonic()
 xpt_strt_timestamp =  time.monotonic()
 try:
     import argparse
-    from azure.mgmt.resource import ResourceManagementClient
+    from azure.ai.textanalytics import TextAnalyticsClient
+    from azure.core.credentials import AzureKeyCredential
+    from azure.core.exceptions import ClientAuthenticationError
+    import azure.functions as func
     from azure.identity import DefaultAzureCredential
     from azure.identity import ClientSecretCredential
+    from azure.identity import AzureCliCredential
     from azure.keyvault.secrets import SecretClient
-    import azure.functions as func
-    from azure.mgmt.keyvault import KeyVaultManagementClient
     from azure.mgmt.resource import ResourceManagementClient
+    from azure.mgmt.keyvault import KeyVaultManagementClient
     from azure.mgmt.resource import SubscriptionClient
-    from azure.storage.blob import BlobServiceClient
     from azure.mgmt.storage import StorageManagementClient
     # from msgraph.core import GraphClient   # doesn't work if included?
     # Microsoft Authentication Library (MSAL) for Python
     # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
     # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
-    from dotenv import load_dotenv
-    import pytz   # pytz-2021.3 for time zone handling
-    import urllib.parse
+    #import click
     from pathlib import Path
-    import platform # https://docs.python.org/3/library/platform.html
     import psutil  #  psutil-5.9.5
     from pythonping import ping
+    import pytz
     import requests
     import uuid
 except Exception as e:
     print(f"Python module import failed: {e}")
     # pyproject.toml file exists
-    print(f"Please activate your virtual environment:\n")
+    print("Please activate your virtual environment:\n")
     print("    source .venv/bin/activate")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
@@ -225,7 +226,7 @@ class bcolors:  # ANSI escape sequences:
 
 
 def print_separator():
-    """ A function to put a blank line in CLI output. Used in case the technique changes throughout this code. 
+    """A function to put a blank line in CLI output. Used in case the technique changes throughout this code.
     """
     print(" ")
 
@@ -286,10 +287,14 @@ def print_trace(text_in):  # displayed as each object is created in pgm:
             print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
 
 def no_newlines(in_string):
-    """ Strip new line from in_string
+    """Strip new line from in_string
     """
     return ''.join(in_string.splitlines())
 
+def print_secret(in_string):
+    """TODO: Display secret in shortened string.
+    """
+    return in_string
 
 def print_samples():
     """Display what different type of output look like.
@@ -309,79 +314,6 @@ def print_samples():
     return True
 
 
-def get_str_from_env_file(key_in) -> str:
-    """Return a value of string data type from OS environment or .env file
-    (using pip python-dotenv)
-    """
-    # TODO: Default ENV_FILE name:
-    ENV_FILE="python-samples.env"
-
-    env_var = os.environ.get(key_in)
-    if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
-        return None
-    else:
-        # PROTIP: Display only first characters of a potentially secret long string:
-        if len(env_var) > 5:
-            print_trace(key_in + "=\"" + str(env_var[:5]) +" (remainder removed)")
-        else:
-            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
-        return str(env_var)
-
-
-
-#### SECTION 08: Python script control utilities:
-
-# See https://bomonike.github.io/python-samples/#ParseArguments
-
-def do_clear_cli():
-    if clear_cli:
-        import os
-        # QUESTION: What's the output variable?
-        lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
-
-def set_cli_parms(count):
-    """Present menu and parameters to control program
-    """
-    import click
-    @click.command()
-    @click.option('--count', default=1, help='Number of greetings.')
-    #@click.option('--name', prompt='Your name',
-    #              help='The person to greet.')
-    def set_cli_parms(count):
-        for x in range(count):
-            click.echo(f"Hello!")
-    # Test by running: ./python-examples.py --help
-
-
-def open_env_file(env_file) -> str:
-    """Return a Boolean obtained from .env file based on key provided.
-    """
-    # from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
-    global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-
-    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
-
-    # PROTIP: Check if .env file on global_env_path is readable:
-    if not os.path.isfile(global_env_path):
-        print_error(global_env_path+" (global_env_path) not found!")
-    #else:
-    #    print_info(global_env_path+" (global_env_path) readable.")
-
-    path = pathlib.Path(global_env_path)
-    # Based on: pip3 install python-dotenv
-    from dotenv import load_dotenv
-       # See https://www.python-engineer.com/posts/dotenv-python/
-       # See https://pypi.org/project/python-dotenv/
-    load_dotenv(global_env_path)  # using load_dotenv
-
-    # Wait until variables for print_trace are retrieved:
-    #print_trace("env_file="+env_file)
-    #print_trace("user_home_dir_path="+user_home_dir_path)
-
 
 #### SECTION 05: Parameters from call arguments:
 # USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
@@ -397,6 +329,7 @@ parser.add_argument("-z", "--zip", help="6-digit Zip code (in USA)")
 parser.add_argument("-sub", "--subscription", help="Subscription ID (for costing)")
 parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
 parser.add_argument("-st", "--storage", help="Storage Name")
+parser.add_argument("-t", "--text", help="Text input (for language detection)")
 
 # -h = --help (list arguments)
 args = parser.parse_args()
@@ -441,6 +374,10 @@ AZURE_SUBSCRIPTION_ID = args.subscription
 KEYVAULT_NAME = args.keyvault  # also used as resource group name
 STORAGE_ACCOUNT_NAME = args.storage
 
+TEXT_INPUT = args.text
+if not TEXT_INPUT:
+    TEXT_INPUT = "The quick brown fox jumps over the lazy dog"
+
 # if args.zip in get_longitude_latitude()
 
 
@@ -454,6 +391,81 @@ LIST_ALL_PROVIDERS = False
 # PROTIP: Global variable referenced within functions:
 # values obtained from .env file can be overriden in program call arguments:
  
+
+#### SECTION 08: Python script control utilities:
+
+
+# See https://bomonike.github.io/python-samples/#ParseArguments
+
+def do_clear_cli():
+    # import os
+    # QUESTION: What's the output variable?
+    lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
+
+def set_cli_parms(count):
+    """Present menu and parameters to control program
+    """
+    # import click
+    @click.command()
+    @click.option('--count', default=1, help='Number of greetings.')
+    #@click.option('--name', prompt='Your name',
+    #              help='The person to greet.')
+    def set_cli_parms(count):
+        for x in range(count):
+            click.echo("Hello!")
+    # Test by running: ./python-examples.py --help
+
+
+def open_env_file(env_file) -> str:
+    """Return a Boolean obtained from .env file based on key provided.
+    """
+    # from pathlib import Path
+    # See https://wilsonmar.github.io/python-samples#run_env
+    global user_home_dir_path
+    user_home_dir_path = str(Path.home())
+       # example: /users/john_doe
+
+    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
+
+    # PROTIP: Check if .env file on global_env_path is readable:
+    if not os.path.isfile(global_env_path):
+        print_error(global_env_path+" (global_env_path) not found!")
+    #else:
+    #    print_info(global_env_path+" (global_env_path) readable.")
+
+    path = pathlib.Path(global_env_path)
+    # Based on: pip3 install python-dotenv
+    # from dotenv import load_dotenv
+       # See https://www.python-engineer.com/posts/dotenv-python/
+       # See https://pypi.org/project/python-dotenv/
+    load_dotenv(global_env_path)  # using load_dotenv
+
+    # Wait until variables for print_trace are retrieved:
+    #print_trace("env_file="+env_file)
+    #print_trace("user_home_dir_path="+user_home_dir_path)
+
+
+def get_str_from_env_file(key_in) -> str:
+    """Return a value of string data type from OS environment or .env file
+    (using pip python-dotenv)
+    """
+    # TODO: Default ENV_FILE name:
+    ENV_FILE="python-samples.env"
+
+    env_var = os.environ.get(key_in)
+    if not env_var:  # yes, defined=True, use it:
+        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
+        return None
+    else:
+        # PROTIP: Display only first characters of a potentially secret long string:
+        if len(env_var) > 5:
+            print_trace(key_in + "=\"" + str(env_var[:5]) +" (remainder removed)")
+        else:
+            print_trace(key_in + "=\"" + str(env_var) + "\" from .env")
+        return str(env_var)
+
+
 def print_env_vars():
     """List all environment variables, one line each using pretty print (pprint)
     """
@@ -526,7 +538,7 @@ def print_wall_times():
     pgm_stop_timestamp =  time.monotonic()
     pgm_elapsed_wall_time = pgm_stop_timestamp -  pgm_strt_timestamp
     # pgm_stop_perftimestamp = time.perf_counter()
-    print_verbose(f"for whole program run:                   "+ \
+    print_verbose("for whole program run:                   "+ \
         f"{pgm_elapsed_wall_time:.4f}")
 
 
@@ -555,8 +567,8 @@ def os_platform():
     return my_platform
 
 def macos_version_name(release_in):
-    """ Returns the marketing name of macOS versions which are not available
-        from the running macOS operating system.
+    """Returns the marketing name of macOS versions which are not available
+    from the running macOS operating system.
     """
     # NOTE: Return value is a list!
     # This has to be updated every year, so perhaps put this in an external library so updated
@@ -761,7 +773,7 @@ def handle_fatal_exit():
     sys.exit(9)
 
 
-#### SECTION 10. Cloud utility APIs:
+#### SECTION 10. Geo utility APIs:
 
 
 def get_ip_address() -> str:
@@ -771,7 +783,6 @@ def get_ip_address() -> str:
     from the user making a request to your site:
     See https://www.perplexity.ai/search/python-code-to-get-client-ip-a-6au51O4RTtO_NY2pImnyrw#0
     """
-
     try:
         ext_ip_address = requests.get('https://api.ipify.org').text
         # import socket  (built-in)
@@ -795,7 +806,7 @@ def get_ip_geo_coordinates(ip_address=None) -> (str, str):
         ip_address = get_ip_address()
         print_verbose(f"get_ip_geo_coordinates(using: \"{ip_address}\" ... ")
     if not ip_address:
-        print_error(f"get_ip_geo_coordinates() ip_address not valid/specified!")
+        print_error("get_ip_geo_coordinates() ip_address not valid/specified!")
         return None, None
 
     # Try getting latitude and longitude from IP address by calling the ip2geotools 
@@ -818,7 +829,7 @@ def get_geo_coordinates(zip_code) -> (float, float):
     """
     # Validate zip_code input:
     if not zip_code:
-        print_error(f"get_geo_coordinates() zip_code not valid/specified!")
+        print_error("get_geo_coordinates() zip_code not valid/specified!")
     
         # OPTION C: Try getting latitude and longitude from IP address by calling the ip2geotools 
         latitude, longitude = get_ip_geo_coordinates("")
@@ -828,12 +839,12 @@ def get_geo_coordinates(zip_code) -> (float, float):
     # Instead of DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
     try:
         DISTANCEMATRIX_API_KEY = os.environ["DISTANCEMATRIX_API_KEY"]
-    except KeyError as e:   
-        print_error(f"get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
+    except KeyError:   
+        print_error("get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
         pass
 
     if not DISTANCEMATRIX_API_KEY:
-        print_error(f"get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
+        print_error("get_geo_coordinates() DISTANCEMATRIX_API_KEY not specified in .env file!")
         return None, None
 
     # Construct the API URL: CAUTION: This is a paid API, so do not expose the API key in logs.
@@ -885,7 +896,7 @@ def get_longitude_latitude() -> (float, float):
             latitude = float(os.environ["MY_LATITUDE"])
             # latitude = get_str_from_env_file('MY_LATITUDE')
             print_info(f"MY_LATITUDE = \"{latitude:.7f}\"  # (North/South) from .env being used. ")
-        except KeyError as e:   
+        except KeyError:   
             latitude = 0
             pass  # do below.
 
@@ -893,7 +904,7 @@ def get_longitude_latitude() -> (float, float):
             longitude = float(os.environ["MY_LONGITUDE"])
             # longitude = get_str_from_env_file('MY_LONGITUDE')
             print_info(f"MY_LONGITUDE = \"{longitude:.7f}\"  # (East/West of GMT) from .env being used. ")
-        except KeyError as e:   
+        except KeyError:   
             longitude = 0
             pass  # do below.
 
@@ -922,6 +933,101 @@ def get_longitude_latitude() -> (float, float):
         return None, None
 
 
+def get_elevation(longitude, latitude, units='Meters', service='google' ) -> str:
+    """
+    Returns elevation in metric meters or imperial (US) feet for the given longitude and latitude
+    using the USGS (US Geologic Survey's National Map's Elevation Point Query Service Digital Elevation Model (DEM) at
+    https://apps.nationalmap.gov/epqs/ version 1.0.0 returning error!
+    https://epqs.nationalmap.gov/v1/docs
+    Alternatives: Google Earth: Provides altitude data in its desktop application.
+        Third-party tools offer elevation estimates but require manual input of coordinates:
+            Freemaptools.com, MapCoordinates.net, DaftLogic.com
+    No retries sessions as in https://www.perplexity.ai/search/python-code-to-obtain-elevatio-mtFsgRSgQXie68kzKDrVmw
+    """
+    print_trace(f"get_elevation(longitude={longitude} latitude={latitude}")
+    try:
+        # import requests
+        if service == 'freemaptools':
+            # WARNING: Freemaptools' API endpoint and parameters are undocumented here
+            # This is a hypothetical implementation
+            url = 'https://www.freemaptools.com/ajax/elevation-service.ashx'
+            params = {"lat": latitude, "lng": longitude}
+            response = requests.get(url, params=params)
+            elevation = response.json()['elevation']
+        
+        # Alternative services from search results
+        elif service == 'google':
+            url = 'https://maps.googleapis.com/maps/api/elevation/json'
+            # https://console.cloud.google.com/google/maps-apis/credentials?hl=en&project=stoked-woods-362514
+            # TODO: Get API Key from https://cloud.google.com/maps-platform => mapsplatform
+            try:
+                api_key = os.environ["GOOGLE_API_KEY"]
+            except KeyError:   
+                print_error("get_geo_cget_elevationoordinates() GOOGLE_API_KEY not specified in .env file!")
+                return None
+            params = {"locations": f"{latitude},{longitude}", "key": api_key}
+            print_trace(f"get_elevation() params={params}")
+            data = requests.get(url, params=params).json()
+            print_trace(f"get_elevation() response={data}")
+            elevation = data['results'][0]['elevation']
+        
+        elif service == 'national_map':
+            url = 'https://nationalmap.gov/epqs/pqs.php'
+            params = {'x': longitude, 'y': latitude, 'units': 'Meters', 'output': 'json'}
+            data = requests.get(url, params=params).json()
+            # FIXME: Expecting value: line 1 column 1 (char 0) 
+            elevation = data['USGS_Elevation_Point_Query_Service']['Elevation_Query']['Elevation']
+
+    except (requests.exceptions.RequestException, KeyError) as e:
+        print_error(f"get_elevation(): ERROR {e}")
+        # https://www.perplexity.ai/search/what-is-cause-of-error-expecti-K3fjy0UGQwSOivoS3YQQ9g#0
+        return None
+
+    print_info(f"get_elevation() elevation={elevation}")  # Example: 
+    return elevation if elevation != -1000000 else None
+
+# print(get_elevation(39.7392, -104.9903, service='google', api_key='YOUR_KEY'))
+
+
+#### SECTION 10. Cloud utilities:
+
+
+def measure_http_latency(storage_account_name, attempts=5) -> str:
+    """
+    Returns the HTTP latency to a storage account within the Azure cloud.
+    """
+    # import requests
+    # import time
+
+    url = storage_account_name + ".blob.core.windows.net"
+    latencies = []
+    for _ in range(attempts):
+        start = time.time()
+        try:
+            response = requests.get(url, timeout=5)
+            latency = (time.time() - start) * 1000  # ms
+            latencies.append(latency)
+        except requests.RequestException:
+            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
+            # <Code>InvalidQueryParameterValue</Code>
+            # <Message>
+            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
+            # </Message>
+            # <QueryParameterName>comp</QueryParameterName>
+            # <QueryParameterValue/>
+            # <Reason/>
+            # </Error>
+            latencies.append(None)
+
+    valid_latencies = [l for l in latencies if l is not None]
+    if valid_latencies:
+        avg_latencies = sum(valid_latencies)/len(valid_latencies)
+        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
+    else:
+        print_error(f"measure_http_latency(): requests failed to {url}")
+        return None
+
+
 #### SECTION 10. Azure cloud core utilities:
 
 
@@ -932,7 +1038,6 @@ def get_acct_credential() -> object:
     az cloud set -n AzureCloud   # return to Public Azure.
     az login
     """
-
     if AZURE_ACCT_NAME:  # defined by parameter:
         print_info(f"-u or -user \"{AZURE_ACCT_NAME}\"  # (AZURE_ACCT_NAME) being used.")
         my_acct_name = AZURE_ACCT_NAME
@@ -941,27 +1046,40 @@ def get_acct_credential() -> object:
         try:
             my_acct_name = os.environ["AZURE_ACCT_NAME"]
             print_info(f"AZURE_ACCT_NAME = \"{my_acct_name}\"  # from .env file being used.")
-        except Exception as e:
-            print_error(f"-u or -user / AZURE_ACCT_NAME in .env not provided for get_acct_credential()")
-            handle_fatal_exit()
+        except Exception:
+            print_error("-u or -user in parms or AZURE_ACCT_NAME in .env not provided in get_acct_credential()")
+            exit(9)
+
+    # TODO: For Web Applications (e.g., Flask, Django) with Azure AD Authentication.
+    # For Azure App Service (Web Apps) with Built-in Authentication
 
     try:
-        credential = DefaultAzureCredential()
-        #blob_service_client = BlobServiceClient(
+        # from azure.identity import AzureCliCredential
+        # from azure.mgmt.resource import SubscriptionClient
+        # from azure.core.exceptions import ClientAuthenticationError
+        credential = AzureCliCredential()
+        # credential = DefaultAzureCredential()
+        print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
+        subscription_client = SubscriptionClient(credential)
+        subscriptions = list(subscription_client.subscriptions.list())
+        print_verbose("User \"{my_acct_name}\" is logged in to Azure at get_acct_credential().")
+                #blob_service_client = BlobServiceClient(
         #    account_url="https://{az_acct_name}.blob.core.windows.net",
         #    credential=credential
         #)
-        print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
-        return credential
+        return credential  # as logged in to Azure.
             # <azure.identity._credentials.default.DefaultAzureCredential object at 0x106be6ba0>
+    except ClientAuthenticationError:
+        print_fail("Please run CLI command: 'az login' (with authentication) and select Subscription.")
+        exit(9)
     except blob_service_client.exceptions.HTTPError as errh:
-        print("HTTP Error:", errh)
+        print_error("get_acct_credential() HTTP Error:", errh)
     except blob_service_client.exceptions.ConnectionError as errc:
-        print("Connection Error:", errc)
+        print_error("get_acct_credential() Connection Error:", errc)
     except blob_service_client.exceptions.Timeout as errt:
-        print("Timeout Error:", errt)
+        print_error("get_acct_credential() Timeout Error:", errt)
     except blob_service_client.exceptions.RequestException as err:
-        print("Other Error:", err)
+        print_error("get_acct_credential() Other Error:", err)
     return None
 
 
@@ -1040,8 +1158,8 @@ def get_azure_subscription_id(credential) -> str:
             subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
             print_info(f"AZURE_SUBSCRIPTION_ID = \"{subscription_id}\"  # from .env file being used.")
             return subscription_id
-        except Exception as e:
-            print_fail(f"-sub or -subscription / AZURE_SUBSCRIPTION_ID in .env not defined for get_azure_subscription_id()")
+        except Exception:
+            print_fail("-sub or -subscription / AZURE_SUBSCRIPTION_ID in .env not defined for get_azure_subscription_id()")
             pass  # to below to get a subscription_id
         finally:
             pass
@@ -1128,7 +1246,7 @@ def get_tenant_id() -> str:
         tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
         print_info(f"-tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
         return tenant_id
-    except KeyError as e:   
+    except KeyError:   
         # import subprocess
         #     az    account    show    --query    tenantId    -o    tsv
         tenant_id = subprocess.check_output(
@@ -1313,7 +1431,7 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
         storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
         print_info(f"STORAGE_ACCOUNT_NAME = \"{STORAGE_ACCOUNT_NAME}\"  # from .env file being used.")
         return storage_account_name
-    except KeyError as e:
+    except KeyError:
         pass
 
     # WARNING: No underlines or dashes in storage account name up to 24 characters:
@@ -1372,7 +1490,8 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
         # See https://www.perplexity.ai/search/azure-api-version-2024-03-01-d-7aatmHRXQ32L0PF3zaraxg#0
         return None
 
-def ping_storage_acct(storage_account_name) -> str:
+
+def ping_az_storage_acct(storage_account_name) -> str:
     """
     CAUTION: This is not currently used due to "Destination Host Unreachable" error.
     Returns the ping utility latency to a storage account within the Azure cloud.
@@ -1385,44 +1504,9 @@ def ping_storage_acct(storage_account_name) -> str:
         response_text =+ f"  Packet loss: {response.packet_loss * 100:.0f}%"
         return response_text
     except Exception as e:  # such as "Destination Host Unreachable"
-        print_error(f"ping_storage_acct() ERROR: {e}")
+        print_error(f"ping_az_storage_acct() ERROR: {e}")
         return None
  
-def measure_http_latency(storage_account_name, attempts=5) -> str:
-    """
-    Returns the HTTP latency to a storage account within the Azure cloud.
-    """
-    # import requests
-    # import time
-
-    url = storage_account_name + ".blob.core.windows.net"
-    latencies = []
-    for _ in range(attempts):
-        start = time.time()
-        try:
-            response = requests.get(url, timeout=5)
-            latency = (time.time() - start) * 1000  # ms
-            latencies.append(latency)
-        except requests.RequestException:
-            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
-            # <Code>InvalidQueryParameterValue</Code>
-            # <Message>
-            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
-            # </Message>
-            # <QueryParameterName>comp</QueryParameterName>
-            # <QueryParameterValue/>
-            # <Reason/>
-            # </Error>
-            latencies.append(None)
-
-    valid_latencies = [l for l in latencies if l is not None]
-    if valid_latencies:
-        avg_latencies = sum(valid_latencies)/len(valid_latencies)
-        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
-    else:
-        print_error(f"measure_http_latency(): requests failed to {url}")
-        return None
-
 
 # def create_storage_blob():
 #     See https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-delete-python
@@ -1452,7 +1536,6 @@ def get_func_principal_id(credential, app_id, tenant_id) -> object:
     # Extract the user's email from the claims using:  user_email = client_principal.get('userDetails')
     based on https://learn.microsoft.com/en-us/answers/questions/2243286/azure-function-app-using-python-how-to-get-the-pri
     """
-
     app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
     return app
 
@@ -1540,7 +1623,7 @@ def create_get_resource_group(credential, resource_group_name, new_location, sub
 
 
 def delete_resource_group(credential, resource_group_name, subscription_id) -> int:
-    """ Equivalent of CLI: az group delete -n PythonAzureExample-rg  --no-wait
+    """Equivalent of CLI: az group delete -n PythonAzureExample-rg  --no-wait
     """
     try:
         resource_client = ResourceManagementClient(credential, subscription_id)
@@ -1556,6 +1639,24 @@ def delete_resource_group(credential, resource_group_name, subscription_id) -> i
         return False
 
 
+def create_content_safety_policy(credential, subscription_id, resource_group_name, keyvault_name) -> bool:
+    """
+    CAUTION: Before running this function, manual steps need to be taken in the GUI Portal to obtain the CONTENT_SAFETY_KEY and ENDPOINT:
+    https://microsoftlearning.github.io/mslearn-ai-services/Instructions/Exercises/05-implement-content-safety.html
+    """
+    # pip install azure-ai-contentsafety
+    # Set endpoint and key as environment variables for security:
+    # export/setx CONTENT_SAFETY_KEY "YOUR_CONTENT_SAFETY_KEY"
+    # export/setx CONTENT_SAFETY_ENDPOINT "YOUR_CONTENT_SAFETY_ENDPOINT"
+
+    # import os
+    # from azure.ai.contentsafety import ContentSafetyClient
+    # from azure.core.credentials import AzureKeyCredential
+    # from azure.core.exceptions import HttpResponseError
+    # from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
+
+
+
 def define_keyvault_name(my_location) -> str:
     """
     Come up with a globally unique keyvault name that's 24 characters long.
@@ -1568,7 +1669,7 @@ def define_keyvault_name(my_location) -> str:
         keyvault_name = os.environ["AZURE_KEYVAULT_NAME"]  # EntraID
         print_info(f"AZURE_KEYVAULT_NAME = \"{keyvault_name}\"  # from .env file being used.")
         return keyvault_name
-    except KeyError as e:
+    except KeyError:
         pass
 
     # TODO: Calcuate how many characters can fit within 24 character limit.
@@ -1624,6 +1725,7 @@ def create_keyvault(credential, subscription_id, resource_group, keyvault_name, 
     # Equivalent to CLI: az keyvault create --name "{$keyvault_name}" -g "${resc_group}" --enable-rbac-authorization 
     # 2. Create the Key Vault using azure-mgmt-keyvault
     Alternative is https://registry.terraform.io/modules/Azure/avm-res-keyvault-vault/azurerm/latest
+    Based on https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Labfiles/02-ai-services-security/Python/keyvault_client/keyvault-client.py
     """
     resource_client = ResourceManagementClient(credential, subscription_id)
     if not resource_client:
@@ -1708,11 +1810,132 @@ def delete_keyvault_secret(credential, keyvault_name, secret_name) -> bool:
         if secret_client:
             rp_secret = secret_client.delete_secret(secret_name)
             if rp_secret:
+                print_info(f"delete_keyvault_secret(\"{secret_name}\") done!")
                 return True
+        print_error(f"delete_keyvault_secret() {secret_client} failed!")
         return False
     except Exception as e:
-       print(f"delete_keyvault_secret() ERROR: {e}")
+       print_error(f"delete_keyvault_secret() ERROR: {e}")
        return False
+
+
+def get_ai_svc_globals() -> bool:
+    """ Load Configuration from environment variables in .env file
+    See https://microsoftlearning.github.io/mslearn-ai-services/Instructions/Exercises/01-use-azure-ai-services.html
+    Manually follow https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Labfiles/01-use-azure-ai-services/Python/sdk-client/sdk-client.py
+    1. Use the Edge browser to htps://portal.azure.com and sign in using the Microsoft account associated with your Azure subscription.
+    2. In the top search bar, search for "Azure AI services" at https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/AIServices
+    3. Select the blue "Azure AI services multi-service account" at https://portal.azure.com/#create/Microsoft.CognitiveServicesAllInOne to create a new resource:
+       1. Subscription: Your Azure subscription
+       2. Resource group: Choose or create a resource group (if you are using a restricted subscription, you may not have permission to create a new resource group - use the one provided)
+       3. Region: Choose any available region
+       4. Name: Enter a unique name (such as "ai-instance-250429a") up to 64 chars with dashes.
+       5. Pricing tier: "Standard S0"
+       6. Select the required checkboxes 
+       7. Click "Create" and "Create" to create the resource for "Your deployment is complete".
+       8. Click "Go to resource" then click the "Azure AI services multi-service account" name at
+       https://portal.azure.com/#@jetbloom.com/resource/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/westcentralus-42ad1a/providers/Microsoft.CognitiveServices/accounts/ai-instance-250429a/overview
+       9. Copy the Endpoint to copy and paste in your .env file:
+       AI_SERVICE_ENDPOINT="https://ai-instance-250429a.cognitiveservices.azure.com/"
+       10. Click "Click here to manage keys", "Show Keys", "KEY 1" to copy and paste in your .env file:
+       AI_SERVICE_KEY="12345..." KEY2 can also be used.
+       11. Copy the Location and (for example) paste into AZURE_LOCATION="centralus"
+    """
+    global ai_svc_resc
+    global ai_endpoint
+    global ai_key
+    # TODO: ai_svc_name from parms.
+    try:
+        # Get Configuration Settings:
+        load_dotenv()   #from dotenv import load_dotenv
+
+        # TODO: retrieve based on ai_svc_name in
+
+        #import os
+        ai_svc_resc = os.getenv('AI_SERVICE_RESOURCE')
+        # These are associated with the resource:
+        ai_endpoint = os.getenv('AI_SERVICE_ENDPOINT')
+        ai_key = os.getenv('AI_SERVICE_KEY')
+        print_info(f"get_ai_svc_globals() ai_svc_resc: \"{ai_svc_resc}\" endpoint: \"{ai_endpoint}\" ")
+            # CAUTION: Don't display secure ai_key.
+        return True
+
+    except Exception as e:
+       print_error(f"get_ai_svc_globals() ERROR: {e}")
+       return False
+
+
+def input_az_ai_language() -> str:
+    """ Returns language code.
+    See https://microsoftlearning.github.io/mslearn-ai-services/Instructions/Exercises/01-use-azure-ai-services.html
+    Referencing https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Labfiles/01-use-azure-ai-services/Python/sdk-client/sdk-client.py
+    """
+    # TODO: Get language from parameters instead of user input:
+    try:
+        # Get user input (until they enter "quit")
+        userText =''
+        while userText.lower() != 'quit':
+            userText = input('\nEnter some text ("quit" to stop)\n')
+            if userText.lower() != 'quit':
+                language = GetLanguage(userText)
+                print_info(f"input_az_ai_language()() Language: {language}")
+        return language
+    except Exception as e:
+        print_error(f"input_az_ai_language() ERROR: {e}")
+            # ERROR: name 'GetLanguage' is not defined 
+        return None
+
+
+# Alternative: get_az_ai_textanalytics_rest_client() based on rest-client.py
+def get_az_ai_textanalytics_sdk_client() -> object:
+    """ Create client using global endpoint and key
+    See https://microsoftlearning.github.io/mslearn-ai-services/Instructions/Exercises/01-use-azure-ai-services.html
+    Referencing https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Labfiles/01-use-azure-ai-services/Python/sdk-client/sdk-client.py
+    """
+    get_ai_svc_globals()  # retrieves ai_endpoint, ai_key, ai_svc_resc
+    try:
+        #from azure.ai.textanalytics import TextAnalyticsClient
+        #from azure.core.credentials import AzureKeyCredential
+        credential = AzureKeyCredential(ai_key)
+        client = TextAnalyticsClient(endpoint=ai_endpoint, credential=credential)
+        print_verbose(f"get_az_ai_textanalytics_sdk_client() client: \"{client}\" ")
+        return client
+    except Exception as e:
+       print_error(f"get_az_ai_textanalytics_sdk_client() ERROR: {e}")
+       return None
+
+
+def detect_language_using_az_ai_sdk_client(ai_svc_name,text_in) -> str:
+    # TODO: Override ai_language = os.getenv('AI_LANGUAGE')
+    client = get_az_ai_textanalytics_sdk_client()
+    try:
+        # Call the service to get the detected language:
+        detectedLanguage = client.detect_language(documents = [text_in])[0]
+        print_info(f"detect_language_using_az_ai_sdk_client({len(text_in)} chars) lang: \"{detectedLanguage.primary_language.name}\" " )
+        return detectedLanguage.primary_language.name
+            # Example: "English"
+    except Exception as e:
+        print_error(f"detect_language_using_az_ai_sdk_client() ERROR: {e}")
+            # ERROR: No connection adapters were found for '/:analyze-text???/language&api-version=2023-04-01' 
+        return None
+
+
+def translate_text_using_az_ai_rest_client( text_in, target_language) -> str:
+    """
+    Docs:    https://learn.microsoft.com/en-us/azure/ai-services/translator/
+    Pricing: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/translator/
+    """
+    client = get_az_ai_textanalytics_sdk_client(ai_svc_name)
+    try:
+        # Call the service to get the detected language:
+        detectedLanguage = client.detect_language(documents = [text_in])[0]
+        print_info(f"detect_language_using_az_ai_sdk_client({len(text_in)} chars) lang: \"{detectedLanguage.primary_language.name}\" " )
+        return detectedLanguage.primary_language.name
+            # Example: \"English/\"
+    except Exception as e:
+        print_error(f"detect_language_using_az_ai_sdk_client() ERROR: {e}")
+            # ERROR: No connection adapters were found for '/:analyze-text???/language&api-version=2023-04-01' 
+        return None
 
 
 #### SECTION 10. Main control loop:
@@ -1725,7 +1948,6 @@ if __name__ == "__main__":
     print_info(f"Started: {get_user_local_time()}, in logs: {get_log_datetime()} ")
     print_info(f"Started: {get_mem_used()} MiB RAM being used.")
     print_info(f"Started: {get_disk_free()} GB disk space free.")
-
 
     #### STAGE 2 - Load environment variables, Azure Account:
 
@@ -1742,12 +1964,26 @@ if __name__ == "__main__":
     my_subscription_id = get_azure_subscription_id(my_credential)
     register_subscription_providers(my_credential, my_subscription_id)
     my_tenant_id = get_tenant_id()
-
     longitude, latitude = get_longitude_latitude() # from parms or .env file calling get_geo_coordinates()
     my_location = closest_az_region(longitude, latitude)
+    #get_elevation(longitude, latitude)  # has error
 
 
-    #### STAGE 4 - Azure Resource Group for Azure Key Vault at a location:
+    #### STAGE 4 - Azure AI
+
+
+    get_ai_svc_globals()
+    ai_language = detect_language_using_az_ai_sdk_client(TEXT_INPUT)
+    exit()
+
+    # CAUTION: This costs money:
+    ai_languages = ["fr","zn"]   # French & Simplified Chinese
+    translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages)
+    print_info(f"translated_text: \"{translated_text}\"")
+
+
+
+    #### STAGE 5 - Azure Key Vault at a location:
 
 
     if KEYVAULT_NAME:
@@ -1765,7 +2001,7 @@ if __name__ == "__main__":
         create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
 
     # my_storage_account_name = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
-    # ping_storage_acct(my_storage_account_name)
+    # ping_az_storage_acct(my_storage_account_name)
     # measure_http_latency(my_storage_account_name, attempts=5)
     exit()
 
