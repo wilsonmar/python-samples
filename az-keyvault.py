@@ -11,7 +11,7 @@ ruff check az-keyvault.py
 #### SECTION 01. Metadata about this program file:
 
 __commit_date__ = "2025-04-29"
-__last_commit__ = "v008 + ai svc globals, client, lang detection :az-keyvault.py"
+__last_commit__ = "v009 + lang rest detection :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -146,6 +146,7 @@ import argparse
 import base64
 # import boto3  # for aws python
 from dotenv import load_dotenv   # install python-dotenv
+import http.client
 import json
 import logging   # see https://realpython.com/python-logging/
 import math
@@ -159,6 +160,9 @@ import shutil     # for disk space calcs
 import socket
 import subprocess
 import sys
+import urllib.request
+from urllib import request, parse, error
+import uuid
 std_stop_timestamp = time.monotonic()
 
 
@@ -315,7 +319,7 @@ def print_samples():
 
 
 
-#### SECTION 05: Parameters from call arguments:
+#### SECTION 06: Parameters from call arguments:
 # USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
 
 parser = argparse.ArgumentParser(description="Azure Key Vault")
@@ -392,7 +396,7 @@ LIST_ALL_PROVIDERS = False
 # values obtained from .env file can be overriden in program call arguments:
  
 
-#### SECTION 08: Python script control utilities:
+#### SECTION 07: Python script control utilities:
 
 
 # See https://bomonike.github.io/python-samples/#ParseArguments
@@ -476,7 +480,7 @@ def print_env_vars():
     pprint.pprint(dict(environ_vars), width = 1)
 
 
-#### SECTION 07: Time Utility Functions:
+#### SECTION 08: Time Utility Functions:
 
 
 def get_user_local_time() -> str:
@@ -773,7 +777,47 @@ def handle_fatal_exit():
     sys.exit(9)
 
 
-#### SECTION 10. Geo utility APIs:
+
+#### SECTION 10. Cloud utilities:
+
+
+def measure_http_latency(storage_account_name, attempts=5) -> str:
+    """
+    Returns the HTTP latency to a storage account within the Azure cloud.
+    """
+    # import requests
+    # import time
+
+    url = storage_account_name + ".blob.core.windows.net"
+    latencies = []
+    for _ in range(attempts):
+        start = time.time()
+        try:
+            response = requests.get(url, timeout=5)
+            latency = (time.time() - start) * 1000  # ms
+            latencies.append(latency)
+        except requests.RequestException:
+            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
+            # <Code>InvalidQueryParameterValue</Code>
+            # <Message>
+            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
+            # </Message>
+            # <QueryParameterName>comp</QueryParameterName>
+            # <QueryParameterValue/>
+            # <Reason/>
+            # </Error>
+            latencies.append(None)
+
+    valid_latencies = [l for l in latencies if l is not None]
+    if valid_latencies:
+        avg_latencies = sum(valid_latencies)/len(valid_latencies)
+        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
+    else:
+        print_error(f"measure_http_latency(): requests failed to {url}")
+        return None
+
+
+#### SECTION 11. Geo utility APIs:
 
 
 def get_ip_address() -> str:
@@ -989,46 +1033,8 @@ def get_elevation(longitude, latitude, units='Meters', service='google' ) -> str
 # print(get_elevation(39.7392, -104.9903, service='google', api_key='YOUR_KEY'))
 
 
-#### SECTION 10. Cloud utilities:
 
-
-def measure_http_latency(storage_account_name, attempts=5) -> str:
-    """
-    Returns the HTTP latency to a storage account within the Azure cloud.
-    """
-    # import requests
-    # import time
-
-    url = storage_account_name + ".blob.core.windows.net"
-    latencies = []
-    for _ in range(attempts):
-        start = time.time()
-        try:
-            response = requests.get(url, timeout=5)
-            latency = (time.time() - start) * 1000  # ms
-            latencies.append(latency)
-        except requests.RequestException:
-            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
-            # <Code>InvalidQueryParameterValue</Code>
-            # <Message>
-            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
-            # </Message>
-            # <QueryParameterName>comp</QueryParameterName>
-            # <QueryParameterValue/>
-            # <Reason/>
-            # </Error>
-            latencies.append(None)
-
-    valid_latencies = [l for l in latencies if l is not None]
-    if valid_latencies:
-        avg_latencies = sum(valid_latencies)/len(valid_latencies)
-        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
-    else:
-        print_error(f"measure_http_latency(): requests failed to {url}")
-        return None
-
-
-#### SECTION 10. Azure cloud core utilities:
+#### SECTION 12. Azure cloud core utilities:
 
 
 def get_acct_credential() -> object:
@@ -1906,7 +1912,10 @@ def get_az_ai_textanalytics_sdk_client() -> object:
 
 
 def detect_language_using_az_ai_sdk_client(ai_svc_name,text_in) -> str:
-    # TODO: Override ai_language = os.getenv('AI_LANGUAGE')
+    """
+    Docs:    https://learn.microsoft.com/en-us/azure/ai-services/translator/
+    Pricing: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/translator/
+    """
     client = get_az_ai_textanalytics_sdk_client()
     try:
         # Call the service to get the detected language:
@@ -1920,25 +1929,81 @@ def detect_language_using_az_ai_sdk_client(ai_svc_name,text_in) -> str:
         return None
 
 
-def translate_text_using_az_ai_rest_client( text_in, target_language) -> str:
-    """
-    Docs:    https://learn.microsoft.com/en-us/azure/ai-services/translator/
+def detect_language_using_az_ai_rest_client( text_in) -> str:
+    """ Returns language name (such as "English") with confidence score using REST API call.
+    Docs:    https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Labfiles/01-use-azure-ai-services/Python/rest-client/rest-client.py
     Pricing: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/translator/
     """
-    client = get_az_ai_textanalytics_sdk_client(ai_svc_name)
+    client = get_az_ai_textanalytics_sdk_client()
     try:
-        # Call the service to get the detected language:
-        detectedLanguage = client.detect_language(documents = [text_in])[0]
-        print_info(f"detect_language_using_az_ai_sdk_client({len(text_in)} chars) lang: \"{detectedLanguage.primary_language.name}\" " )
-        return detectedLanguage.primary_language.name
-            # Example: \"English/\"
+        get_ai_svc_globals()  # retrieves ai_endpoint, ai_key, ai_svc_resc
+
+        # Construct the JSON request body (a collection of documents, each with an ID and text)
+        jsonBody = {
+            "documents":[
+                {"id": 1,
+                 "text": text_in}
+            ]
+        }  # TODO: target_languages???
+
+        # Let's take a look at the JSON we'll send to the service
+        print(json.dumps(jsonBody, indent=2))
+
+        # Make an HTTP request to the REST interface:
+        #import http.client, base64, json, urllib
+        #from urllib import request, parse, error        
+        uri = ai_endpoint.rstrip('/').replace('https://', '')
+        conn = http.client.HTTPSConnection(uri)
+
+        # Add the authentication key to the request header
+        headers = {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': ai_key
+        }
+
+        # Use the Text Analytics language API
+        conn.request("POST", "/text/analytics/v3.1/languages?", str(jsonBody).encode('utf-8'), headers)
+
+        # Send the request
+        response = conn.getresponse()
+        data = response.read().decode("UTF-8")
+
+        # If the call was successful, get the response
+        if response.status == 200:
+            # Display the JSON response in full (just so we can see it)
+            results = json.loads(data)
+            print_trace(json.dumps(results, indent=1))
+                # Extract the detected language name for each document:
+                    #    {
+                    #    "documents": [
+                    #        {
+                    #        "id": "1",
+                    #        "warnings": [],
+                    #        "detectedLanguage": {
+                    #            "name": "English",
+                    #            "iso6391Name": "en",
+                    #            "confidenceScore": 0.79
+            for document in results["documents"]:
+                # TODO: Parse language name such as "English" in a list:
+                print_info(f"detect_language_using_az_ai_rest_client(): Language: \"{document["detectedLanguage"]["name"]}\" iso6391Name: \"{document["detectedLanguage"]["iso6391Name"]}\" Confidence: \"{document["detectedLanguage"]["confidenceScore"]}\" ")
+        else:
+            # Something went wrong, write the whole response:
+            print_error(f"detect_language_using_az_ai_rest_client() {response.status} ERROR: {data}")
+
+        conn.close()
+
     except Exception as e:
-        print_error(f"detect_language_using_az_ai_sdk_client() ERROR: {e}")
-            # ERROR: No connection adapters were found for '/:analyze-text???/language&api-version=2023-04-01' 
+        print_error(f"detect_language_using_az_ai_rest_client() ERROR: {e}")
         return None
 
 
-#### SECTION 10. Main control loop:
+# def translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages):
+
+
+# https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Instructions/Exercises/05-implement-content-safety.md
+
+
+#### SECTION 13. Main control loop:
 
 
 if __name__ == "__main__":
@@ -1972,15 +2037,15 @@ if __name__ == "__main__":
     #### STAGE 4 - Azure AI
 
 
-    get_ai_svc_globals()
-    ai_language = detect_language_using_az_ai_sdk_client(TEXT_INPUT)
+    # get_ai_svc_globals()
+    # ai_language = detect_language_using_az_ai_sdk_client(TEXT_INPUT)
+    ai_language = detect_language_using_az_ai_rest_client(TEXT_INPUT)
     exit()
 
     # CAUTION: This costs money:
-    ai_languages = ["fr","zn"]   # French & Simplified Chinese
-    translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages)
-    print_info(f"translated_text: \"{translated_text}\"")
-
+    #ai_languages = ["fr","zn"]   # French & Simplified Chinese
+    #translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages)
+    #print_info(f"translated_text: \"{translated_text}\"")
 
 
     #### STAGE 5 - Azure Key Vault at a location:
