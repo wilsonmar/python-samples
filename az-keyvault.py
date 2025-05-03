@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 """az-keyvault.py at https://github.com/wilsonmar/python-samples/blob/main/az-keyvault.py
+by Wilson Mar
 
-STATUS: working on macOS Sequoia 15.3.1
+STATUS: Python 3.13.3 working on macOS Sequoia 15.3.1
 No known vulnerabilities found by pip-audit -r requirements.txt
 ruff check az-keyvault.py
 """
 
 #### SECTION 01. Metadata about this program file:
 
-__commit_date__ = "2025-04-29"
-__last_commit__ = "v009 + lang rest detection :az-keyvault.py"
+__commit_date__ = "2025-05-03"
+__last_commit__ = "v011 + get_storage_account() :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -22,16 +23,16 @@ __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
 
 """
-by Wilson Mar, LICENSE: MIT
-This creates the premissions needed in Azure, then 
-creates a Key Vault and sets access policies.
-Adds a secret, then read it.
+This program integrates Microsoft's Azure Python SDK and other tech to improve security.
+
+See https://pypi.org/project/azure-mgmt-keyvault/
+to obtain for an account's email its Subscription Id and Tenant Id needed to
+create resources, storage accounts, Key Vault, secrets, Functions.
+TODO: sets access policies and premissions to control the above action.
+
 Based on https://www.perplexity.ai/search/how-to-create-populate-and-use-Q4EyT9iYSSaVQtyUK5N31g#0
 
 #### Before running this program:
- app.py file
-Serverless function (Azure Functions)
-
 ### Prerequisites:
 1. Create an .env file defining global static variables and their secret values (Account, Subscription, Tenant ID)
 2. Use your email address, phone, credit card to create an account and log into Azure Portal.
@@ -48,10 +49,10 @@ Serverless function (Azure Functions)
    az ad sp list   # For its parms: https://learn.microsoft.com/en-us/powershell/module/microsoft.graph.applications/get-mgserviceprincipal?view=graph-powershell-1.0
 
     "appDisplayName": "Cortana Runtime Service",
-    "appId": "81473081-50b9-469a-b9d8-303109583ecb",
+    "appId": "??473081-50b9-469a-b9d8-303109583ecb",
     ...
        "servicePrincipalNames": [
-      "81473081-50b9-469a-b9d8-303109583ecb",
+      "??473081-50b9-469a-b9d8-303109583ecb",
       "https://cortana.ai"
     ],
 
@@ -76,6 +77,7 @@ uv venv  # to create an environment,
 source .venv/bin/activate
 
 uv python install 3.12
+# See https://realpython.com/python-pyproject-toml/ & https://realpython.com/python-uv/
 # Instead of uv pip install -r requirements.txt, uv add ...
     aiohttp   # for async features
     pathlib
@@ -95,11 +97,19 @@ uv python install 3.12
     azure-mgmt-storage
     azure-storage-blob
     azure-ai-textanalytics==5.3.0
-    click
+    azure-mgmt-billing          # billing accounts, profiles (payment), customers, invoices
+    azure-mgmt-costmanagement   # resource usage, forecasted, cost data exports
+    azure-mgmt-consumption      # budgets, usage details, charges
+    azure-storage-blob   # azure.storage.blob
     flask
+    logging
     matplotlib   # or plotly
     numpy
-    pillow
+    opentelemetry-api
+    opentelemetry-distro 
+    opentelemetry-sdk
+    pandas
+    pillow     # https://realpython.com/courses/python-pillow/
     platform   # https://docs.python.org/3/library/platform.html
     psutil  #  psutil-7.0.0
     pythonping
@@ -116,6 +126,9 @@ uv run az-keyvault.py -v -vv -u "wmar@joliet.k12.mt.us"
 PROTIP: Each function displays its own error messages. Function callers display expected responses.
 
 REMEMBER on CLI after running uv run az-keyvault.py: deactivate
+
+https://udemy.com/course/python-sdk-for-azure-bootcamp/ by Benjamin Bigelow at Pierian Training Jun 2023
+https://support.udemy.com/hc/en-us/articles/229604708-Downloading-Course-Resources
 
 """
 
@@ -137,76 +150,8 @@ pgm_strt_epoch_timestamp = time.time()
 pgm_strt_local_timestamp = time.localtime()
 # NOTE: Can't display the dates until formatting code is run below
 
-#### SECTION 03: Built-in Imports
 
-# Python’s Standard library of built-in modules imported as
-      # listed at https://docs.python.org/3/library/*.html
-std_strt_timestamp = time.monotonic()
-import argparse
-import base64
-# import boto3  # for aws python
-from dotenv import load_dotenv   # install python-dotenv
-import http.client
-import json
-import logging   # see https://realpython.com/python-logging/
-import math
-import os
-import pathlib
-from pathlib import Path
-import platform # https://docs.python.org/3/library/platform.html
-import pwd                # https://www.geeksforgeeks.org/pwd-module-in-python/
-import site
-import shutil     # for disk space calcs
-import socket
-import subprocess
-import sys
-import urllib.request
-from urllib import request, parse, error
-import uuid
-std_stop_timestamp = time.monotonic()
-
-
-#### SECTION 04: Import external library (from outside this program):
-
-xpt_strt_timestamp =  time.monotonic()
-try:
-    import argparse
-    from azure.ai.textanalytics import TextAnalyticsClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import ClientAuthenticationError
-    import azure.functions as func
-    from azure.identity import DefaultAzureCredential
-    from azure.identity import ClientSecretCredential
-    from azure.identity import AzureCliCredential
-    from azure.keyvault.secrets import SecretClient
-    from azure.mgmt.resource import ResourceManagementClient
-    from azure.mgmt.keyvault import KeyVaultManagementClient
-    from azure.mgmt.resource import SubscriptionClient
-    from azure.mgmt.storage import StorageManagementClient
-    # from msgraph.core import GraphClient   # doesn't work if included?
-    # Microsoft Authentication Library (MSAL) for Python
-    # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
-    # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
-    #import click
-    from pathlib import Path
-    import psutil  #  psutil-5.9.5
-    from pythonping import ping
-    import pytz
-    import requests
-    import uuid
-except Exception as e:
-    print(f"Python module import failed: {e}")
-    # pyproject.toml file exists
-    print("Please activate your virtual environment:\n")
-    print("    source .venv/bin/activate")
-    #print("    sys.prefix      = ", sys.prefix)
-    #print("    sys.base_prefix = ", sys.base_prefix)
-    exit(9)
-xpt_stop_timestamp =  time.monotonic()
-
-
-
-#### SECTION 05: Print Utility Functions:
+#### SECTION 03: Print Utility Python Functions:
 
 ## Global variables: Colors Styles:
 class bcolors:  # ANSI escape sequences:
@@ -319,8 +264,130 @@ def print_samples():
 
 
 
+#### SECTION 04: Built-in Imports
+
+# Python’s Standard library of built-in modules imported as
+      # listed at https://docs.python.org/3/library/*.html
+std_strt_timestamp = time.monotonic()
+import argparse
+import base64
+# import boto3  # for aws python
+from dotenv import load_dotenv   # install python-dotenv
+import http.client
+import json
+import logging   # see https://realpython.com/python-logging/
+import math
+import os
+import pathlib
+from pathlib import Path
+import platform # https://docs.python.org/3/library/platform.html
+import pwd                # https://www.geeksforgeeks.org/pwd-module-in-python/
+import site
+import shutil     # for disk space calcs
+import socket
+import subprocess
+import sys
+import urllib.request
+from urllib import request, parse, error
+import uuid
+std_stop_timestamp = time.monotonic()
+
+
+#### SECTION 05: Import external library (from outside this program):
+
+
+xpt_strt_timestamp =  time.monotonic()
+try:
+    import argparse
+    from azure.ai.textanalytics import TextAnalyticsClient
+    #    azure-ai-projects 
+    from azure.core.exceptions import ClientAuthenticationError
+    from azure.core.credentials import AzureKeyCredential
+    from azure.identity import DefaultAzureCredential
+    from azure.identity import ClientSecretCredential
+    #from azure.identity import AzureCliCredential  # for local only. Do not use!
+
+    import azure.functions as func
+    from azure.keyvault.secrets import SecretClient
+    from azure.mgmt.billing import BillingManagementClient
+                                 # accounts, profiles (payment), customers, invoices
+    from azure.mgmt.costmanagement import CostManagementClient, models
+    from azure.mgmt.consumption import ConsumptionManagementClient
+    from azure.mgmt.consumption import models
+    from azure.mgmt.resource import ResourceManagementClient
+    from azure.mgmt.keyvault import KeyVaultManagementClient
+    from azure.mgmt.resource import SubscriptionClient
+    from azure.mgmt.storage import StorageManagementClient
+    from azure.storage.blob import BlobServiceClient
+    # from msgraph.core import GraphClient   # doesn't work if included?
+    # Microsoft Authentication Library (MSAL) for Python
+    # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
+    # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
+    #import click
+    from opentelemetry import trace   # opentelemetry-api 
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+
+    import pandas
+    from pathlib import Path
+    import psutil  #  psutil-5.9.5
+    from pythonping import ping
+    import pytz   # time zones
+    import requests
+    import uuid
+except Exception as e:
+    print(f"Python module import failed: {e}")
+    # pyproject.toml file exists
+    print("Please uv add library, then activate your virtual environment:\n")
+    print("    uv add library")
+    print("    source .venv/bin/activate")
+    #print("    sys.prefix      = ", sys.prefix)
+    #print("    sys.base_prefix = ", sys.base_prefix)
+    exit(9)
+xpt_stop_timestamp =  time.monotonic()
+
+
+# https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
+
+
+def is_uv_venv_activated() -> None:
+    """
+    Check if uv is installed and if the .venv directory exists.
+    https://github.com/astral-sh/uv/issues/8775
+    """
+    uv_path = os.environ.get("UV")
+    if not uv_path:
+        print(f"uv is NOT installed at \"/opt/homebrew/bin/uv\" ")
+        exit(9)
+    file_path = os.path.abspath('.venv')  # such as /Users/johndoe/github-wilsonmar/python-samples/.venv
+    if not os.path.exists(file_path):   #Alternately: if '.venv' in os.listdir():
+        print(f"is_uv_venv_activated(): sys.base_prefix =\n{sys.base_prefix} ")
+        print(f"is_uv_venv_activated():      sys.prefix =\n{sys.prefix}")
+        print(f"Folder .venv NOT found. Please issue command uv init ")
+        exit(9)
+    #in_venv = sys.prefix != sys.base_prefix
+    file_path = os.path.abspath('requirements.txt')  # such as /Users/johndoe/github-wilsonmar/python-samples/...
+    if not os.path.exists(file_path):
+        print(f"File requirements.txt not found for CLI: uv pip install -r requirements.txt")
+        exit(9)
+    file_path = os.path.abspath('uv.lock')  # such as /Users/johndoe/github-wilsonmar/python-samples/...
+    if not os.path.exists(file_path):
+        print(f"File uv.lock not found. Please issue command uv lock ")
+        exit(9)
+    # sys.prefix may be a symlink, so resolve both to their real paths
+    real_base_prefix = os.path.realpath(sys.base_prefix)
+    print(f"real_base_prefix = {real_base_prefix}")
+    base_prefix = os.path.realpath(sys.prefix)
+    print(f"     base_prefix = {base_prefix}")
+
+    #if venv_base_prefix != venv_prefix:
+    #    print_info("venv_prefix is different from venv_base_prefix!")
+    return None  # can't tell if True or False
+
+
 #### SECTION 06: Parameters from call arguments:
 # USAGE: uv run az-keyvault.py -kv "kv-westcentralus-897e56" -s "westcentralus2504" -v -vv
+
 
 parser = argparse.ArgumentParser(description="Azure Key Vault")
 parser.add_argument("-q", "--quiet", action="store_true", help="Quiet")
@@ -332,6 +399,7 @@ parser.add_argument("-u", "--user", help="User email (for credential)")
 parser.add_argument("-z", "--zip", help="6-digit Zip code (in USA)")
 parser.add_argument("-sub", "--subscription", help="Subscription ID (for costing)")
 parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
+parser.add_argument("-rg", "--resource", help="Resource Group Name")
 parser.add_argument("-st", "--storage", help="Storage Name")
 parser.add_argument("-t", "--text", help="Text input (for language detection)")
 
@@ -374,9 +442,9 @@ LOG_DOWNLOADS = args.log
 
 AZURE_ACCT_NAME = args.user
 AZURE_SUBSCRIPTION_ID = args.subscription
-
-KEYVAULT_NAME = args.keyvault  # also used as resource group name
+RESOURCE_GROUP_NAME = args.resource
 STORAGE_ACCOUNT_NAME = args.storage
+KEYVAULT_NAME = args.keyvault  # also used as resource group name
 
 TEXT_INPUT = args.text
 if not TEXT_INPUT:
@@ -384,19 +452,91 @@ if not TEXT_INPUT:
 
 # if args.zip in get_longitude_latitude()
 
-
-ENV_FILE="python-samples.env"
+user_home_dir_path = str(Path.home())
+ENV_FILE="python-samples.env"  # the hard-coded default
+global_env_path = user_home_dir_path + "/" + ENV_FILE  # concatenate path
 
 # TODO: Make these configurable
 DELETE_RG_AFTER = True
 DELETE_KV_AFTER = True
 LIST_ALL_PROVIDERS = False
 
-# PROTIP: Global variable referenced within functions:
+# PROTIP: Global variable referenced within Python functions:
 # values obtained from .env file can be overriden in program call arguments:
  
 
-#### SECTION 07: Python script control utilities:
+#### SECTION 07: Retry, logging, telemetry decorators:
+
+def retry(f):
+    """
+    Add @retry above a function to automatically handle multiple types of exceptions -
+    to improve robustness in scenarios with intermittent failures, such as network requests.
+    Its options include the time of delay between retries (backoff).
+
+    :param f: The target function to be decorated and retried when applicable.
+    :type f: Callable
+    :raises requests.exceptions.ConnectionError: Raised when a connection error occurs.
+    :raises requests.exceptions.Timeout: Raised when a timeout error occurs.
+    :raises Exception: Raised after the maximum number of retries if the exception persists.
+    :return: The decorator function that wraps the target function with retry functionality.
+    :rtype: Callable
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            tries = 0
+            while True:
+                try:
+                    rc = func(*args, **kwargs)
+                    return rc
+                except exceptions as e:
+                    print(f"[client:error] caught exception attempt #{tries + 1}: {type(e).__name__}: {e}")
+                    tries += 1
+
+                    if tries >= retries:
+                        e.add_note(f"Retried function {func.__name__} {retries} times without success")
+                        raise
+
+                    if delay > 0:
+                        time.sleep(delay)
+
+        # start of decorator
+
+        exceptions = (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+        retries = Retry_count
+        delay = Delay
+        return wrapper
+
+    # start of retry
+    return decorator(f)
+
+
+# TODO: OpTel (OpenTelemetry) spans and logging:
+
+def export_optel():
+    """ Create and export a trace to your console:
+    https://www.perplexity.ai/search/python-code-to-use-opentelemet-bGjntbF4Sk6I6z3l5HBBSg#0
+    """
+    #from opentelemetry import trace
+    #from opentelemetry.sdk.trace import TracerProvider
+    #from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+
+    # Set up the tracer provider and exporter
+    trace.set_tracer_provider(TracerProvider())
+    span_processor = SimpleSpanProcessor(ConsoleSpanExporter())
+    trace.get_tracer_provider().add_span_processor(span_processor)
+
+    # Get a tracer:
+    tracer = trace.get_tracer(__name__)
+
+    # Create spans:
+    with tracer.start_as_current_span("parent-span"):
+        print_verbose("Doing some work in the parent span")
+        with tracer.start_as_current_span("child-span"):
+            print_verbose("Doing some work in the child span")
+
+
+#### SECTION 08: Python script control utilities:
 
 
 # See https://bomonike.github.io/python-samples/#ParseArguments
@@ -421,33 +561,34 @@ def set_cli_parms(count):
     # Test by running: ./python-examples.py --help
 
 
-def open_env_file(env_file) -> str:
+def open_env_file() -> None:
     """Return a Boolean obtained from .env file based on key provided.
     """
-    # from pathlib import Path
-    # See https://wilsonmar.github.io/python-samples#run_env
+    global global_env_path
     global user_home_dir_path
-    user_home_dir_path = str(Path.home())
-       # example: /users/john_doe
-
-    global_env_path = user_home_dir_path + "/" + env_file  # concatenate path
+    global ENV_FILE
+    if not global_env_path:
+        # from pathlib import Path
+        # See https://wilsonmar.github.io/python-samples#run_env
+        if not user_home_dir_path:  # example: /users/john_doe
+            user_home_dir_path = str(Path.home())
+            if not ENV_FILE:
+                ENV_FILE="python-samples.env"  # the hard-coded default
+            global_env_path = user_home_dir_path + "/" + ENV_FILE  # concatenate path
 
     # PROTIP: Check if .env file on global_env_path is readable:
     if not os.path.isfile(global_env_path):
         print_error(global_env_path+" (global_env_path) not found!")
-    #else:
-    #    print_info(global_env_path+" (global_env_path) readable.")
-
-    path = pathlib.Path(global_env_path)
-    # Based on: pip3 install python-dotenv
-    # from dotenv import load_dotenv
-       # See https://www.python-engineer.com/posts/dotenv-python/
-       # See https://pypi.org/project/python-dotenv/
-    load_dotenv(global_env_path)  # using load_dotenv
-
-    # Wait until variables for print_trace are retrieved:
-    #print_trace("env_file="+env_file)
-    #print_trace("user_home_dir_path="+user_home_dir_path)
+        return None
+    else:
+        path = pathlib.Path(global_env_path)
+        # Based on: pip3 install python-dotenv
+        # from dotenv import load_dotenv
+        # See https://www.python-engineer.com/posts/dotenv-python/
+        # See https://pypi.org/project/python-dotenv/
+        load_dotenv(global_env_path)  # using load_dotenv
+        # Wait until variables for print_trace are retrieved:
+        print_info(f"open_env_file() to \"{global_env_path}\" ")
 
 
 def get_str_from_env_file(key_in) -> str:
@@ -459,7 +600,7 @@ def get_str_from_env_file(key_in) -> str:
 
     env_var = os.environ.get(key_in)
     if not env_var:  # yes, defined=True, use it:
-        print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
+        print_trace(f"get_str_from_env_file(\"{key_in}\") not found in .env file.")
         return None
     else:
         # PROTIP: Display only first characters of a potentially secret long string:
@@ -480,7 +621,7 @@ def print_env_vars():
     pprint.pprint(dict(environ_vars), width = 1)
 
 
-#### SECTION 08: Time Utility Functions:
+#### SECTION 09: Time Utility Python Functions:
 
 
 def get_user_local_time() -> str:
@@ -547,7 +688,7 @@ def print_wall_times():
 
 
 
-#### SECTION 09. Obtain program environment metadata
+#### SECTION 10. Obtain program environment metadata:
 
 
 # See https://bomonike.github.io/python-samples/#run_env
@@ -733,21 +874,13 @@ def macos_sys_info():
         print_fail("Python 3.6 or higher is required for this program. Please upgrade.")
         sys.exit(1)
 
-    venv_base_prefix = sys.base_prefix
-    print_trace("venv_base_prefix = " + venv_base_prefix)
-    venv_prefix = sys.prefix
-    print_trace("     venv_prefix = " + venv_prefix)
-    #if venv_base_prefix != venv_prefix:
-    #    print_info("venv_prefix is different from venv_base_prefix!")
-
-    # print_trace("__name__="+__name__)  # = __main__
-
-
     # TODO: Make this function for call before & after run:
     #    disk_list = get_disk_free()
     #    disk_space_free = disk_list[1]:,.1f / disk_list[0]:,.1f
     #    print_info(localize_blob("Disk space free")+"="+disk_space_free+" GB")
         # left-to-right order of fields are re-arranged from the function's output.
+
+    is_uv_venv_activated()  # both True:
 
 
 def get_mem_used() -> str:
@@ -778,46 +911,118 @@ def handle_fatal_exit():
 
 
 
-#### SECTION 10. Cloud utilities:
+#### SECTION 11. Azure Resource Group:
 
 
-def measure_http_latency(storage_account_name, attempts=5) -> str:
+def get_resource_group(subscription_id, region_filter) -> str:
     """
-    Returns the HTTP latency to a storage account within the Azure cloud.
+    Returns a list of resources for a specified region.
+    Alternative to https://portal.azure.com/#browse/resourcegroups
+    # https://learn.microsoft.com/en-us/azure/developer/python/sdk/examples/azure-sdk-example-list-resource-groups?tabs=bash
     """
-    # import requests
-    # import time
+    print_trace(f"get_resource_group() subscription_id: \"{subscription_id}\" region_filter: \"{region_filter}\"")
+    try:
+        #from azure.identity import DefaultAzureCredential
+        credential = DefaultAzureCredential()
 
-    url = storage_account_name + ".blob.core.windows.net"
-    latencies = []
-    for _ in range(attempts):
-        start = time.time()
-        try:
-            response = requests.get(url, timeout=5)
-            latency = (time.time() - start) * 1000  # ms
-            latencies.append(latency)
-        except requests.RequestException:
-            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
-            # <Code>InvalidQueryParameterValue</Code>
-            # <Message>
-            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
-            # </Message>
-            # <QueryParameterName>comp</QueryParameterName>
-            # <QueryParameterValue/>
-            # <Reason/>
-            # </Error>
-            latencies.append(None)
+        #from azure.mgmt.resource import ResourceManagementClient 
+        resource_client = ResourceManagementClient(credential, subscription_id)
+        print_trace(f"get_resource_group() resource_client: \"{str(resource_client)}\")")
+        group_list = resource_client.resource_groups.list()
+        #print_info(f"get_resource_group() found {len(group_list)} resource groups.")
+            # FIXME: object of type 'ItemPaged' has no len() 
 
-    valid_latencies = [l for l in latencies if l is not None]
-    if valid_latencies:
-        avg_latencies = sum(valid_latencies)/len(valid_latencies)
-        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
-    else:
-        print_error(f"measure_http_latency(): requests failed to {url}")
+        # Print each line using "rg" the common abbreviation for "resource group":
+        for rg in list(group_list):
+            if region_filter:
+                #if rg.location == region_filter:
+                print_info(f"Rresource_group: \"{rg.name}\" for region {rg.location} from get_resource_group() ")
+                return rg.name  # the first one
+            else:
+                print_error(f"NO Resource_group: \"{rg.name}\" for region {rg.location} from get_resource_group() ")
+
+    except Exception as e:
+        print_error(f"get_resource_group() {e}")
         return None
 
 
-#### SECTION 11. Geo utility APIs:
+def create_get_resource_group(credential, subscription_id, new_location) -> str:
+    """
+    Create Resource Group if the resource_group_name is not already defined.
+    Return json object such as {'additional_properties': {}, 'id': '/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/az-keyvault-for-python-250413', 'name': 'az-keyvault-for-python-250413', 'type': 'Microsoft.Resources/resourceGroups', 'properties': <azure.mgmt.resource.resources.v2024_11_01.models._models_py3.ResourceGroupProperties object at 0x1075ec1a0>, 'location': 'westus', 'managed_by': None, 'tags': None}
+    Equivalent to CLI: az group create -n "myResourceGroup" -l "useast2"
+        --tags "department=tech" "environment=test"
+    Equivalent of Portal: https://portal.azure.com/#browse/resourcegroups
+                          https://portal.azure.com/#view/HubsExtension/BrowseResourceGroups.ReactView
+    See https://learn.microsoft.com/en-us/azure/developer/python/sdk/examples/azure-sdk-example-resource-group?tabs=cmd
+    """
+    try:
+        if my_resource_group:
+            print_info(f"create_get_resource_group() existing resource_group_name: \"{resource_group_name}\"")
+            return my_resource_group
+    except Exception as e:
+        print_error(f"create_get_resource_group() global my_resource_group not defined: {e}")
+        return None
+
+    exit()
+    #uv add azure-mgmt-resource
+    #uv add azure-identity
+    #from azure.identity import DefaultAzureCredential
+    #from azure.mgmt.resource import ResourceManagementClient
+
+    # WARNING: Only register providers you need to maintain least-privilege security:
+    required_providers = [
+        "Microsoft.BotService",
+        "Microsoft.Web",
+        "Microsoft.ManagedIdentity",
+        "Microsoft.Search",
+        "Microsoft.Storage",
+        "Microsoft.CognitiveServices",
+        "Microsoft.AlertsManagement",
+        "microsoft.insights",
+        "Microsoft.KeyVault",
+        "Microsoft.ContainerInstance"
+    ]
+    try:
+        # Obtain the management object for resources:
+        resource_client = ResourceManagementClient(credential, subscription_id)
+
+        # Get all providers and their registration states:
+        all_providers = {provider.namespace: provider.registration_state for provider in resource_client.providers.list()}
+        # print(f"create_get_resource_group() all_providers: {all_providers}")
+        # TODO: List resource groups like https://portal.azure.com/#view/HubsExtension/BrowseResourceGroups.ReactView
+
+        # Provision the resource group:
+        rg_result = resource_client.resource_groups.create_or_update(
+            resource_group_name, {"location": new_location}
+        )
+        print_info(f"create_get_resource_group() new resource_group_name: \"{resource_group_name}\"")
+        return rg_result
+    except Exception as e:
+        print_error(f"create_get_resource_group() {str(rg_result)}")
+        print_error(f"create_get_resource_group() {e}")
+        # FIXME: ERROR: (InvalidApiVersionParameter) The api-version '2024-01-01' is invalid. The supported versions are 2024-11-01
+        return None
+
+
+def delete_resource_group(credential, resource_group_name, subscription_id) -> int:
+    """Equivalent of CLI: az group delete -n PythonAzureExample-rg  --no-wait
+    """
+    try:
+        resource_client = ResourceManagementClient(credential, subscription_id)
+        if not resource_client:
+            print(f"Cannot find ResourceManagementClient to delete_resource_group({resource_group_name})!")
+            return False
+        rp_result = resource_client.resource_groups.begin_delete(resource_group_name)
+            # EX: <azure.core.polling._poller.LROPoller object at 0x1055f1550>
+        # if DEBUG: print(f"delete_resource_group({resource_group_name}) for {rp_result}")
+        return True
+    except Exception as e:
+        print(f"delete_resource_group() ERROR: {e}")
+        return False
+
+
+#### SECTION 12. Generic Geo utility APIs:
 
 
 def get_ip_address() -> str:
@@ -878,8 +1083,7 @@ def get_geo_coordinates(zip_code) -> (float, float):
         # OPTION C: Try getting latitude and longitude from IP address by calling the ip2geotools 
         latitude, longitude = get_ip_geo_coordinates("")
         print_verbose(f"get_geo_coordinates(): lat={latitude} & lng={longitude}")
-        print("MAIN DEBUGGING")
-        exit()
+        print("DEBUGGING")
     # Instead of DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
     try:
         DISTANCEMATRIX_API_KEY = os.environ["DISTANCEMATRIX_API_KEY"]
@@ -1034,8 +1238,19 @@ def get_elevation(longitude, latitude, units='Meters', service='google' ) -> str
 
 
 
-#### SECTION 12. Azure cloud core utilities:
+#### SECTION 13. Azure cloud core utilities:
 
+
+# def job roles permissions RBAC:
+    """
+    The different personas/roles in an enterprise, each with job-relevant dashboards and alerts:
+    A. TechOps (SREs) who establish, troubleshoot, and restore the services (CA, dashbords, alerts) that others to operate. See https://github.com/bregman-arie/sre-checklist
+    B. SecOps who enable people, Web (Flask, Django, FastAPI) apps & Serverless Functios accessing secrets based on RBAC policies. Operations Center that responds to security alerts.
+    C. Managers with authority to permanently delete (purge) secrets and backups https://learn.microsoft.com/en-us/azure/key-vault/policy-reference
+    D. AppDevs who request, obtain, use, rotate secrets (but not delete) access to Networks, Apps. and Functions
+    E. End Users who make use of Networks, Apps. and Functions built by others
+    F. DataOps to regularly backup and rotate secrets, manage log storage. Data governance. Migrate data.
+    """
 
 def get_acct_credential() -> object:
     """
@@ -1060,11 +1275,10 @@ def get_acct_credential() -> object:
     # For Azure App Service (Web Apps) with Built-in Authentication
 
     try:
-        # from azure.identity import AzureCliCredential
         # from azure.mgmt.resource import SubscriptionClient
         # from azure.core.exceptions import ClientAuthenticationError
-        credential = AzureCliCredential()
-        # credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential()
+            # Sequentially tries a "chain" of auth credentials including AzureCliCredential()
         print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
         subscription_client = SubscriptionClient(credential)
         subscriptions = list(subscription_client.subscriptions.list())
@@ -1122,18 +1336,6 @@ def get_user_principal_id(credential) -> str:
     except Exception as e:
         print_error(f"get_user_principal_id() ERROR: {e}")
         return None
-
-
-# def job roles permissions RBAC:
-    """
-    The different personas/roles in an enterprise, each with job-relevant dashboards and alerts:
-    A. TechOps (SREs) who establish, troubleshoot, and restore the services (CA, dashbords, alerts) that others to operate. See https://github.com/bregman-arie/sre-checklist
-    B. SecOps who enable people, Web (Flask, Django, FastAPI) apps & Serverless Functios accessing secrets based on RBAC policies
-    C. Managers with authority to permanently delete (purge) secrets and backups https://learn.microsoft.com/en-us/azure/key-vault/policy-reference
-    D. AppDevs who request, obtain, use, rotate secrets (but not delete) access to Networks, Apps. and Functions
-    E. End Users who make use of Networks, Apps. and Functions built by others
-    F. DataOps to regularly backup and rotate secrets, manage log storage. Data governance. Migrate data.
-    """
 
 
 def use_app_credential(tenant_id, client_id, client_secret) -> object:
@@ -1263,6 +1465,84 @@ def get_tenant_id() -> str:
             return tenant_id
 
 
+def az_costmanagement(subscription_id) -> bool:
+    """ STATUS: NOT WORKING
+    for both "Usage" and "ActualCost"
+    # Cost Management Portal: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/overview
+    Based on https://www.perplexity.ai/search/python-code-to-obtain-azure-us-cMV6v.PtTISPHWKAB_0ZNA#0
+    """
+    try:
+        #from azure.mgmt.costmanagement import CostManagementClient, models
+        #from azure.identity import DefaultAzureCredential
+        #from settings import subscription_id, DEFAULT_LOCATION, DEFAULT_RESOURCE_GROUP
+        credential = DefaultAzureCredential()
+        cm_client = CostManagementClient(credential, subscription_id)
+    except Exception as e:
+        print_error(f"az_costmanagement() client: {e}")
+        return False
+    
+    # azure.mgmt.consumption.models
+    try:
+        query = cm_client.query.usage(
+            scope=f'/subscriptions/{subscription_id}',
+            parameters=models.QueryDefinition(type='Usage')
+        )
+        print_verbose(f"az_costmanagement(): Usage: {query}")
+
+        query = cm_client.query.usage(
+            scope=f'/subscriptions/{subscription_id}',
+            parameters=models.QueryDefinition(type='ActualCost')
+        )
+        print_verbose(f"az_costmanagement(): ActualCost: {query}")
+
+        # print_info(f"az_costmanagement(): {end info ???}")
+        return True
+    except Exception as e:
+        print_error(f"az_costmanagement(): {e}")
+        return False
+
+
+# The Azure Retail Prices API provides unauthenticated access to retail prices for all Azure services by region and SKU.
+# https://dev.to/holger/how-to-retrieve-a-list-of-available-services-from-the-azure-retail-rates-prices-api-2nk6
+# https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
+# https://prices.azure.com/api/retail/prices returns a JSON object with  first 100 datasets.
+# https://prices.azure.com/api/retail/prices?$filter=armRegionName eq 'eastus'
+# {"BillingCurrency":"USD","CustomerEntityId":"Default","CustomerEntityType":"Retail","Items":
+# [{"currencyCode":"USD","tierMinimumUnits":0.0,"retailPrice":0.350368,"unitPrice":0.350368,"armRegionName":"southindia","location":"IN South","effectiveStartDate":"2025-04-01T00:00:00Z","meterId":"000009d0-057f-5f2b-b7e9-9e26add324a8","meterName":"D14/DS14 Spot","productId":"DZH318Z0BPVW","skuId":"DZH318Z0BPVW/00QZ","productName":"Virtual Machines D Series Windows","skuName":"D14 Spot","serviceName":"Virtual Machines","serviceId":"DZH313Z7MMC8","serviceFamily":"Compute","unitOfMeasure":"1 Hour","type":"Consumption","isPrimaryMeterRegion":true,"armSkuName":"Standard_D14"},
+
+
+def az_billing(credential, subscription_id) -> bool:
+    """ STATUS: NOT WORKING
+    Tutorial: https://learn.microsoft.com/en-us/azure/cost-management-billing/
+    Tutorial: https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/view-all-accounts
+    Portal: https://portal.azure.com/#view/Microsoft_Azure_GTM/BillingAccountMenuBlade/~/Overview/
+    Portal: https://portal.azure.com/#view/Microsoft_Azure_GTM/ModernBillingMenuBlade/~/BillingAccounts
+    https://portal.azure.com/#view/Microsoft_Azure_GTM/Billing.MenuView/~/overview/scopeId/
+    See https://www.udemy.com/course/python-sdk-for-azure-bootcamp/learn/lecture/39013196#overview
+    """
+    #import os
+    try:
+        #from azure.mgmt.billing import BillingManagementClient
+        #from azure.identity import DefaultAzureCredential
+        billing_client = BillingManagementClient(credential, subscription_id)
+        accounts_obj = billing_client.billing_accounts.list()
+        print_trace(f"az_billing(): Billing Account Display Name: {accounts_obj} ")
+        for account in accounts_obj:
+            account_name_guid = account.name
+            print_verbose(f"az_billing(): Billing Account GUID: {account_name_guid}")
+            billing_account = billing_client.billing_accounts.get(account_name_guid)
+            print_trace(f"az_billing(): Billing Account: {billing_account}")
+            # QUESTION: How to get 'billing_account_name' displayName like "John Doe"?
+        return True
+    except Exception as e:
+        print_error(f"az_billing(): ERROR: {e}")
+        return False
+
+
+
+#### SECTION 14. Region & Location Geo utilities:
+
+
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great circle distance between two points 
@@ -1281,7 +1561,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     r = 6371  # Radius of earth in kilometers
     return c * r   
 
-def closest_az_region(latitude: float, longitude: float) -> str:
+def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
     """
     This identifies the Azure region/location for a given geo longitude and latitude.
     based on the ping speed and distance from each Azure region.
@@ -1350,7 +1630,7 @@ def closest_az_region(latitude: float, longitude: float) -> str:
         "norwayeast": (59.913, 10.752),             # Oslo
         "norwaywest": (60.391, 5.322),              # Bergen
     }  # This needs to be updated occassionally.
-    # print_trace(f"closest_az_region(): from among {len(AZURE_REGIONS.items())} regions")
+    # print_trace(f"closest_az_region_by_latlong(): from among {len(AZURE_REGIONS.items())} regions")
         # Equivalent of CLI: az account list-locations --output table --query "length([])" 
         # Equivalent of CLI: az account list-locations --query "[?contains(regionalDisplayName, '(US)')]" -o table
         # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
@@ -1368,48 +1648,74 @@ def closest_az_region(latitude: float, longitude: float) -> str:
     # Sort by distance and return the n closest:
     n:int = 3
     closest_regions = sorted(distances, key=lambda x: x[1])[:n]
-    print_verbose(f"closest_az_region({n}:): {closest_regions}")
+    print_verbose(f"closest_az_region_by_latlong({n}:): {closest_regions}")
     closest_region = closest_regions[0][0]  # the first region ID in the list
-    print_info(f"closest_az_region(of {len(AZURE_REGIONS.items())} in Azure:): \"{closest_region}\" ")
+    print_info(f"closest_az_region_by_latlong(of {len(AZURE_REGIONS.items())} in Azure:): \"{closest_region}\" ")
     
     return closest_region
 
 
-def obtain_storage_object(credential, subscription_id) -> object:
-    """
-    Returns an Azure storage client object for the given credential and subscription ID.
-    At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
-    Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
-    # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
-        See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
-    # TODO: PrivateLink endpoints
-    """
-    #from azure.identity import DefaultAzureCredential
-    #from azure.mgmt.storage import StorageManagementClient
-    #from azure.storage.blob import BlobServiceClient
-    #import os
+#### SECTION 15. Azure Blob Storage
+# Azure Data Factory for data integration, 
+# Azure Gen2 Data Lake Storage of structured & unstructured data (videos)
+# Synapse Analytics (Spark ETL jobs)
 
-    try:
-        # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
-        storage_client = StorageManagementClient(
-            credential=credential,
-            subscription_id=subscription_id,
-            # api_version="2024-01-01" 
-            #resource_group=resource_group,
-            #storage_account_name=storage_account_name,
-            #location=my_location
-        )
-        print_verbose(f"obtain_storage_object(): {storage_client}")
-        return storage_client
-    except Exception as e:
-        print_error(f"obtain_storage_object(): {e}")
-        return None
 
+def get_storage_account() -> str:
+    """
+    Return the storage account name from parm or the environment variable STORAGE_ACCOUNT_NAME in os.environ.
+    ??? Authenticate using a connection string or with Azure Active Directory (recommended for security). 
+    """
+    # NOTE: Parms defined in CLI call take precedence over .env:
+
+    # STEP 3: Try to get STORAGE_ACCOUNT_NAME from CLI parms:
+    # STORAGE_ACCOUNT_NAME = args.storage  # done in code above.
+    if STORAGE_ACCOUNT_NAME:
+        print_info(f"--storage_account \"{STORAGE_ACCOUNT_NAME}\" from parms within get_storage_account() ")
+        return STORAGE_ACCOUNT_NAME
+    else:
+        print_verbose(f"--storage_account \"___\" not defined in parms within get_storage_account() ")
+
+    # STEP 2: Try to get STORAGE_ACCOUNT_NAME from .env file:
+    storage_account_name = get_str_from_env_file("STORAGE_ACCOUNT_NAME")
+        # instead of storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
+    if storage_account_name:
+        print_info(f"STORAGE_ACCOUNT_NAME=\"{storage_account_name}\" from .env within get_storage_account() ")
+        return storage_account_name
+
+    # STEP 3: Identify azure blob storage accounts used by a subscription id
+    # Replace with your subscription ID
+    subscription_id = my_subscription_id  # from global
+    if subscription_id:  # available:
+        print_trace(f"subscription_id=\"{subscription_id}\" global within get_storage_account() ")
+        # from azure.identity import DefaultAzureCredential
+        credential = DefaultAzureCredential()   # Authenticate.
+        # from azure.mgmt.storage import StorageManagementClient
+        storage_client = StorageManagementClient(credential, subscription_id)
+        # List all storage accounts in the subscription
+        accounts_obj = storage_client.storage_accounts.list()
+        print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_storage_account() ")
+        if list(accounts_obj):
+            # TODO: Print storage account names and their blob endpoints:
+            print_info(f"get_storage_account(): specify --storage or STORAGE_ACCOUNT_NAME in .env!")
+            for account in accounts_obj:
+                print(f"Name: {account.name}")
+                print(f"Resource Group: {account.id.split('/')[4]}")
+                # Blob endpoint is typically in the primary_endpoints property
+                if account.primary_endpoints and account.primary_endpoints.blob:
+                    print(f"Blob Endpoint: {account.primary_endpoints.blob}")
+                print("-" * 40)
+        else:
+            print_error(f"get_storage_account(): no storage accounts found for subscription_id!")
+            # TODO: Create storage account:
+
+    return None
 
 
 def create_storage_account(credential, subscription_id, resource_group_name, new_location) -> str:
     """
     Returns an Azure storage account object for the given account name
+    using global STORAGE_ACCOUNT_NAME
     At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
     Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
     az storage account create --name mystorageacct --resource-group mygroup --location eastus --sku Standard_LRS --kind StorageV2 --api-version 2024-08-01
@@ -1423,9 +1729,9 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
     #import os
 
     # Fetch current account properties
-    storage_client = obtain_storage_object(credential, subscription_id)
+    storage_client = obtain_blob_storage_object(credential, subscription_id)
     if not storage_client:
-        print_error("create_storage_account(): obtain_storage_object() failed to fetch storage_client! ")
+        print_error("create_storage_account(): obtain_blob_storage_object() failed to fetch storage_client! ")
         exit(9)
     else:  # redundant
         print_trace(f"create_storage_account(): {storage_client}")
@@ -1494,6 +1800,81 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
         print_error(f"create_storage_account(): {e}")
         # FIXME: api_version="2024-03-01" -> API version 2024-03-01 does not have operation group 'storage_accounts' 
         # See https://www.perplexity.ai/search/azure-api-version-2024-03-01-d-7aatmHRXQ32L0PF3zaraxg#0
+        return None
+
+
+
+def measure_http_latency(storage_account_name, attempts=5) -> str:
+    """
+    Returns the HTTP latency to a storage account within the Azure cloud.
+    """
+    # import requests
+    # import time
+
+    url = storage_account_name + ".blob.core.windows.net"
+    latencies = []
+    for _ in range(attempts):
+        start = time.time()
+        try:
+            response = requests.get(url, timeout=5)
+            latency = (time.time() - start) * 1000  # ms
+            latencies.append(latency)
+        except requests.RequestException:
+            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
+            # <Code>InvalidQueryParameterValue</Code>
+            # <Message>
+            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
+            # </Message>
+            # <QueryParameterName>comp</QueryParameterName>
+            # <QueryParameterValue/>
+            # <Reason/>
+            # </Error>
+            latencies.append(None)
+
+    valid_latencies = [l for l in latencies if l is not None]
+    if valid_latencies:
+        avg_latencies = sum(valid_latencies)/len(valid_latencies)
+        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
+    else:
+        print_error(f"measure_http_latency(): requests failed to {url}")
+        return None
+
+
+def obtain_blob_storage_object(credential, subscription_id) -> object:
+    """
+    Returns an Azure blob storage client object for the given credential and subscription ID.
+    after creating it manually at Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
+    Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
+    # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
+        See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
+    # TODO: PrivateLink endpoints
+    """
+    #from azure.identity import DefaultAzureCredential
+    #from azure.mgmt.storage import StorageManagementClient
+    #import os
+    storage_account_name = get_storage_account()
+    if not storage_account_name:
+        print_trace("obtain_blob_storage_object(): STORAGE_ACCOUNT_NAME not found! ")
+        exit(9)
+    try:
+        # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
+        #from azure.storage.blob import BlobServiceClient
+
+        account_url = f"https://{storage_account_name}.blob.core.windows.net"
+        credential = DefaultAzureCredential()
+        blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
+        storage_client = StorageManagementClient(
+            credential=credential,
+            subscription_id=subscription_id,
+            # api_version="2024-01-01" 
+            #resource_group=resource_group,
+            #storage_account_name=storage_account_name,
+            #location=my_location
+        )
+        print_verbose(f"obtain_blob_storage_object(): {storage_client}")
+        return storage_client
+    except Exception as e:
+        print_error(f"obtain_blob_storage_object(): {e}")
         return None
 
 
@@ -1579,70 +1960,7 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-def create_get_resource_group(credential, resource_group_name, new_location, subscription_id) -> str:
-    """
-    Create Resource Group if the resource_group_name is not already defined.
-    Return json object such as {'additional_properties': {}, 'id': '/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/az-keyvault-for-python-250413', 'name': 'az-keyvault-for-python-250413', 'type': 'Microsoft.Resources/resourceGroups', 'properties': <azure.mgmt.resource.resources.v2024_11_01.models._models_py3.ResourceGroupProperties object at 0x1075ec1a0>, 'location': 'westus', 'managed_by': None, 'tags': None}
-    Equivalent to CLI: az group create -n "myResourceGroup" -l "useast2"
-        --tags "department=tech" "environment=test"
-    Equivalent of Portal: https://portal.azure.com/#view/HubsExtension/BrowseResourceGroups.ReactView
-    See https://learn.microsoft.com/en-us/azure/developer/python/sdk/examples/azure-sdk-example-resource-group?tabs=cmd
-    """
-    #uv add azure-mgmt-resource
-    #uv add azure-identity
-    #from azure.identity import DefaultAzureCredential
-    #from azure.mgmt.resource import ResourceManagementClient
-
-    # WARNING: Only register providers you need to maintain least-privilege security:
-    required_providers = [
-        "Microsoft.BotService",
-        "Microsoft.Web",
-        "Microsoft.ManagedIdentity",
-        "Microsoft.Search",
-        "Microsoft.Storage",
-        "Microsoft.CognitiveServices",
-        "Microsoft.AlertsManagement",
-        "microsoft.insights",
-        "Microsoft.KeyVault",
-        "Microsoft.ContainerInstance"
-    ]
-    try:
-        # Obtain the management object for resources:
-        resource_client = ResourceManagementClient(credential, subscription_id)
-
-        # Get all providers and their registration states:
-        all_providers = {provider.namespace: provider.registration_state for provider in resource_client.providers.list()}
-        # print(f"create_get_resource_group() all_providers: {all_providers}")
-        # TODO: List resource groups like https://portal.azure.com/#view/HubsExtension/BrowseResourceGroups.ReactView
-
-        # Provision the resource group:
-        rg_result = resource_client.resource_groups.create_or_update(
-            resource_group_name, {"location": new_location}
-        )
-        print_info(f"create_get_resource_group() new resource_group_name: \"{resource_group_name}\"")
-        return rg_result
-    except Exception as e:
-        print_error(f"create_get_resource_group() {str(rg_result)}")
-        print_error(f"create_get_resource_group() {e}")
-        # FIXME: ERROR: (InvalidApiVersionParameter) The api-version '2024-01-01' is invalid. The supported versions are 2024-11-01
-        return None
-
-
-def delete_resource_group(credential, resource_group_name, subscription_id) -> int:
-    """Equivalent of CLI: az group delete -n PythonAzureExample-rg  --no-wait
-    """
-    try:
-        resource_client = ResourceManagementClient(credential, subscription_id)
-        if not resource_client:
-            print(f"Cannot find ResourceManagementClient to delete_resource_group({resource_group_name})!")
-            return False
-        rp_result = resource_client.resource_groups.begin_delete(resource_group_name)
-            # EX: <azure.core.polling._poller.LROPoller object at 0x1055f1550>
-        # if DEBUG: print(f"delete_resource_group({resource_group_name}) for {rp_result}")
-        return True
-    except Exception as e:
-        print(f"delete_resource_group() ERROR: {e}")
-        return False
+#### SECTION 16. TODO: Azure Keyvault
 
 
 def create_content_safety_policy(credential, subscription_id, resource_group_name, keyvault_name) -> bool:
@@ -1825,6 +2143,9 @@ def delete_keyvault_secret(credential, keyvault_name, secret_name) -> bool:
        return False
 
 
+#### SECTION 17. Azure AI Services
+
+
 def get_ai_svc_globals() -> bool:
     """ Load Configuration from environment variables in .env file
     See https://microsoftlearning.github.io/mslearn-ai-services/Instructions/Exercises/01-use-azure-ai-services.html
@@ -1997,16 +2318,69 @@ def detect_language_using_az_ai_rest_client( text_in) -> str:
         return None
 
 
-# def translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages):
+def translate_text_using_az_ai_rest_client(text_in, ai_languages, location_in):
+    """
+    ai_languages, such as "['fr', 'zu']"
+    Based on: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/quickstart/rest-api?tabs=python&source=docs
+    """
+    #import requests, uuid, json
+
+    # Ocp-Apim-Subscription-Key from KeyVault 
+    get_ai_svc_globals()  # retrieves ai_endpoint, ai_key, ai_svc_resc
+
+    # location, also known as region is required if you're using a multi-service or regional (not global) resource. It can be found in the Azure portal on the Keys and Endpoint page.
+    params = {
+        'api-version': '3.0',
+        'from': 'en',
+        'to': ai_languages
+    }
+    headers = {
+        'Ocp-Apim-Subscription-Key': ai_key,
+        # location required if you're using a multi-service or regional (not global) resource.
+        'Ocp-Apim-Subscription-Region': location_in,
+        'Content-type': 'application/json',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
+
+    # You can pass more than one object in body.
+    body = [{
+        'text': text_in
+    }]
+    try:
+        constructed_url = "https://api.cognitive.microsofttranslator.com/translate"
+        request = requests.post(constructed_url, params=params, headers=headers, json=body)
+        response = request.json()
+        print_verbose(json.dumps(response, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        print_info(f"translate_text_using_az_ai_rest_client({len(text_in)} chars) translated to {ai_languages}.")
+        return True
+    except Exception as e:
+        print_error(f"translate_text_using_az_ai_rest_client() ERROR: {e}")
+        return False
 
 
 # https://github.com/MicrosoftLearning/mslearn-ai-services/blob/main/Instructions/Exercises/05-implement-content-safety.md
 
 
-#### SECTION 13. Main control loop:
+#### SECTION 18. TODO: Azure VMs (Virtual Machines)
+
+
+
+#### SECTION 19. TODO: (Event-triggered) Azure Serverless Functions
+# to send messages to Azure services (Blob Storage, Event Hubs, Service Bus)
+
+# Install Azure Functions Core Tools
+# After creating a start function using Azure tab in VS Code.
+# Set Bindings to Azure resources 
+# See https://www.udemy.com/course/python-sdk-for-azure-bootcamp/learn/lecture/39014330#overview
+
+
+
+#### SECTION 20. Main control loop:
 
 
 if __name__ == "__main__":
+
+    still_good = True
 
     #### STAGE 1 - Show starting environment:
 
@@ -2017,58 +2391,73 @@ if __name__ == "__main__":
     #### STAGE 2 - Load environment variables, Azure Account:
 
 
-    open_env_file(ENV_FILE)
-    macos_sys_info()
+    if still_good:
+        open_env_file()
+    if still_good:
+        macos_sys_info()
 
 
     #### STAGE 3 - Load Azure environment variables, Azure Account:
 
 
-    my_credential = get_acct_credential()
-    my_user_principal_id = get_user_principal_id(my_credential)
-    my_subscription_id = get_azure_subscription_id(my_credential)
-    register_subscription_providers(my_credential, my_subscription_id)
-    my_tenant_id = get_tenant_id()
-    longitude, latitude = get_longitude_latitude() # from parms or .env file calling get_geo_coordinates()
-    my_location = closest_az_region(longitude, latitude)
-    #get_elevation(longitude, latitude)  # has error
+    if still_good:
+        my_credential = get_acct_credential()
+        my_user_principal_id = get_user_principal_id(my_credential)
+        my_subscription_id = get_azure_subscription_id(my_credential)
+        register_subscription_providers(my_credential, my_subscription_id)
+        my_tenant_id = get_tenant_id()
+        
+        longitude, latitude = get_longitude_latitude() # from parms or .env file calling 
+        get_geo_coordinates("")  # (zip_code if you have it)
+        my_location = closest_az_region_by_latlong(longitude, latitude)
+            #get_elevation(longitude, latitude)  # has error
+        # my_location = lowest_cost_region(az_svc_name)
+        # az_costmanagement(my_subscription_id)
 
+        my_resource_group = get_resource_group(my_subscription_id, my_location)        
+        my_storage_account = get_storage_account()
+        my_storage_account = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
+        # ping_az_storage_acct(my_storage_account)
+        # measure_http_latency(my_storage_account, attempts=5)
+    exit()
+
+    # https://portal.azure.com/#view/Microsoft_Azure_GTM/Billing.MenuView/~/overview/scopeId/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/scope/BillingAccount
+    #az_billing(my_credential, my_subscription_id)  # has error
+    # Cost Analysis: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/CostAnalysis/scope/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/externalState~/%7B%22dateRange%22%3A%22ThisMonth%22%2C%22query%22%3A%7B%22timeframe%22%3A%22None%22%7D%7D
+    
 
     #### STAGE 4 - Azure AI
 
+    #if still_good:    
+        # get_ai_svc_globals()
+        # TEXT_INPUT = "The quick brown fox jumps over the lazy dog."
+        # ai_language = detect_language_using_az_ai_sdk_client(TEXT_INPUT)
+        #ai_language = detect_language_using_az_ai_rest_client(TEXT_INPUT)
 
-    # get_ai_svc_globals()
-    # ai_language = detect_language_using_az_ai_sdk_client(TEXT_INPUT)
-    ai_language = detect_language_using_az_ai_rest_client(TEXT_INPUT)
-    exit()
-
-    # CAUTION: This costs money:
-    #ai_languages = ["fr","zn"]   # French & Simplified Chinese
-    #translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages)
-    #print_info(f"translated_text: \"{translated_text}\"")
+        # CAUTION: This costs money:
+        # ai_languages = ["fr"]   # ["fr","zn"] for French & Simplified Chinese
+        # "code": 401001 "The request is not authorized because credentials are missing or invalid."
+        #translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages, my_location)
+        #print_info(f"translated_text: \"{translated_text}\"")
 
 
     #### STAGE 5 - Azure Key Vault at a location:
 
 
-    if KEYVAULT_NAME:
-        my_resource_group = KEYVAULT_NAME
-        my_keyvault_name = KEYVAULT_NAME
-    else:
-        my_keyvault_name = define_keyvault_name(my_location)
-        my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
-        # TODO: Add tags to resource group.
-    vault_url = f"https://{my_keyvault_name}.vault.azure.net"
-    rc = check_keyvault(my_credential, my_keyvault_name, vault_url)
-    if rc is True: 
-        print_verbose(f"Key Vault \"{my_keyvault_name}\" already exists.")
-    if rc is False:  # False (does not exist), so create it:
-        create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
-
-    # my_storage_account_name = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
-    # ping_az_storage_acct(my_storage_account_name)
-    # measure_http_latency(my_storage_account_name, attempts=5)
-    exit()
+    if still_good:
+        if KEYVAULT_NAME:
+            my_resource_group = KEYVAULT_NAME
+            my_keyvault_name = KEYVAULT_NAME
+        else:
+            my_keyvault_name = define_keyvault_name(my_location)
+            my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
+            # TODO: Add tags to resource group.
+        vault_url = f"https://{my_keyvault_name}.vault.azure.net"
+        rc = check_keyvault(my_credential, my_keyvault_name, vault_url)
+        if rc is True: 
+            print_verbose(f"Key Vault \"{my_keyvault_name}\" already exists.")
+        if rc is False:  # False (does not exist), so create it:
+            create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
 
     print_wall_times()
     print("DEBUGGING EXIT")
@@ -2130,5 +2519,9 @@ if __name__ == "__main__":
 
     #### Azure Key Vault allows you to more securely store and manage SSL/TLS certificates.
 
+    #### Perplexity.ai: Sonar API 
+    # https://docs.perplexity.ai/home
+    # https://docs.perplexity.ai/api-reference/chat-completions
+    # https://perplexityhackathon.devpost.com/
 
 # END
