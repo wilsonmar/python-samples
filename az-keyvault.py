@@ -12,7 +12,7 @@ ruff check az-keyvault.py
 #### SECTION 01. Metadata about this program file:
 
 __commit_date__ = "2025-05-03"
-__last_commit__ = "v011 + get_storage_account() :az-keyvault.py"
+__last_commit__ = "v012 + create_az_blog_storage_acct() :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -936,10 +936,10 @@ def get_resource_group(subscription_id, region_filter) -> str:
         for rg in list(group_list):
             if region_filter:
                 #if rg.location == region_filter:
-                print_info(f"Rresource_group: \"{rg.name}\" for region {rg.location} from get_resource_group() ")
+                print_info(f"Resource_group: \"{rg.name}\" for region {rg.location} within get_resource_group() ")
                 return rg.name  # the first one
             else:
-                print_error(f"NO Resource_group: \"{rg.name}\" for region {rg.location} from get_resource_group() ")
+                print_error(f"NO Resource_group: for region {rg.location} within get_resource_group() ")
 
     except Exception as e:
         print_error(f"get_resource_group() {e}")
@@ -1252,6 +1252,30 @@ def get_elevation(longitude, latitude, units='Meters', service='google' ) -> str
     F. DataOps to regularly backup and rotate secrets, manage log storage. Data governance. Migrate data.
     """
 
+
+def get_tenant_id() -> str:
+    """
+    Get Azure Tenant ID from .env or by making a subprocess call of CLI from within Python:
+            az account show --query tenantId -o tsv
+    The Tenant ID uniquely identifies the Microsoft Entra (formerly Azure AD) directory you use.
+    Obtain from Portal at: https://portal.azure.com/#view/Microsoft_AAD_IAM/TenantProperties.ReactView
+    Organization ID at https://portal.azure.com/#view/Microsoft_AAD_IAM/DirectorySwitchBlade/subtitle/
+    """
+    try:
+        tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
+        print_info(f"-tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
+        return tenant_id
+    except KeyError:   
+        # import subprocess
+        #     az    account    show    --query    tenantId    -o    tsv
+        tenant_id = subprocess.check_output(
+            ["az", "account", "show", "--query", "tenantId", "-o", "tsv"]
+        ).decode().strip()
+        if tenant_id:
+            print_info(f"get_tenant_id(): \"{tenant_id}\"")
+            return tenant_id
+
+
 def get_acct_credential() -> object:
     """
     Returns an Azure cloud credential object for the given user account name (email)
@@ -1282,7 +1306,7 @@ def get_acct_credential() -> object:
         print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
         subscription_client = SubscriptionClient(credential)
         subscriptions = list(subscription_client.subscriptions.list())
-        print_verbose("User \"{my_acct_name}\" is logged in to Azure at get_acct_credential().")
+        #print_verbose("User \"{my_acct_name}\" is logged in to Azure at get_acct_credential().")
                 #blob_service_client = BlobServiceClient(
         #    account_url="https://{az_acct_name}.blob.core.windows.net",
         #    credential=credential
@@ -1442,31 +1466,131 @@ def register_subscription_providers(credential, subscription_id) -> bool:
 # """
 
 
-def get_tenant_id() -> str:
+def get_lowest_cost_region(svc_name_in) -> str:
+    """ 
+    Returns the lowest cost by region for each given service SKU, based on unauthenticated access to the 
+    Azure Retail Prices API for all Azure services (organized within a Meter):
+    See https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
+    and https://dev.to/holger/how-to-retrieve-a-list-of-available-services-from-the-azure-retail-rates-prices-api-2nk6
+    Based on https://www.perplexity.ai/search/python-code-to-get-cost-of-eac-chT5VY0TQiiIrYUnCN11aw
+
+    After obtaining meters as JSON: https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview
+    Each call returns a "$skip=1000".
+    So this function accumulates to the "all_items" in-memory build_pricing_table (array) from multiple calls to the API,
+
+    Filters: Meter: "NP20s Spot", currencyCode: USD, "serviceName": "Virtual Machines", "serviceFamily": "Compute"
+    | skuName        | armSkuName | productName                        | retailPrice | unitOfMeasure  | armRegionName  |
+    |----------------+------------+------------------------------------+-------------+----------------+----------------|
+    | Standard_NP20s | NP20s Spot | Virtual Machines NP Series Windows |    0.828503 | 1 Hour         | southcentralus |
+    
+    The above is modified from the table at https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/
+    Not shown: "productId": "DZH318Z0D1L7", "skuId": "DZH318Z0D1L7/018J",
+    #   {
+    #       "currencyCode": "USD",
+    #        "tierMinimumUnits": 0.0,
+    #        "retailPrice": 2.305,
+    #        "unitPrice": 2.305,
+    #        "armRegionName": "southindia",
+    #        "location": "IN South",
+    #        "effectiveStartDate": "2019-05-14T00:00:00Z",
+    #        "meterId": "0084b086-37bf-4bee-b27f-6eb0f9ee4954",
+    #        "meterName": "M8ms",
+    #        "productId": "DZH318Z0BQ4W",
+    #       "skuId": "DZH318Z0BQ4W/00BQ",
+    #        "availabilityId": null,
+    #        "productName": "Virtual Machines MS Series",
+    #       "skuName": "M8ms",
+    #       "serviceName": "Virtual Machines",
+    #       "serviceId": "DZH313Z7MMC8",
+    #        "serviceFamily": "Compute",
+    #        "unitOfMeasure": "1 Hour",
+    #        "type": "Consumption",
+    #        "isPrimaryMeterRegion": true,
+    #        "armSkuName": "Standard_M8ms",
+    #        "savingsPlan": [
+    #            {
+    #                "unitPrice": 0.8065195,
+    #                "retailPrice": 0.8065195,
+    #                "term": "3 Years"
+    #            },
+    #            {
+    #                "unitPrice": 1.5902195,
+    #                "retailPrice": 1.5902195,
+    #                "term": "1 Year"
+    #            }
+    #        ]
+    #    },
+    #
+    # for svc_sku in svc_skus:
     """
-    Get Azure Tenant ID from .env or by making a subprocess call of CLI from within Python:
-            az account show --query tenantId -o tsv
-    The Tenant ID uniquely identifies the Microsoft Entra (formerly Azure AD) directory you use.
-    Obtain from Portal at: https://portal.azure.com/#view/Microsoft_AAD_IAM/TenantProperties.ReactView
-    Organization ID at https://portal.azure.com/#view/Microsoft_AAD_IAM/DirectorySwitchBlade/subtitle/
-    """
-    try:
-        tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
-        print_info(f"-tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
-        return tenant_id
-    except KeyError:   
-        # import subprocess
-        #     az    account    show    --query    tenantId    -o    tsv
-        tenant_id = subprocess.check_output(
-            ["az", "account", "show", "--query", "tenantId", "-o", "tsv"]
-        ).decode().strip()
-        if tenant_id:
-            print_info(f"get_tenant_id(): \"{tenant_id}\"")
-            return tenant_id
+    svc_name_in="Cognitive Services" # skuName in this function's signature
+    print_verbose(f"get_lowest_cost_region( svc_name_in: {svc_name_in}) ...")
+    # FUTURE: svc_skus = ["KeyVault","VirtualMachines"]   # ???
+    
+    base_url = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&meterRegion='primary"
+        # Primary meter filtering is supported with 2021-10-01 and later API versions including 2023-01-01.
+        # The "?" is required for the filter query!
+    all_items = []  # Responses accumulated into this.
+    while base_url:  # inifinite loop:
+        filter_query = f"?$filter=serviceName eq '{svc_name_in}'"
+        url = base_url + filter_query
+        # NOTE: $filter=serviceFamily eq 'Compute' returns too many items.
+        # NOTE: "type": "Consumption" or "Reservation" or "Meter" or "Usage"
+        # https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&meterRegion='primary'&currencyCode='USD'&$filter=serviceName eq 'Virtual Machines'
+        # After pagination that translates to:
+        # https://prices.azure.com:443/api/retail/prices?$filter=serviceName%20eq%20%27Virtual%20Machines%27&$skip=1000
+        try:
+            # import requests
+            response = requests.get(url)
+            if response.status_code != 200:
+                print(f"Failed to fetch data: {response.status_code}")
+                break  # from while
+            data = response.json()
+            all_items.extend(data.get('Items', []))
+            url = data.get('NextPageLink')
+        except Exception as e:
+            print_error(f"get_lowest_cost_region(): {e}")
+            return None
+
+    # Group by serviceName and print cost details:
+    service_costs = {}
+    for item in all_items:
+        #meter_name = item.get('meterName')
+        service_name = item.get('serviceName')
+        sku = item.get('skuName')
+        armsku = item.get('armSkuName')
+        product = item.get('productName')
+
+        price = item.get('retailPrice')
+        unit = item.get('unitOfMeasure')
+        region = item.get('armRegionName')
+        if service_name not in service_costs:
+            service_costs[service_name] = []
+        service_costs[service_name].append((sku, price, unit, region))
+
+    # Print summary:
+    for service_name, prices in service_costs.items():
+        if service_name == svc_name_in:
+            print(f"\nService: {service_name}")
+            for sku, armsku, product, price, unit, region in prices:
+                # ValueError: too many values to unpack (expected 6, got 4)
+                print(f"  {sku} | {armsku} | {product} | {price} | {unit} | {region}")
+
+    # NOTE: tierMinimumUnits is the minimum number of units that can be purchased.
+    # NOTE: reservationTerm	1 year	Reservation term – one year or three years
+
+    # TODO: Return lowest cost region for the given service SKU.
+
+# API Management
+
+# Service: Time Series Insights
+#  SKU: S1 | Price: 4.838709 | Unit: 1/Day
+#  SKU: Data Processing | Price: 0.2 | Unit: 1 GB
 
 
 def az_costmanagement(subscription_id) -> bool:
     """ STATUS: NOT WORKING
+    https://learn.microsoft.com/en-us/rest/api/cost-management/
     for both "Usage" and "ActualCost"
     # Cost Management Portal: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/overview
     Based on https://www.perplexity.ai/search/python-code-to-obtain-azure-us-cMV6v.PtTISPHWKAB_0ZNA#0
@@ -1502,15 +1626,6 @@ def az_costmanagement(subscription_id) -> bool:
         return False
 
 
-# The Azure Retail Prices API provides unauthenticated access to retail prices for all Azure services by region and SKU.
-# https://dev.to/holger/how-to-retrieve-a-list-of-available-services-from-the-azure-retail-rates-prices-api-2nk6
-# https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
-# https://prices.azure.com/api/retail/prices returns a JSON object with  first 100 datasets.
-# https://prices.azure.com/api/retail/prices?$filter=armRegionName eq 'eastus'
-# {"BillingCurrency":"USD","CustomerEntityId":"Default","CustomerEntityType":"Retail","Items":
-# [{"currencyCode":"USD","tierMinimumUnits":0.0,"retailPrice":0.350368,"unitPrice":0.350368,"armRegionName":"southindia","location":"IN South","effectiveStartDate":"2025-04-01T00:00:00Z","meterId":"000009d0-057f-5f2b-b7e9-9e26add324a8","meterName":"D14/DS14 Spot","productId":"DZH318Z0BPVW","skuId":"DZH318Z0BPVW/00QZ","productName":"Virtual Machines D Series Windows","skuName":"D14 Spot","serviceName":"Virtual Machines","serviceId":"DZH313Z7MMC8","serviceFamily":"Compute","unitOfMeasure":"1 Hour","type":"Consumption","isPrimaryMeterRegion":true,"armSkuName":"Standard_D14"},
-
-
 def az_billing(credential, subscription_id) -> bool:
     """ STATUS: NOT WORKING
     Tutorial: https://learn.microsoft.com/en-us/azure/cost-management-billing/
@@ -1537,7 +1652,6 @@ def az_billing(credential, subscription_id) -> bool:
     except Exception as e:
         print_error(f"az_billing(): ERROR: {e}")
         return False
-
 
 
 #### SECTION 14. Region & Location Geo utilities:
@@ -1639,7 +1753,7 @@ def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
     # TODO: Identify the longest region name (germanywestcentral) and announce its number of characters (18)
         # for use in keyvault name which must be no longer than 24 characters long.
 
-    num_regions = 1
+    # num_regions = 1
     distances = []
     for region, (region_lat, region_lon) in AZURE_REGIONS.items():
         distance = haversine_distance(latitude, longitude, region_lat, region_lon)
@@ -1656,14 +1770,12 @@ def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
 
 
 #### SECTION 15. Azure Blob Storage
-# Azure Data Factory for data integration, 
-# Azure Gen2 Data Lake Storage of structured & unstructured data (videos)
-# Synapse Analytics (Spark ETL jobs)
 
 
-def get_storage_account() -> str:
+def get_az_blog_storage_acct() -> str:
     """
     Return the storage account name from parm or the environment variable STORAGE_ACCOUNT_NAME in os.environ.
+    useing my_subscription_id and my_az_svc_region # from global
     ??? Authenticate using a connection string or with Azure Active Directory (recommended for security). 
     """
     # NOTE: Parms defined in CLI call take precedence over .env:
@@ -1671,48 +1783,52 @@ def get_storage_account() -> str:
     # STEP 3: Try to get STORAGE_ACCOUNT_NAME from CLI parms:
     # STORAGE_ACCOUNT_NAME = args.storage  # done in code above.
     if STORAGE_ACCOUNT_NAME:
-        print_info(f"--storage_account \"{STORAGE_ACCOUNT_NAME}\" from parms within get_storage_account() ")
+        print_info(f"--storage_account \"{STORAGE_ACCOUNT_NAME}\" from parms within get_az_blog_storage_acct() ")
         return STORAGE_ACCOUNT_NAME
     else:
-        print_verbose(f"--storage_account \"___\" not defined in parms within get_storage_account() ")
+        print_verbose(f"--storage_account \"___\" not defined in parms within get_az_blog_storage_acct() ")
 
     # STEP 2: Try to get STORAGE_ACCOUNT_NAME from .env file:
     storage_account_name = get_str_from_env_file("STORAGE_ACCOUNT_NAME")
         # instead of storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
     if storage_account_name:
-        print_info(f"STORAGE_ACCOUNT_NAME=\"{storage_account_name}\" from .env within get_storage_account() ")
+        print_info(f"STORAGE_ACCOUNT_NAME=\"{storage_account_name}\" from .env within get_az_blog_storage_acct() ")
         return storage_account_name
+    # else:
 
     # STEP 3: Identify azure blob storage accounts used by a subscription id
     # Replace with your subscription ID
     subscription_id = my_subscription_id  # from global
-    if subscription_id:  # available:
-        print_trace(f"subscription_id=\"{subscription_id}\" global within get_storage_account() ")
-        # from azure.identity import DefaultAzureCredential
-        credential = DefaultAzureCredential()   # Authenticate.
-        # from azure.mgmt.storage import StorageManagementClient
-        storage_client = StorageManagementClient(credential, subscription_id)
-        # List all storage accounts in the subscription
-        accounts_obj = storage_client.storage_accounts.list()
-        print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_storage_account() ")
-        if list(accounts_obj):
-            # TODO: Print storage account names and their blob endpoints:
-            print_info(f"get_storage_account(): specify --storage or STORAGE_ACCOUNT_NAME in .env!")
-            for account in accounts_obj:
-                print(f"Name: {account.name}")
-                print(f"Resource Group: {account.id.split('/')[4]}")
-                # Blob endpoint is typically in the primary_endpoints property
-                if account.primary_endpoints and account.primary_endpoints.blob:
-                    print(f"Blob Endpoint: {account.primary_endpoints.blob}")
-                print("-" * 40)
-        else:
-            print_error(f"get_storage_account(): no storage accounts found for subscription_id!")
-            # TODO: Create storage account:
+    if not subscription_id:  # available:
+        print_error(f"No global Subscription_id for use within get_az_blog_storage_acct()!")
+        return None
+    
+    print_trace(f"Using global subscription_id=\"{subscription_id}\" within get_az_blog_storage_acct() ")
+    # from azure.identity import DefaultAzureCredential
+    credential = DefaultAzureCredential()   # Authenticate.
+    # from azure.mgmt.storage import StorageManagementClient
+    storage_client = StorageManagementClient(credential, subscription_id)
+    # List all storage accounts in the subscription
+    accounts_obj = storage_client.storage_accounts.list()
+    print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_az_blog_storage_acct() ")
+    if list(accounts_obj):
+        # TODO: Print storage account names and their blob endpoints:
+        print_info(f"get_az_blog_storage_acct(): specify --storage or STORAGE_ACCOUNT_NAME in .env!")
+        for account in accounts_obj:
+            print(f"Name: {account.name}")
+            print(f"Resource Group: {account.id.split('/')[4]}")
+            # Blob endpoint is typically in the primary_endpoints property
+            if account.primary_endpoints and account.primary_endpoints.blob:
+                print(f"Blob Endpoint: {account.primary_endpoints.blob}")
+            print("-" * 40)
+    else:
+        print_error(f"No Azure blob storage accounts found for subscription_id within get_az_blog_storage_acct()!")
+        # TODO: Create storage account:
 
     return None
 
 
-def create_storage_account(credential, subscription_id, resource_group_name, new_location) -> str:
+def create_az_blog_storage_acct(credential, subscription_id, resource_group_name, new_location) -> str:
     """
     Returns an Azure storage account object for the given account name
     using global STORAGE_ACCOUNT_NAME
@@ -1731,10 +1847,10 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
     # Fetch current account properties
     storage_client = obtain_blob_storage_object(credential, subscription_id)
     if not storage_client:
-        print_error("create_storage_account(): obtain_blob_storage_object() failed to fetch storage_client! ")
+        print_error("create_az_blog_storage_acct(): obtain_blob_storage_object() failed to fetch storage_client! ")
         exit(9)
     else:  # redundant
-        print_trace(f"create_storage_account(): {storage_client}")
+        print_trace(f"create_az_blog_storage_acct(): {storage_client}")
 
     if STORAGE_ACCOUNT_NAME:  # defined by parameter:
         print_info(f"--storage \"{STORAGE_ACCOUNT_NAME}\"  # (STORAGE_ACCOUNT_NAME) from parms being used.")
@@ -1749,24 +1865,49 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
     # WARNING: No underlines or dashes in storage account name up to 24 characters:
     fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
     date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
-    # Max. my_location is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
-    storage_account_name = f"{my_location}{date_str}"  # no dashes/underlines
+    # Max. my_az_svc_region is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
+    storage_account_name = f"{my_az_svc_region}{date_str}"  # no dashes/underlines
        # Example: STORAGE_ACCOUNT_NAME="germanywestcentral-2504"
     # Alternative: STORAGE_ACCOUNT_NAME = f"pythonazurestorage{random.randint(1,100000):05}"
-    print_info(f"create_storage_account() considering name: \"{storage_account_name}\" ")
+    print_verbose(f"create_az_blog_storage_acct() considering name: \"{storage_account_name}\" ")
 
     try:
         # Fetch current storage account properties:
         account_props = storage_client.storage_accounts.get_properties(resource_group_name, storage_account_name)
-        print_verbose(f"create_storage_account() properties: {account_props}")
+        print_verbose(f"create_az_blog_storage_acct() properties: {account_props}")
+           #  {'additional_properties': {}, 'id': '/subscriptions/15e19a4e-ca95-4101-8e5f-8b289cbf602b/resourceGroups/westus2-2589c1/providers/Microsoft.Storage/storageAccounts/westus32505', 
+           # 'name': 'westus32505', 'type': 'Microsoft.Storage/storageAccounts', 'tags': {}, 'location': 'westus3', 
+           # 'sku': <azure.mgmt.storage.v2024_01_01.models._models_py3.Sku object at 0x10a13ae90>, 
+           # 'kind': 'StorageV2', 'identity': None, 'extended_location': None, 'provisioning_state': 'Succeeded', 
+           # 'primary_endpoints': <azure.mgmt.storage.v2024_01_01.models._models_py3.Endpoints object at 0x10a13b390>, 
+           # 'primary_location': 'westus3', 'status_of_primary': 'available', 'last_geo_failover_time': None, 
+           # 'secondary_location': None, 'status_of_secondary': None, 'creation_time': datetime.datetime(2025, 5, 4, 2, 9, 28, 507661, 
+           #  tzinfo=<isodate.tzinfo.Utc object at 0x103f26660>), 'custom_domain': None, 'sas_policy': None, 'key_policy': None, 
+           # 'key_creation_time': <azure.mgmt.storage.v2024_01_01.models._models_py3.KeyCreationTime object at 0x118322fd0>, 
+           # 'secondary_endpoints': None, 'encryption': <azure.mgmt.storage.v2024_01_01.models._models_py3.Encryption object at 0x118322210>, 
+           # 'access_tier': 'Hot', 'azure_files_identity_based_authentication': None, 
+           # 'enable_https_traffic_only': True, 'network_rule_set': <azure.mgmt.storage.v2024_01_01.models._models_py3.NetworkRuleSet object at 0x118320f50>, 
+           # 'is_sftp_enabled': None, 'is_local_user_enabled': None, 'enable_extended_groups': None, 'is_hns_enabled': None, 
+           # 'geo_replication_stats': None, 'failover_in_progress': None, 'large_file_shares_state': None, 
+           # 'private_endpoint_connections': [], 'routing_preference': None, 'blob_restore_status': None, 
+           # 'allow_blob_public_access': False, 'minimum_tls_version': 'TLS1_2', 'allow_shared_key_access': None, 
+           # 'enable_nfs_v3': None, 'allow_cross_tenant_replication': False, 'default_to_o_auth_authentication': None, 
+           # 'public_network_access': None, 'immutable_storage_with_versioning': None, 'allowed_copy_scope': None, 
+           # 'storage_account_sku_conversion_status': None, 'dns_endpoint_type': None, 'is_sku_conversion_blocked': None, 
+           # 'account_migration_in_progress': None} 
     except Exception as e:
-        print_verbose(f"create_storage_account(): {e}")
+        print_trace(f"create_az_blog_storage_acct(): account_props: {e}")
+            # (ResourceNotFound) The Resource 'Microsoft.Storage/storageAccounts/westus32505' under resource group 'westus2-2589c1' was not found. 
+            # For more details please go to https://aka.ms/ARMResourceNotFoundFix 
+            # Code: ResourceNotFound
+            # Message: The Resource 'Microsoft.Storage/storageAccounts/westus32505' under resource group 'westus2-2589c1' was not found. 
+            # For more details please go to https://aka.ms/ARMResourceNotFoundFix 
         pass  # to create storage account below
     else:  # if storage account already exists:
         # List all storage accounts in the subscription for credential:
         storage_accounts = storage_client.storage_accounts.list()
         for account in storage_accounts:
-            print_verbose(f"Storage Account: {account.name}, Location: {account.location}")
+            print_verbose(f"Storage Account: \"{account.name}\" in \"{account.location}\" within create_az_blog_storage_acct() ")
         return storage_account_name
 
     # CAUTION: API version needs update occassionally:
@@ -1776,12 +1917,11 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
         "kind": "StorageV2",
         "api_version": "2024-01-01",
         "sku": {"name": "Standard_LRS"},
-        "minimum_tls_version": "TLS1_2",
-        "deleteRetentionPolicy": {
-            "enabled": True,
-            "days": 14  # Set between 1 and 365
-        }
+        "minimum_tls_version": "TLS1_2"
     }  # LRS = Locally-redundant storage
+        #"deleteRetentionPolicy": {
+        #    "enabled": True,
+        #    "days": 14  # Set between 1 and 365
     # TODO: Set soft delete policies, 
     # For update: https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
     # https://learn.microsoft.com/en-us/rest/api/storagerp/storage-accounts/create?view=rest-storagerp-2024-01-01&tabs=HTTP
@@ -1794,49 +1934,12 @@ def create_storage_account(credential, subscription_id, resource_group_name, new
         )
         # Wait for completion:
         account_result = poller.result()
-        print_info(f"create_storage_account(\"{account_result.name}\") created!")
+        print_info(f"create_az_blog_storage_acct(\"{account_result.name}\") created!")
         return account_result  # storage_account_name
     except Exception as e:
-        print_error(f"create_storage_account(): {e}")
+        print_error(f"create_az_blog_storage_acct(): {e}")
         # FIXME: api_version="2024-03-01" -> API version 2024-03-01 does not have operation group 'storage_accounts' 
         # See https://www.perplexity.ai/search/azure-api-version-2024-03-01-d-7aatmHRXQ32L0PF3zaraxg#0
-        return None
-
-
-
-def measure_http_latency(storage_account_name, attempts=5) -> str:
-    """
-    Returns the HTTP latency to a storage account within the Azure cloud.
-    """
-    # import requests
-    # import time
-
-    url = storage_account_name + ".blob.core.windows.net"
-    latencies = []
-    for _ in range(attempts):
-        start = time.time()
-        try:
-            response = requests.get(url, timeout=5)
-            latency = (time.time() - start) * 1000  # ms
-            latencies.append(latency)
-        except requests.RequestException:
-            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
-            # <Code>InvalidQueryParameterValue</Code>
-            # <Message>
-            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
-            # </Message>
-            # <QueryParameterName>comp</QueryParameterName>
-            # <QueryParameterValue/>
-            # <Reason/>
-            # </Error>
-            latencies.append(None)
-
-    valid_latencies = [l for l in latencies if l is not None]
-    if valid_latencies:
-        avg_latencies = sum(valid_latencies)/len(valid_latencies)
-        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
-    else:
-        print_error(f"measure_http_latency(): requests failed to {url}")
         return None
 
 
@@ -1852,10 +1955,11 @@ def obtain_blob_storage_object(credential, subscription_id) -> object:
     #from azure.identity import DefaultAzureCredential
     #from azure.mgmt.storage import StorageManagementClient
     #import os
-    storage_account_name = get_storage_account()
-    if not storage_account_name:
-        print_trace("obtain_blob_storage_object(): STORAGE_ACCOUNT_NAME not found! ")
-        exit(9)
+    storage_account_name = get_az_blog_storage_acct()
+    if storage_account_name:
+        print_verbose("Storage Account: \"{storage_account_name}\" within obtain_blob_storage_object() ")
+        return storage_account_name
+    #else: STORAGE_ACCOUNT_NAME not found:
     try:
         # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
         #from azure.storage.blob import BlobServiceClient
@@ -1869,7 +1973,7 @@ def obtain_blob_storage_object(credential, subscription_id) -> object:
             # api_version="2024-01-01" 
             #resource_group=resource_group,
             #storage_account_name=storage_account_name,
-            #location=my_location
+            #location=my_az_svc_region
         )
         print_verbose(f"obtain_blob_storage_object(): {storage_client}")
         return storage_client
@@ -1910,6 +2014,47 @@ def ping_az_storage_acct(storage_account_name) -> str:
       # undelete_storage_blob():
 
 # def access_storage_blob():
+
+
+# TODO: Azure Data Factory for data integration, 
+# TODO: Azure Gen2 Data Lake Storage of structured & unstructured data (videos)
+# TODO: Synapse Analytics (Spark ETL jobs)
+
+
+def measure_http_latency(storage_account_name, attempts=5) -> str:
+    """
+    Returns the HTTP latency to a storage account within the Azure cloud.
+    """
+    # import requests
+    # import time
+
+    url = storage_account_name + ".blob.core.windows.net"
+    latencies = []
+    for _ in range(attempts):
+        start = time.time()
+        try:
+            response = requests.get(url, timeout=5)
+            latency = (time.time() - start) * 1000  # ms
+            latencies.append(latency)
+        except requests.RequestException:
+            # FIXME: <Error data-darkreader-white-flash-suppressor="active">
+            # <Code>InvalidQueryParameterValue</Code>
+            # <Message>
+            # Value for one of the query parameters specified in the request URI is invalid. RequestId:3b433e32-d01e-003f-274c-b37a10000000 Time:2025-04-22T06:06:36.7748787Z
+            # </Message>
+            # <QueryParameterName>comp</QueryParameterName>
+            # <QueryParameterValue/>
+            # <Reason/>
+            # </Error>
+            latencies.append(None)
+
+    valid_latencies = [l for l in latencies if l is not None]
+    if valid_latencies:
+        avg_latencies = sum(valid_latencies)/len(valid_latencies)
+        print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
+    else:
+        print_error(f"measure_http_latency(): requests failed to {url}")
+        return None
 
 
 # TODO: set the principal with the appropriate level of permissions (typically Directory.Read.All for these operations).
@@ -1980,8 +2125,7 @@ def create_content_safety_policy(credential, subscription_id, resource_group_nam
     # from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 
 
-
-def define_keyvault_name(my_location) -> str:
+def define_keyvault_name(my_az_svc_region) -> str:
     """
     Come up with a globally unique keyvault name that's 24 characters long.
     """
@@ -1998,12 +2142,12 @@ def define_keyvault_name(my_location) -> str:
 
     # TODO: Calcuate how many characters can fit within 24 character limit.
     # With the longest region name being 18, such as "westcentralus-fa5bdb":
-    keyvault_name = f"{my_location}-{uuid.uuid4().hex[:6]}"
+    keyvault_name = f"{my_az_svc_region}-{uuid.uuid4().hex[:6]}"
         # So no room for prefix "kv-" as in
     #    my_keyvault_root = os.environ["AZURE_KEYVAULT_ROOT_NAME"]
     #except KeyError as e:
     #    my_keyvault_root = "kv"
-    # Also no room for both: "{my_keyvault_root}-{my_location}-{get_log_datetime()}"
+    # Also no room for both: "{my_keyvault_root}-{my_az_svc_region}-{get_log_datetime()}"
         # PROTIP: Define datestamps Timezone UTC: https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
     return keyvault_name
 
@@ -2368,14 +2512,59 @@ def translate_text_using_az_ai_rest_client(text_in, ai_languages, location_in):
 #### SECTION 19. TODO: (Event-triggered) Azure Serverless Functions
 # to send messages to Azure services (Blob Storage, Event Hubs, Service Bus)
 
+
 # Install Azure Functions Core Tools
 # After creating a start function using Azure tab in VS Code.
 # Set Bindings to Azure resources 
 # See https://www.udemy.com/course/python-sdk-for-azure-bootcamp/learn/lecture/39014330#overview
 
+# Service: Functions
+#   SKU: Always Ready | Price: 1.6e-05 | Unit: 1 GB Second
+#   SKU: Premium | Price: 0.0123 | Unit: 1 GiB Hour
 
 
-#### SECTION 20. Main control loop:
+#### SECTION 20. Billing and Cost Management:
+
+
+def get_azure_service_costs(region_name):
+    base_url = "https://prices.azure.com/api/retail/prices"
+    filter_query = f"?$filter=armRegionName eq '{region_name}'"
+    url = base_url + filter_query
+
+    all_items = []
+    while url:
+        # import requests
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(f"Failed to fetch data: {response.status_code}")
+            break
+        data = response.json()
+        all_items.extend(data.get('Items', []))
+        url = data.get('NextPageLink')
+
+    # Group by serviceName and print cost details
+    service_costs = {}
+    for item in all_items:
+        service_name = item.get('serviceName')
+        price = item.get('retailPrice')
+        unit = item.get('unitOfMeasure')
+        sku = item.get('skuName')
+        if service_name not in service_costs:
+            service_costs[service_name] = []
+        service_costs[service_name].append((sku, price, unit))
+
+    # Print summary
+    for service, prices in service_costs.items():
+        print(f"\nService: {service}")
+        for sku, price, unit in prices:
+            print(f"  SKU: {sku} | Price: {price} | Unit: {unit}")
+
+# Example usage:
+get_azure_service_costs('eastus')
+
+
+
+#### SECTION 21. Main control loop:
 
 
 if __name__ == "__main__":
@@ -2407,26 +2596,33 @@ if __name__ == "__main__":
         register_subscription_providers(my_credential, my_subscription_id)
         my_tenant_id = get_tenant_id()
         
-        longitude, latitude = get_longitude_latitude() # from parms or .env file calling 
-        get_geo_coordinates("")  # (zip_code if you have it)
-        my_location = closest_az_region_by_latlong(longitude, latitude)
-            #get_elevation(longitude, latitude)  # has error
-        # my_location = lowest_cost_region(az_svc_name)
+        region_choice_basis = "closest"  # "cost" or "closest" [Edit Manually]
+        if region_choice_basis == "closest":
+            longitude, latitude = get_longitude_latitude() # from parms or .env file calling 
+            get_geo_coordinates("")  # (zip_code if you have it)
+            my_az_svc_region = closest_az_region_by_latlong(longitude, latitude)
+                #get_elevation(longitude, latitude)  # has error
+        elif region_choice_basis == "cost":
+            # az_svc_skus = ["KeyVault"]  # global
+            my_az_svc_region = get_lowest_cost_region("Standard_NP20s")
+        else:
+            print_error(f"region_choice_basis: \"{region_choice_basis}\" not recognized.")
+            
         # az_costmanagement(my_subscription_id)
 
-        my_resource_group = get_resource_group(my_subscription_id, my_location)        
-        my_storage_account = get_storage_account()
-        my_storage_account = create_storage_account(my_credential, my_subscription_id, my_resource_group, my_location)
-        # ping_az_storage_acct(my_storage_account)
-        # measure_http_latency(my_storage_account, attempts=5)
-    exit()
+        my_resource_group = get_resource_group(my_subscription_id, my_az_svc_region)        
+        my_storage_account = get_az_blog_storage_acct()
+        if not my_storage_account:
+            my_storage_account = create_az_blog_storage_acct(my_credential, my_subscription_id, my_resource_group, my_az_svc_region)
+            print(f"my_storage_account: {my_storage_account}")
+            still_good = False
 
-    # https://portal.azure.com/#view/Microsoft_Azure_GTM/Billing.MenuView/~/overview/scopeId/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/scope/BillingAccount
-    #az_billing(my_credential, my_subscription_id)  # has error
-    # Cost Analysis: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/CostAnalysis/scope/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/externalState~/%7B%22dateRange%22%3A%22ThisMonth%22%2C%22query%22%3A%7B%22timeframe%22%3A%22None%22%7D%7D
+    # ping_az_storage_acct(my_storage_account)
+ 
+    # measure_http_latency(my_storage_account, attempts=5)
+
     
-
-    #### STAGE 4 - Azure AI
+    #### STAGE 4 - Azure Key Vault at a location:
 
     #if still_good:    
         # get_ai_svc_globals()
@@ -2437,38 +2633,53 @@ if __name__ == "__main__":
         # CAUTION: This costs money:
         # ai_languages = ["fr"]   # ["fr","zn"] for French & Simplified Chinese
         # "code": 401001 "The request is not authorized because credentials are missing or invalid."
-        #translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages, my_location)
+        #translated_text = translate_text_using_az_ai_rest_client(TEXT_INPUT, ai_languages, my_az_svc_region)
         #print_info(f"translated_text: \"{translated_text}\"")
-
-
-    #### STAGE 5 - Azure Key Vault at a location:
-
 
     if still_good:
         if KEYVAULT_NAME:
             my_resource_group = KEYVAULT_NAME
             my_keyvault_name = KEYVAULT_NAME
         else:
-            my_keyvault_name = define_keyvault_name(my_location)
-            my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_location, my_subscription_id)
+            my_keyvault_name = define_keyvault_name(my_az_svc_region)
+            #my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_az_svc_region, my_subscription_id)
             # TODO: Add tags to resource group.
         vault_url = f"https://{my_keyvault_name}.vault.azure.net"
         rc = check_keyvault(my_credential, my_keyvault_name, vault_url)
         if rc is True: 
             print_verbose(f"Key Vault \"{my_keyvault_name}\" already exists.")
         if rc is False:  # False (does not exist), so create it:
-            create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_location, my_tenant_id, my_user_principal_id)
+            create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_az_svc_region, my_tenant_id, my_user_principal_id)
+
+    #### STAGE 5 - Azure AI
 
     print_wall_times()
     print("DEBUGGING EXIT")
     exit()
 
-    #### List Azure Key Vaults:
+    # List Azure Key Vaults:
     # Equivalent of Portal: List Key Vaults: https://portal.azure.com/#browse/Microsoft.KeyVault%2Fvaults
     # TODO: List costs like https://portal.azure.com/#view/HubsExtension/BrowseCosts.ReactView
     # PRICING: STANDARD SKU: $0.03 per 10,000 app restart operation, plus $3 for cert renewal, PLUS $1/HSM/month.
         # See https://www.perplexity.ai/search/what-is-the-cost-of-running-a-Fr6DTbKQSWKzpdSGv6qyiw
     
+    # Add secrets to Azure Key Vault:
+
+    my_secret_name = os.environ["MY_SECRET_NAME"]
+    my_secret_value = os.environ["MY_SECRET_PLAINTEXT"]
+
+    rp_result = populate_keyvault_secret(my_credential, my_keyvault_name, my_secret_name, my_secret_value)
+
+    # TODO: List secrets in Key Vault
+
+    rp_result = get_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
+    
+    # delete_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
+
+    # Retrieve secrets from Azure Key Vault:    
+    # Rotate secrets in Azure Key Vault:
+    # Azure Key Vault allows you to more securely store and manage SSL/TLS certificates.
+
     #### STAGE 6 - Azure Resource Group for Azure Key Vault at a location:
 
     #my_principal_id = os.environ["AZURE_KEYVAULT_PRINCIPAL_ID"]
@@ -2484,40 +2695,29 @@ if __name__ == "__main__":
     # Alternative: Using Azure Function App Headers (For Authenticated Users) using Easy Auth and returns the signed-in user's principal ID.
     exit()
 
+    #### STAGE 6 - Azure Resource Group for Azure Key Vault at a location:
  
-
-    #### Add secrets to Azure Key Vault:
-
-    my_secret_name = os.environ["MY_SECRET_NAME"]
-    my_secret_value = os.environ["MY_SECRET_PLAINTEXT"]
-
-    rp_result = populate_keyvault_secret(my_credential, my_keyvault_name, my_secret_name, my_secret_value)
-
-    # TODO: List secrets in Key Vault
-
-    rp_result = get_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
     
-    # delete_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
-
-    #### Retrieve secrets from Azure Key Vault:
-
+    #### STAGE 7 - Billing and Cost Management:
     
-    #### Rotate secrets in Azure Key Vault:
-
+    # https://portal.azure.com/#view/Microsoft_Azure_GTM/Billing.MenuView/~/overview/scopeId/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/scope/BillingAccount
+    #az_billing(my_credential, my_subscription_id)  # has error
+    # Cost Analysis: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/CostAnalysis/scope/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/externalState~/%7B%22dateRange%22%3A%22ThisMonth%22%2C%22query%22%3A%7B%22timeframe%22%3A%22None%22%7D%7D
     
-    #### -D to delete Key Vault created above.
+    
+    #### STAGE 8 - Delete what was created (to stop charge accumulation and cruft):
+    
+    # -D to delete Key Vault created above.
 
     if DELETE_KV_AFTER:
         rp_result = delete_keyvault(my_credential, my_keyvault_name, vault_url)
 
-    #### -D to delete Resource Group for Key Vault created above.
+    # -D to delete Resource Group for Key Vault created above.
 
     if DELETE_RG_AFTER:
         rp_result = delete_resource_group(my_credential, my_keyvault_name, my_subscription_id)
 
 
-
-    #### Azure Key Vault allows you to more securely store and manage SSL/TLS certificates.
 
     #### Perplexity.ai: Sonar API 
     # https://docs.perplexity.ai/home
