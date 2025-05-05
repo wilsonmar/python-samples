@@ -1,0 +1,38 @@
+    aiohttp   # for async features
+    azure-ai-contentsafety
+    azure-ai-inference   # instead of azure-ai-foundry
+    azure-ai-projects 
+    azure-ai-textanalytics==5.3.0
+    azure-functions
+    azure-identity
+    azure-keyvault-secrets
+  
+    azure-mgmt-billing          # billing accounts, profiles (payment), customers, invoices
+    azure-mgmt-compute
+    azure-mgmt-consumption      # budgets, usage details, charges
+    azure-mgmt-costmanagement   # resource usage, forecasted, cost data exports
+    azure-mgmt-keyvault
+    azure-mgmt-network
+    azure-mgmt-resource
+    azure-mgmt-storage
+    azure-storage-blob
+    flask
+    logging
+    matplotlib   # or plotly
+    numpy
+    opentelemetry-api
+    opentelemetry-distro 
+    opentelemetry-sdk
+    pandas
+    pathlib
+    pillow     # https://realpython.com/courses/python-pillow/
+    platform   # https://docs.python.org/3/library/platform.html
+    psutil     # psutil-7.0.0
+    pylint 
+    python-dotenv
+    pythonping
+    pytz
+    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    tabulate
+    uuid
+    # NOT msgraph-core           # for msgraph.core.GraphClient

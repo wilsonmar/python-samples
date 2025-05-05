@@ -11,8 +11,8 @@ ruff check az-keyvault.py
 
 #### SECTION 01. Metadata about this program file:
 
-__commit_date__ = "2025-05-03"
-__last_commit__ = "v012 + create_az_blog_storage_acct() :az-keyvault.py"
+__commit_date__ = "2025-05-04"
+__last_commit__ = "v013 + requirements.txt, my_storage_account :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -78,45 +78,6 @@ source .venv/bin/activate
 
 uv python install 3.12
 # See https://realpython.com/python-pyproject-toml/ & https://realpython.com/python-uv/
-# Instead of uv pip install -r requirements.txt, uv add ...
-    aiohttp   # for async features
-    pathlib
-    pylint 
-    python-dotenv
-
-    azure-functions
-    azure-ai-contentsafety
-    azure-ai-projects 
-    azure-ai-inference   # instead of azure-ai-foundry
-    azure-identity
-    azure-keyvault-secrets
-    azure-mgmt-compute
-    azure-mgmt-keyvault
-    azure-mgmt-network
-    azure-mgmt-resource
-    azure-mgmt-storage
-    azure-storage-blob
-    azure-ai-textanalytics==5.3.0
-    azure-mgmt-billing          # billing accounts, profiles (payment), customers, invoices
-    azure-mgmt-costmanagement   # resource usage, forecasted, cost data exports
-    azure-mgmt-consumption      # budgets, usage details, charges
-    azure-storage-blob   # azure.storage.blob
-    flask
-    logging
-    matplotlib   # or plotly
-    numpy
-    opentelemetry-api
-    opentelemetry-distro 
-    opentelemetry-sdk
-    pandas
-    pillow     # https://realpython.com/courses/python-pillow/
-    platform   # https://docs.python.org/3/library/platform.html
-    psutil  #  psutil-7.0.0
-    pythonping
-    pytz
-    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
-    uuid
-    # NOT msgraph-core           # for msgraph.core.GraphClient
 
 source .venv/bin/activate
 
@@ -240,10 +201,30 @@ def no_newlines(in_string):
     """
     return ''.join(in_string.splitlines())
 
-def print_secret(in_string):
-    """TODO: Display secret in shortened string.
+def print_secret(secret_in: str) -> None:
+    """ Outputs secrets discreetly - display only the first few characters (like Git) with dots replacing the rest.
     """
-    return in_string
+    # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
+    if show_secrets:  # program parameter
+        if show_dates_in_logs:
+            now_utc=datetime.now(timezone('UTC'))
+            print(bcolors.WARNING, CLI_PFX,now_utc,"SECRET: ", secret_in, RESET)
+        else:
+            print(bcolors.CBEIGE, CLI_PFX, "SECRET: ", secret_in, RESET)
+    else:
+        # same length regardless of secret length to reduce ability to guess:
+        secret_len = 8
+        if len(secret_in) >= 8:  # slice
+            secret_out = secret_in[0:4] + "."*(secret_len-4)
+        else:
+            secret_out = secret_in[0:4] + "."*(secret_len-1)
+            if show_dates_in_logs:
+                print(bcolors.WARNING, CLI_PFX, print_datetime(), f'{text_in}', RESET)
+            else:
+                print(bcolors.CBEIGE, CLI_PFX, " SECRET: ", f'{secret_out}', RESET)
+    # NOTE: secrets should not be printed to logs.
+    return None
+
 
 def print_samples():
     """Display what different type of output look like.
@@ -266,12 +247,60 @@ def print_samples():
 
 #### SECTION 04: Built-in Imports
 
-# Python’s Standard library of built-in modules imported as
+
+"""
+# Instead of uv pip install -r requirements.txt, uv add ...
+    aiohttp   # for async features from import asyncio
+    asyncio
+
+    azure-ai-contentsafety
+    azure-ai-inference   # instead of azure-ai-foundry
+    azure-ai-projects 
+    azure-ai-textanalytics==5.3.0
+    azure-functions
+    azure-identity
+    azure-keyvault-secrets
+
+    azure-mgmt-billing          # billing accounts, profiles (payment), customers, invoices
+    azure-mgmt-compute
+    azure-mgmt-consumption      # budgets, usage details, charges
+    azure-mgmt-costmanagement   # resource usage, forecasted, cost data exports
+    azure-mgmt-keyvault
+    azure-mgmt-network
+    azure-mgmt-resource
+    azure-mgmt-storage
+    azure-storage-blob   # azure.storage.blob
+
+    collections
+    flask
+    logging
+    matplotlib   # or plotly
+    numpy
+    opentelemetry-api
+    opentelemetry-distro 
+    opentelemetry-sdk
+    pandas
+    pathlib
+    pillow     # https://realpython.com/courses/python-pillow/
+    platform   # https://docs.python.org/3/library/platform.html
+    psutil  #  psutil-7.0.0
+    pylint 
+    python-dotenv
+    pythonping
+    pytz
+    requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    tabulate
+    uuid
+    # NOT msgraph-core           # for msgraph.core.GraphClient
+"""
+
+# Python’s Standard library of built-in modules imported as:
       # listed at https://docs.python.org/3/library/*.html
 std_strt_timestamp = time.monotonic()
 import argparse
 import base64
 # import boto3  # for aws python
+from collections import OrderedDict
 from dotenv import load_dotenv   # install python-dotenv
 import http.client
 import json
@@ -299,6 +328,7 @@ std_stop_timestamp = time.monotonic()
 xpt_strt_timestamp =  time.monotonic()
 try:
     import argparse
+    import asyncio
     from azure.ai.textanalytics import TextAnalyticsClient
     #    azure-ai-projects 
     from azure.core.exceptions import ClientAuthenticationError
@@ -323,17 +353,19 @@ try:
     # Microsoft Authentication Library (MSAL) for Python
     # integrates with the Microsoft identity platform. It allows you to sign in users or apps with Microsoft identities (Microsoft Entra ID, External identities, Microsoft Accounts and Azure AD B2C accounts) and obtain tokens to call Microsoft APIs such as Microsoft Graph or your own APIs registered with the Microsoft identity platform. It is built using industry standard OAuth2 and OpenID Connect protocols
     # See https://github.com/AzureAD/microsoft-authentication-library-for-python?tab=readme-ov-file
+
     #import click
     from opentelemetry import trace   # opentelemetry-api 
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
-    import pandas
+    import pandas as pd
     from pathlib import Path
     import psutil  #  psutil-5.9.5
     from pythonping import ping
     import pytz   # time zones
     import requests
+    from tabulate import tabulate 
     import uuid
 except Exception as e:
     print(f"Python module import failed: {e}")
@@ -396,11 +428,13 @@ parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
 parser.add_argument("-l", "--log", help="Log to external file")
 
 parser.add_argument("-u", "--user", help="User email (for credential)")
-parser.add_argument("-z", "--zip", help="6-digit Zip code (in USA)")
+# --tenant
 parser.add_argument("-sub", "--subscription", help="Subscription ID (for costing)")
-parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
+parser.add_argument("-z", "--zip", help="6-digit Zip code (in USA)")
 parser.add_argument("-rg", "--resource", help="Resource Group Name")
 parser.add_argument("-st", "--storage", help="Storage Name")
+parser.add_argument("-kv", "--keyvault", help="KeyVault Namo")
+
 parser.add_argument("-t", "--text", help="Text input (for language detection)")
 
 # -h = --help (list arguments)
@@ -442,9 +476,10 @@ LOG_DOWNLOADS = args.log
 
 AZURE_ACCT_NAME = args.user
 AZURE_SUBSCRIPTION_ID = args.subscription
-RESOURCE_GROUP_NAME = args.resource
-STORAGE_ACCOUNT_NAME = args.storage
-KEYVAULT_NAME = args.keyvault  # also used as resource group name
+AZURE_SUBSCRIPTION_ID = args.subscription
+AZURE_RESOURCE_GROUP = args.resource
+AZURE_STORAGE_ACCOUNT = args.storage
+AZURE_KEYVAULT_NAME = args.keyvault  # also used as resource group name
 
 TEXT_INPUT = args.text
 if not TEXT_INPUT:
@@ -457,13 +492,75 @@ ENV_FILE="python-samples.env"  # the hard-coded default
 global_env_path = user_home_dir_path + "/" + ENV_FILE  # concatenate path
 
 # TODO: Make these configurable
-DELETE_RG_AFTER = True
-DELETE_KV_AFTER = True
+DELETE_RG_AFTER = False
+DELETE_KV_AFTER = False
 LIST_ALL_PROVIDERS = False
 
 # PROTIP: Global variable referenced within Python functions:
 # values obtained from .env file can be overriden in program call arguments:
  
+# please write python code to show regions of azure as a dictionary named AZURE_REGIONS with region name, latitude, longitude, with location with. Sort by region name.
+AZURE_REGIONS = {
+    "australiasoutheast": (-37.814, 144.963),   # Melbourne
+    "australiacentral": (-35.282, 149.128),     # Canberra
+    "australiacentral2": (-35.282, 149.128),    # Canberra
+    "southafricawest": (-33.925, 18.423),       # Cape Town
+    "australiaeast": (-33.865, 151.209),        # Sydney
+    "southafricanorth": (-25.731, 28.218),      # Johannesburg
+    "brazilsouth": (-23.55, -46.633),           # Sao Paulo
+    "southeastasia": (1.283, 103.833),          # Singapore
+    "southindia": (13.0827, 80.2707),           # Chennai
+    "centralindia": (18.5204, 73.8567),         # Pune
+    "jioindiacentral": (18.5204, 73.8567),      # Pune
+    "westindia": (19.076, 72.8777),             # Mumbai
+    "jioindiawest": (19.076, 72.8777),          # Mumbai
+    "eastasia": (22.267, 114.188),              # Hong Kong
+    "uaecentral": (24.466, 54.366),             # Abu Dhabi
+    "uaenorth": (25.096, 55.174),               # Dubai
+    "qatarcentral": (25.2854, 51.531),          # Doha
+    "southcentralus": (29.4167, -98.5),         # Texas
+    "isrealcentral": (31.046, 34.851),          # Jerusalem
+    "chinaeast": (31.2304, 121.4737),           # Shanghai
+    "chinaeast2": (31.2304, 121.4737),          # Shanghai
+    "israelnorth": (32.0853, 34.7818),          # Tel Aviv
+    "westus3": (33.448, -112.074),              # Arizona
+    "japanwest": (34.6939, 135.5022),           # Osaka
+    "koreasouth": (35.1796, 129.0756),          # Busan
+    "japaneast": (35.68, 139.77),               # Tokyo
+    "eastus2": (36.6681, -78.3889),             # Virginia, US
+    "eastus": (37.3719, -79.8164),              # Virginia, US
+    "koreacentral": (37.5665, 126.9780),        # Seoul
+    "westus": (37.783, -122.417),               # California
+    "chinanorth": (39.9042, 116.4074),          # Beijing
+    "chinanorth2": (39.9042, 116.4074),         # Beijing
+    "westcentralus": (40.89, -110.234),         # Wyoming
+    "centralus": (41.5908, -93.6208),           # Iowa
+    "northcentralus": (43.653, -92.332),        # Illinois
+    "canadacentral": (43.653, -79.383),         # Toronto
+    "francesouth": (43.7102, 7.2620),           # Marseille
+    "italynorth": (45.4642, 9.19),              # Milan
+    "switzerlandwest": (46.204, 6.143),         # Geneva
+    "francecentral": (46.3772, 2.373),          # Paris
+    "canadaeast": (46.817, -71.217),            # Quebec City
+    "westus2": (47.233, -119.852),              # Washington
+    "switzerlandnorth": (47.451, 8.564),        # Zurich
+    "germanywestcentral": (50.11, 8.682),       # Frankfurt
+    "uksouth": (51.5074, -0.1278),              # London
+    "polandcentral": (52.2297, 21.0122),        # Warsaw
+    "westeurope": (52.3667, 4.9),               # Amsterdam, Netherlands
+    "ukwest": (52.4796, -1.9036),               # Cardiff
+    "northeurope": (53.3478, -6.2597),          # Dublin, Ireland
+    "germanynorth": (53.55, 10.0),              # Hamburg
+    "swedencentral": (59.329, 18.068),          # Stockholm
+    "norwayeast": (59.913, 10.752),             # Oslo
+    "norwaywest": (60.391, 5.322),              # Bergen
+}  # This needs to be updated occassionally.
+# print_trace(f"closest_az_region_by_latlong(): from among {len(AZURE_REGIONS.items())} regions")
+    # Equivalent of CLI: az account list-locations --output table --query "length([])" 
+    # Equivalent of CLI: az account list-locations --query "[?contains(regionalDisplayName, '(US)')]" -o table
+    # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
+        # Remove "|length(@)"
+
 
 #### SECTION 07: Retry, logging, telemetry decorators:
 
@@ -964,7 +1061,7 @@ def create_get_resource_group(credential, subscription_id, new_location) -> str:
         print_error(f"create_get_resource_group() global my_resource_group not defined: {e}")
         return None
 
-    exit()
+
     #uv add azure-mgmt-resource
     #uv add azure-identity
     #from azure.identity import DefaultAzureCredential
@@ -1083,7 +1180,7 @@ def get_geo_coordinates(zip_code) -> (float, float):
         # OPTION C: Try getting latitude and longitude from IP address by calling the ip2geotools 
         latitude, longitude = get_ip_geo_coordinates("")
         print_verbose(f"get_geo_coordinates(): lat={latitude} & lng={longitude}")
-        print("DEBUGGING")
+
     # Instead of DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
     try:
         DISTANCEMATRIX_API_KEY = os.environ["DISTANCEMATRIX_API_KEY"]
@@ -1099,7 +1196,7 @@ def get_geo_coordinates(zip_code) -> (float, float):
     url = f'https://api.distancematrix.ai/maps/api/geocode/json?address={zip_code}&key={DISTANCEMATRIX_API_KEY}' 
     print_verbose(f"get_geo_coordinates() zip: \"{zip_code}\" URL = \"{url}\" ")
     try:
-        # import requests
+        # import requestsxr
         response = requests.get(url)
         data = response.json()    # Parse JSON response
         #print("data=",data)
@@ -1263,7 +1360,7 @@ def get_tenant_id() -> str:
     """
     try:
         tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
-        print_info(f"-tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
+        print_info(f"--tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
         return tenant_id
     except KeyError:   
         # import subprocess
@@ -1303,7 +1400,7 @@ def get_acct_credential() -> object:
         # from azure.core.exceptions import ClientAuthenticationError
         credential = DefaultAzureCredential()
             # Sequentially tries a "chain" of auth credentials including AzureCliCredential()
-        print_verbose(f"get_acct_credential(): \"{str(credential)}\")")
+        print_trace(f"get_acct_credential(): \"{str(credential)}\")")
         subscription_client = SubscriptionClient(credential)
         subscriptions = list(subscription_client.subscriptions.list())
         #print_verbose("User \"{my_acct_name}\" is logged in to Azure at get_acct_credential().")
@@ -1460,71 +1557,24 @@ def register_subscription_providers(credential, subscription_id) -> bool:
         print_error(f"register_subscription_providers() ERROR: {e}")
         return False
 
-
-# def use_interactive_credential() -> object:
-# """ For Interactive/OAuth Login	Web apps, user logins	Yes (browser)
-# """
+#### Azure Services Pricing by Resource
 
 
-def get_lowest_cost_region(svc_name_in) -> str:
-    """ 
-    Returns the lowest cost by region for each given service SKU, based on unauthenticated access to the 
-    Azure Retail Prices API for all Azure services (organized within a Meter):
-    See https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
-    and https://dev.to/holger/how-to-retrieve-a-list-of-available-services-from-the-azure-retail-rates-prices-api-2nk6
-    Based on https://www.perplexity.ai/search/python-code-to-get-cost-of-eac-chT5VY0TQiiIrYUnCN11aw
-
-    After obtaining meters as JSON: https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview
-    Each call returns a "$skip=1000".
-    So this function accumulates to the "all_items" in-memory build_pricing_table (array) from multiple calls to the API,
-
-    Filters: Meter: "NP20s Spot", currencyCode: USD, "serviceName": "Virtual Machines", "serviceFamily": "Compute"
-    | skuName        | armSkuName | productName                        | retailPrice | unitOfMeasure  | armRegionName  |
-    |----------------+------------+------------------------------------+-------------+----------------+----------------|
-    | Standard_NP20s | NP20s Spot | Virtual Machines NP Series Windows |    0.828503 | 1 Hour         | southcentralus |
-    
-    The above is modified from the table at https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/
-    Not shown: "productId": "DZH318Z0D1L7", "skuId": "DZH318Z0D1L7/018J",
-    #   {
-    #       "currencyCode": "USD",
-    #        "tierMinimumUnits": 0.0,
-    #        "retailPrice": 2.305,
-    #        "unitPrice": 2.305,
-    #        "armRegionName": "southindia",
-    #        "location": "IN South",
-    #        "effectiveStartDate": "2019-05-14T00:00:00Z",
-    #        "meterId": "0084b086-37bf-4bee-b27f-6eb0f9ee4954",
-    #        "meterName": "M8ms",
-    #        "productId": "DZH318Z0BQ4W",
-    #       "skuId": "DZH318Z0BQ4W/00BQ",
-    #        "availabilityId": null,
-    #        "productName": "Virtual Machines MS Series",
-    #       "skuName": "M8ms",
-    #       "serviceName": "Virtual Machines",
-    #       "serviceId": "DZH313Z7MMC8",
-    #        "serviceFamily": "Compute",
-    #        "unitOfMeasure": "1 Hour",
-    #        "type": "Consumption",
-    #        "isPrimaryMeterRegion": true,
-    #        "armSkuName": "Standard_M8ms",
-    #        "savingsPlan": [
-    #            {
-    #                "unitPrice": 0.8065195,
-    #                "retailPrice": 0.8065195,
-    #                "term": "3 Years"
-    #            },
-    #            {
-    #                "unitPrice": 1.5902195,
-    #                "retailPrice": 1.5902195,
-    #                "term": "1 Year"
-    #            }
-    #        ]
-    #    },
-    #
-    # for svc_sku in svc_skus:
+def load_costs_from_api(svc_name_in) -> str:
+    """ STATUS: Not working
+    Calls Azure's unauthenticated Retail Prices API iteratively for all Azure services 
+    into a database for access based on sku, to retrieve the region containing the lowest price.
+    Because of the amount of data, each API call returns a "$skip=1000".
+    The API holds several "Meter" (versions).
+    Since prices change often, data is pulled again and stored in-memory as an array.
+    served by an AI Agent that responds to MCP host.
+    https://www.cloudbolt.io/azure-costs/azure-sql-pricing/
+    https://docs.azure.cn/en-us/azure-sql/database/in-memory-oltp-monitor-space
+    A web page linking to Azure services and pricing is at:
+    https://azure.microsoft.com/en-us/products/
     """
     svc_name_in="Cognitive Services" # skuName in this function's signature
-    print_verbose(f"get_lowest_cost_region( svc_name_in: {svc_name_in}) ...")
+    print_verbose(f"load_costs_from_api( svc_name_in: {svc_name_in}) ...")
     # FUTURE: svc_skus = ["KeyVault","VirtualMachines"]   # ???
     
     base_url = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&meterRegion='primary"
@@ -1549,7 +1599,7 @@ def get_lowest_cost_region(svc_name_in) -> str:
             all_items.extend(data.get('Items', []))
             url = data.get('NextPageLink')
         except Exception as e:
-            print_error(f"get_lowest_cost_region(): {e}")
+            print_error(f"load_costs_from_api(): {e}")
             return None
 
     # Group by serviceName and print cost details:
@@ -1580,6 +1630,124 @@ def get_lowest_cost_region(svc_name_in) -> str:
     # NOTE: reservationTerm	1 year	Reservation term – one year or three years
 
     # TODO: Return lowest cost region for the given service SKU.
+
+
+def get_azure_service_costs(sku_name) -> str:
+    """ STATUS: Not working 
+    Returns the lowest cost by region for each given service SKU, based on unauthenticated access to the 
+    Azure Retail Prices API for all Azure services (organized within a Meter):
+    See https://spot.io/resources/azure-pricing/the-complete-guide/#:~:text=Azure%20Advisor-,Azure%20Pricing%20Models,reserved%20instances%2C%20and%20spot%20instances.
+    and https://umbrellacost.com/blog/azure-pricing-guide/?hsa_acc=7559118320&hsa_cam=22420396504&hsa_grp=181520889030&hsa_ad=744486570175&hsa_src=s&hsa_tgt=dsa-19959388920&hsa_kw=&hsa_mt=&hsa_net=adwords&hsa_ver=3&gad_source=5
+    See https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices
+    and https://dev.to/holger/how-to-retrieve-a-list-of-available-services-from-the-azure-retail-rates-prices-api-2nk6
+    Based on https://www.perplexity.ai/search/python-code-to-get-cost-of-eac-chT5VY0TQiiIrYUnCN11aw
+    and docs https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/storage/blobs/storage-blob-python-get-started.md
+             https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/storage/blobs/storage-blob-object-model.md
+
+    After obtaining meters as JSON: https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview
+    Each call returns a "$skip=1000".
+    So this function accumulates to the "all_items" in-memory build_pricing_table (array) from multiple calls to the API,
+
+    Filters: Meter: "NP20s Spot", currencyCode: USD, "serviceName": "Virtual Machines", "serviceFamily": "Compute"
+    | skuName        | armSkuName | productName                        | retailPrice | unitOfMeasure  | armRegionName  |
+    |----------------+------------+------------------------------------+-------------+----------------+----------------|
+    | Standard_NP20s | NP20s Spot | Virtual Machines NP Series Windows |    0.828503 | 1 Hour         | southcentralus |
+    
+    The above is modified from the table at https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/
+    Not shown: "productId": "DZH318Z0D1L7", "skuId": "DZH318Z0D1L7/018J",
+    # {
+    # "effectiveStartDate": "2019-05-14T00:00:00Z",
+    # "meterId": "0084b086-37bf-4bee-b27f-6eb0f9ee4954",
+    # "meterName": "M8ms",
+
+    #    "serviceFamily": "Compute",
+    #    "productId": "DZH318Z0BQ4W",
+    #    "skuId": "DZH318Z0BQ4W/00BQ",
+    #    "availabilityId": null,
+
+    #       "serviceId": "DZH313Z7MMC8",
+    #       "serviceName": "Virtual Machines",
+    #       "productName": "Virtual Machines MS Series",
+    #          "skuName": "M8ms",
+    #          "armSkuName": "Standard_M8ms",
+    #                "isPrimaryMeterRegion": true,
+    #                "armRegionName": "southindia",
+    #                "location": "IN South",
+    #                    "currencyCode": "USD",
+    #                    "retailPrice": 2.305,
+    #                    "unitPrice": 2.305,
+    #                    "unitOfMeasure": "1 Hour",
+    #                    "tierMinimumUnits": 0.0,
+    #                    "type": "Consumption",
+    #        "savingsPlan": [
+    #            {
+    #                "unitPrice": 0.8065195,
+    #                "retailPrice": 0.8065195,
+    #                "term": "3 Years"
+    #            },
+    #            {
+    #                "unitPrice": 1.5902195,
+    #                "retailPrice": 1.5902195,
+    #                "term": "1 Year"
+    #            }
+    #        ]
+    #    },
+    #
+    # for svc_sku in svc_skus:
+    """
+    svc_name_in="Cognitive Services" # skuName in this function's signature
+    print_verbose(f"load_costs_from_api( svc_name_in: {svc_name_in}) ...")
+    # FUTURE: svc_skus = ["KeyVault","VirtualMachines"]   # ???
+    
+    service = "Microsoft Dev Box"
+    skuName = "Standard_F64s_v2"
+    armSkuName = "Standard"
+    region_code = "westcentralus"
+    base_url = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview&meterRegion='primary"
+    filter_query = ""
+    #filter_query = f"?$filter=armSkuName eq '{armSkuName}'"
+    #filter_query = f"?$filter=service eq '{service}'"
+    filter_query = f"?$filter=armRegionName eq '{region_code}'"
+    url = base_url + filter_query
+
+    all_items = []
+    while base_url:
+        # import requests
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(f"Failed to fetch data: {response.status_code}")
+            break
+            # Failed to fetch data: 400
+        data = response.json()
+        all_items.extend(data.get('Items', []))
+        url = data.get('NextPageLink')
+        # TODO: Save all_items to a database for access based on sku, to retrieve the region containing the lowest price.
+
+    # Group by serviceName and print cost details
+    service_costs = {}
+    for item in all_items:
+        service_name = item.get('serviceName')
+        sku = item.get('skuName')
+        armSkuName = item.get('armSkuName')
+        price = item.get('retailPrice')
+        unit = item.get('unitOfMeasure')
+        region = item.get('armRegionName')
+        if service_name not in service_costs:
+            service_costs[service_name] = []
+        service_costs[service_name].append((sku, price, unit))
+
+    item_count = 0
+    # TODO: if item_count are found meeting filter:
+    # Print summary 
+    if item_count > 0:
+        print_heading(f"  armSkuName   | sku    | price | unit | region | armSkuName | product ")
+    for service, prices in service_costs.items():
+        print_heading(f"{service}:")
+        for armSkuName, price, unit in prices:
+            print(f"  {armSkuName:<15} | {sku:<35} | {price:<10} | {unit:<10} | {region} ")
+                # FIXME: only a single region appears, and not the filter value.
+    return "ha ha"
+
 
 # API Management
 
@@ -1657,6 +1825,64 @@ def az_billing(credential, subscription_id) -> bool:
 #### SECTION 14. Region & Location Geo utilities:
 
 
+# Global variables:
+table_data = []
+def build_az_pricing_table(json_data, table_data):
+    """ from collections import OrderedDict
+    """
+    for item in json_data['Items']:
+        meter = item['meterName']
+        table_data.append([item['retailPrice'], item['unitOfMeasure'], item['armRegionName'], item['productName']])
+        #table_data.append(OrderedDict([item['retailPrice'], item['unitOfMeasure'], item['armRegionName'], item['productName']]))
+        #table_data.append(OrderedDict([item['armSkuName'], item['retailPrice'], item['unitOfMeasure'], item['armRegionName'], item['productName']]))
+        
+def get_cheapest_az_region(armSkuNameToFind) -> str:
+    """
+    Return the region with the lowest retailPrice for a given SKU.
+    For the given SKU, after listing prices in all regions.
+    """
+    print_verbose(f"Among {len(AZURE_REGIONS)} possible AZURE_REGIONS in get_cheapest_az_region(): ")
+    
+    table_data.append(['retailPrice', 'unitOfMeasuree', 'armRegionName', 'productName'])
+    #table_data.append(OrderedDict(['Retail Price', 'Unit of Measure', 'Region', 'Product Name']))
+    desired_order = ["retailPrice", "unitOfMeasure", "armRegionName"]
+    
+    api_url = "https://prices.azure.com/api/retail/prices?api-version=2021-10-01-preview"
+    # Loop through earmRegionName eq 'southcentralus' etc. from AZURE_REGIONS array:
+    print_verbose(f"FILTER: armSkuName='{armSkuNameToFind}', meterName='NP20s Spot', priceType='Consumption'")
+    query = f"armSkuName eq '{armSkuNameToFind}' and priceType eq 'Consumption' and contains(meterName, 'Spot')"
+    response = requests.get(api_url, params={'$filter': query})
+    json_data = json.loads(response.text)
+
+    build_az_pricing_table(json_data, table_data)
+    nextPage = json_data['NextPageLink']
+
+    # Retrieve several pages to get them all:
+    while(nextPage):
+        response = requests.get(nextPage)
+        json_data = json.loads(response.text)
+        nextPage = json_data['NextPageLink']
+        build_az_pricing_table(json_data, table_data)
+
+    # TODO: Add to table the distance from each Azure region from user/client location.
+
+    print_verbose(tabulate(table_data, headers='firstrow', tablefmt='psql'))
+        # Among 53 possible AZURE_REGIONS: 
+        # FILTER: armSkuName='Standard_NP20s', meterName='NP20s Spot', priceType='Consumption'
+        # +---------------+------------------+-----------------+------------------------------------+
+        # |   retailPrice | unitOfMeasuree   | armRegionName   | productName                        |
+        # |---------------+------------------+-----------------+------------------------------------|
+        # |        0.462  | 1 Hour           | eastus          | Virtual Machines NP Series         |
+
+    # INSTEAD OF:
+    # df = pd.DataFrame(table_data)
+    # df = df[desired_order]  # Reorder columns
+    # print(tabulate(df, headers='firstrow', tablefmt='psql'))
+        # KeyError: "None of [Index(['retailPrice', 'unitOfMeasure', 'armRegionName'], dtype='object')] are in the [columns]"
+
+    print_todo(f"TODO: Sort by price, region")
+
+
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great circle distance between two points 
@@ -1688,68 +1914,6 @@ def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
         print("Error: Invalid coordinates. Latitude must be between -90 and 90, and longitude between -180 and 180.")
         return
 
-    # please write python code to show regions of azure as a dictionary named AZURE_REGIONS with region name, latitude, longitude, with location with. Sort by region name.
-    AZURE_REGIONS = {
-        "australiasoutheast": (-37.814, 144.963),   # Melbourne
-        "australiacentral": (-35.282, 149.128),     # Canberra
-        "australiacentral2": (-35.282, 149.128),    # Canberra
-        "southafricawest": (-33.925, 18.423),       # Cape Town
-        "australiaeast": (-33.865, 151.209),        # Sydney
-        "southafricanorth": (-25.731, 28.218),      # Johannesburg
-        "brazilsouth": (-23.55, -46.633),           # Sao Paulo
-        "southeastasia": (1.283, 103.833),          # Singapore
-        "southindia": (13.0827, 80.2707),           # Chennai
-        "centralindia": (18.5204, 73.8567),         # Pune
-        "jioindiacentral": (18.5204, 73.8567),      # Pune
-        "westindia": (19.076, 72.8777),             # Mumbai
-        "jioindiawest": (19.076, 72.8777),          # Mumbai
-        "eastasia": (22.267, 114.188),              # Hong Kong
-        "uaecentral": (24.466, 54.366),             # Abu Dhabi
-        "uaenorth": (25.096, 55.174),               # Dubai
-        "qatarcentral": (25.2854, 51.531),          # Doha
-        "southcentralus": (29.4167, -98.5),         # Texas
-        "isrealcentral": (31.046, 34.851),          # Jerusalem
-        "chinaeast": (31.2304, 121.4737),           # Shanghai
-        "chinaeast2": (31.2304, 121.4737),          # Shanghai
-        "israelnorth": (32.0853, 34.7818),          # Tel Aviv
-        "westus3": (33.448, -112.074),              # Arizona
-        "japanwest": (34.6939, 135.5022),           # Osaka
-        "koreasouth": (35.1796, 129.0756),          # Busan
-        "japaneast": (35.68, 139.77),               # Tokyo
-        "eastus2": (36.6681, -78.3889),             # Virginia, US
-        "eastus": (37.3719, -79.8164),              # Virginia, US
-        "koreacentral": (37.5665, 126.9780),        # Seoul
-        "westus": (37.783, -122.417),               # California
-        "chinanorth": (39.9042, 116.4074),          # Beijing
-        "chinanorth2": (39.9042, 116.4074),         # Beijing
-        "westcentralus": (40.89, -110.234),         # Wyoming
-        "centralus": (41.5908, -93.6208),           # Iowa
-        "northcentralus": (43.653, -92.332),        # Illinois
-        "canadacentral": (43.653, -79.383),         # Toronto
-        "francesouth": (43.7102, 7.2620),           # Marseille
-        "italynorth": (45.4642, 9.19),              # Milan
-        "switzerlandwest": (46.204, 6.143),         # Geneva
-        "francecentral": (46.3772, 2.373),          # Paris
-        "canadaeast": (46.817, -71.217),            # Quebec City
-        "westus2": (47.233, -119.852),              # Washington
-        "switzerlandnorth": (47.451, 8.564),        # Zurich
-        "germanywestcentral": (50.11, 8.682),       # Frankfurt
-        "uksouth": (51.5074, -0.1278),              # London
-        "polandcentral": (52.2297, 21.0122),        # Warsaw
-        "westeurope": (52.3667, 4.9),               # Amsterdam, Netherlands
-        "ukwest": (52.4796, -1.9036),               # Cardiff
-        "northeurope": (53.3478, -6.2597),          # Dublin, Ireland
-        "germanynorth": (53.55, 10.0),              # Hamburg
-        "swedencentral": (59.329, 18.068),          # Stockholm
-        "norwayeast": (59.913, 10.752),             # Oslo
-        "norwaywest": (60.391, 5.322),              # Bergen
-    }  # This needs to be updated occassionally.
-    # print_trace(f"closest_az_region_by_latlong(): from among {len(AZURE_REGIONS.items())} regions")
-        # Equivalent of CLI: az account list-locations --output table --query "length([])" 
-        # Equivalent of CLI: az account list-locations --query "[?contains(regionalDisplayName, '(US)')]" -o table
-        # Equivalent of CLI: az account list-locations -o table --query "[?contains(regionalDisplayName, '(US)')]|sort_by(@, &name)[]|length(@)"
-            # Remove "|length(@)"
-
     # TODO: Identify the longest region name (germanywestcentral) and announce its number of characters (18)
         # for use in keyvault name which must be no longer than 24 characters long.
 
@@ -1769,30 +1933,30 @@ def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
     return closest_region
 
 
-#### SECTION 15. Azure Blob Storage
+#### SECTION 15. Azure Blob Storage Containers
 
 
 def get_az_blog_storage_acct() -> str:
     """
-    Return the storage account name from parm or the environment variable STORAGE_ACCOUNT_NAME in os.environ.
+    Return the storage account name from parm or the environment variable AZURE_STORAGE_ACCOUNT in os.environ.
     useing my_subscription_id and my_az_svc_region # from global
     ??? Authenticate using a connection string or with Azure Active Directory (recommended for security). 
     """
     # NOTE: Parms defined in CLI call take precedence over .env:
 
-    # STEP 3: Try to get STORAGE_ACCOUNT_NAME from CLI parms:
-    # STORAGE_ACCOUNT_NAME = args.storage  # done in code above.
-    if STORAGE_ACCOUNT_NAME:
-        print_info(f"--storage_account \"{STORAGE_ACCOUNT_NAME}\" from parms within get_az_blog_storage_acct() ")
-        return STORAGE_ACCOUNT_NAME
+    # STEP 3: Try to get AZURE_STORAGE_ACCOUNT from CLI parms:
+    # AZURE_STORAGE_ACCOUNT = args.storage  # done in code above.
+    if AZURE_STORAGE_ACCOUNT:
+        print_info(f"--storage_account \"{AZURE_STORAGE_ACCOUNT}\" from parms within get_az_blog_storage_acct() ")
+        return AZURE_STORAGE_ACCOUNT
     else:
-        print_verbose(f"--storage_account \"___\" not defined in parms within get_az_blog_storage_acct() ")
+        print_trace(f"--storage_account \"___\" not defined in parms within get_az_blog_storage_acct() ")
 
-    # STEP 2: Try to get STORAGE_ACCOUNT_NAME from .env file:
-    storage_account_name = get_str_from_env_file("STORAGE_ACCOUNT_NAME")
-        # instead of storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
+    # STEP 2: Try to get AZURE_STORAGE_ACCOUNT from .env file:
+    storage_account_name = get_str_from_env_file("AZURE_STORAGE_ACCOUNT")
+        # instead of storage_account_name = os.environ["AZURE_STORAGE_ACCOUNT"]
     if storage_account_name:
-        print_info(f"STORAGE_ACCOUNT_NAME=\"{storage_account_name}\" from .env within get_az_blog_storage_acct() ")
+        print_info(f"AZURE_STORAGE_ACCOUNT=\"{storage_account_name}\" from .env within get_az_blog_storage_acct() ")
         return storage_account_name
     # else:
 
@@ -1813,7 +1977,7 @@ def get_az_blog_storage_acct() -> str:
     print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_az_blog_storage_acct() ")
     if list(accounts_obj):
         # TODO: Print storage account names and their blob endpoints:
-        print_info(f"get_az_blog_storage_acct(): specify --storage or STORAGE_ACCOUNT_NAME in .env!")
+        print_info(f"get_az_blog_storage_acct(): specify --storage or AZURE_STORAGE_ACCOUNT in .env!")
         for account in accounts_obj:
             print(f"Name: {account.name}")
             print(f"Resource Group: {account.id.split('/')[4]}")
@@ -1831,7 +1995,7 @@ def get_az_blog_storage_acct() -> str:
 def create_az_blog_storage_acct(credential, subscription_id, resource_group_name, new_location) -> str:
     """
     Returns an Azure storage account object for the given account name
-    using global STORAGE_ACCOUNT_NAME
+    using global AZURE_STORAGE_ACCOUNT
     At Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
     Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
     az storage account create --name mystorageacct --resource-group mygroup --location eastus --sku Standard_LRS --kind StorageV2 --api-version 2024-08-01
@@ -1852,12 +2016,12 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
     else:  # redundant
         print_trace(f"create_az_blog_storage_acct(): {storage_client}")
 
-    if STORAGE_ACCOUNT_NAME:  # defined by parameter:
-        print_info(f"--storage \"{STORAGE_ACCOUNT_NAME}\"  # (STORAGE_ACCOUNT_NAME) from parms being used.")
-        return STORAGE_ACCOUNT_NAME
+    if AZURE_STORAGE_ACCOUNT:  # defined by parameter:
+        print_info(f"--storage \"{AZURE_STORAGE_ACCOUNT}\"  # (AZURE_STORAGE_ACCOUNT) from parms being used.")
+        return AZURE_STORAGE_ACCOUNT
     try:
-        storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
-        print_info(f"STORAGE_ACCOUNT_NAME = \"{STORAGE_ACCOUNT_NAME}\"  # from .env file being used.")
+        storage_account_name = os.environ["AZURE_STORAGE_ACCOUNT"]
+        print_info(f"AZURE_STORAGE_ACCOUNT = \"{AZURE_STORAGE_ACCOUNT}\"  # from .env file being used.")
         return storage_account_name
     except KeyError:
         pass
@@ -1867,8 +2031,8 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
     date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
     # Max. my_az_svc_region is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
     storage_account_name = f"{my_az_svc_region}{date_str}"  # no dashes/underlines
-       # Example: STORAGE_ACCOUNT_NAME="germanywestcentral-2504"
-    # Alternative: STORAGE_ACCOUNT_NAME = f"pythonazurestorage{random.randint(1,100000):05}"
+       # Example: AZURE_STORAGE_ACCOUNT="germanywestcentral-2504"
+    # Alternative: AZURE_STORAGE_ACCOUNT = f"pythonazurestorage{random.randint(1,100000):05}"
     print_verbose(f"create_az_blog_storage_acct() considering name: \"{storage_account_name}\" ")
 
     try:
@@ -1917,11 +2081,12 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
         "kind": "StorageV2",
         "api_version": "2024-01-01",
         "sku": {"name": "Standard_LRS"},
+        "deleteRetentionPolicy": {
+            "enabled": True,
+            "days": 99  # Set between 1 and 365
+        },
         "minimum_tls_version": "TLS1_2"
     }  # LRS = Locally-redundant storage
-        #"deleteRetentionPolicy": {
-        #    "enabled": True,
-        #    "days": 14  # Set between 1 and 365
     # TODO: Set soft delete policies, 
     # For update: https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
     # https://learn.microsoft.com/en-us/rest/api/storagerp/storage-accounts/create?view=rest-storagerp-2024-01-01&tabs=HTTP
@@ -1942,11 +2107,32 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
         # See https://www.perplexity.ai/search/azure-api-version-2024-03-01-d-7aatmHRXQ32L0PF3zaraxg#0
         return None
 
+# def create_az_blob_storage_container():
+    """
+    Create an unlimited number of Azure Blob Storage Containers 
+    to organize a set of blobs (similar to a directory in a file system).
+    Also, a container can store an unlimited number of blobs.
+    The URI for a container is similar to:
+    https://sampleaccount.blob.core.windows.net/sample-container
+    For more information about naming containers, 
+    see https://github.com/MicrosoftDocs/azure-docs/blob/main/rest/api/storageservices/Naming-and-Referencing-Containers--Blobs--and-Metadata
+    """
+
 
 def obtain_blob_storage_object(credential, subscription_id) -> object:
     """
-    Returns an Azure blob storage client object for the given credential and subscription ID.
+    Returns an Azure blob storage client object for the given credential and subscription ID
     after creating it manually at Portal: https://portal.azure.com/#browse/Microsoft.Storage%2FStorageAccounts
+    There are three types of blobs:
+    A. Block blobs store text and binary data in blocks of data that can be managed individually. 
+    Block blobs can store up to about 190.7 TiB.
+    B. Append blobs are made up of blocks like block blobs optimized for logging data from virtual machines.
+    C. Page blobs store random access files up to 8 TiB in size. See https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/storage/blobs/storage-blob-pageblob-overview.md
+
+    The URI for a blob is similar to:
+    https://sampleaccount.blob.core.windows.net/sample-container/sample-blob
+    See https://github.com/MicrosoftDocs/azure-docs/blob/main/rest/api/storageservices/understanding-block-blobs--append-blobs--and-page-blobs
+
     Equivalent CLI: az cloud set -n AzureCloud   // return to Public Azure.
     # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
         See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
@@ -1959,7 +2145,7 @@ def obtain_blob_storage_object(credential, subscription_id) -> object:
     if storage_account_name:
         print_verbose("Storage Account: \"{storage_account_name}\" within obtain_blob_storage_object() ")
         return storage_account_name
-    #else: STORAGE_ACCOUNT_NAME not found:
+    #else: AZURE_STORAGE_ACCOUNT not found:
     try:
         # Initialize and return a StorageManagementClient to manage Azure Storage Accounts:
         #from azure.storage.blob import BlobServiceClient
@@ -1987,7 +2173,7 @@ def ping_az_storage_acct(storage_account_name) -> str:
     CAUTION: This is not currently used due to "Destination Host Unreachable" error.
     Returns the ping utility latency to a storage account within the Azure cloud.
     """
-    ping_host = storage_account_name + ".blob.core.windows.net"
+    ping_host = f"{storage_account_name}.blob.core.windows.net"
     try:
         # from pythonping import ping
         response = ping(ping_host, count=5, timeout=2)
@@ -2021,7 +2207,7 @@ def ping_az_storage_acct(storage_account_name) -> str:
 # TODO: Synapse Analytics (Spark ETL jobs)
 
 
-def measure_http_latency(storage_account_name, attempts=5) -> str:
+def measure_storage_latency(storage_account_name, attempts=5) -> str:
     """
     Returns the HTTP latency to a storage account within the Azure cloud.
     """
@@ -2053,7 +2239,7 @@ def measure_http_latency(storage_account_name, attempts=5) -> str:
         avg_latencies = sum(valid_latencies)/len(valid_latencies)
         print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
     else:
-        print_error(f"measure_http_latency(): requests failed to {url}")
+        print_error(f"measure_storage_latency(): requests failed to {url}")
         return None
 
 
@@ -2129,13 +2315,13 @@ def define_keyvault_name(my_az_svc_region) -> str:
     """
     Come up with a globally unique keyvault name that's 24 characters long.
     """
-    if KEYVAULT_NAME:  # defined by parameter:
-        print_info(f"-kv \"{KEYVAULT_NAME}\"  # (AZURE_KEYVAULT_NAME) being used.")
-        return KEYVAULT_NAME
+    if AZURE_KEYVAULT_NAME:  # defined by parameter:
+        print_info(f"-kv \"{AZURE_KEYVAULT_NAME}\"  # (AZURE_AZURE_KEYVAULT_NAME) being used.")
+        return AZURE_KEYVAULT_NAME
     # else see if .env file has a value:
     try:
-        keyvault_name = os.environ["AZURE_KEYVAULT_NAME"]  # EntraID
-        print_info(f"AZURE_KEYVAULT_NAME = \"{keyvault_name}\"  # from .env file being used.")
+        keyvault_name = os.environ["AZURE_AZURE_KEYVAULT_NAME"]  # EntraID
+        print_info(f"AZURE_AZURE_KEYVAULT_NAME = \"{keyvault_name}\"  # from .env file being used.")
         return keyvault_name
     except KeyError:
         pass
@@ -2310,7 +2496,7 @@ def get_ai_svc_globals() -> bool:
        AI_SERVICE_ENDPOINT="https://ai-instance-250429a.cognitiveservices.azure.com/"
        10. Click "Click here to manage keys", "Show Keys", "KEY 1" to copy and paste in your .env file:
        AI_SERVICE_KEY="12345..." KEY2 can also be used.
-       11. Copy the Location and (for example) paste into AZURE_LOCATION="centralus"
+       11. Copy the Location and (for example) paste into AZURE_REGION="centralus"
     """
     global ai_svc_resc
     global ai_endpoint
@@ -2526,44 +2712,6 @@ def translate_text_using_az_ai_rest_client(text_in, ai_languages, location_in):
 #### SECTION 20. Billing and Cost Management:
 
 
-def get_azure_service_costs(region_name):
-    base_url = "https://prices.azure.com/api/retail/prices"
-    filter_query = f"?$filter=armRegionName eq '{region_name}'"
-    url = base_url + filter_query
-
-    all_items = []
-    while url:
-        # import requests
-        response = requests.get(url)
-        if response.status_code != 200:
-            print(f"Failed to fetch data: {response.status_code}")
-            break
-        data = response.json()
-        all_items.extend(data.get('Items', []))
-        url = data.get('NextPageLink')
-
-    # Group by serviceName and print cost details
-    service_costs = {}
-    for item in all_items:
-        service_name = item.get('serviceName')
-        price = item.get('retailPrice')
-        unit = item.get('unitOfMeasure')
-        sku = item.get('skuName')
-        if service_name not in service_costs:
-            service_costs[service_name] = []
-        service_costs[service_name].append((sku, price, unit))
-
-    # Print summary
-    for service, prices in service_costs.items():
-        print(f"\nService: {service}")
-        for sku, price, unit in prices:
-            print(f"  SKU: {sku} | Price: {price} | Unit: {unit}")
-
-# Example usage:
-get_azure_service_costs('eastus')
-
-
-
 #### SECTION 21. Main control loop:
 
 
@@ -2580,10 +2728,10 @@ if __name__ == "__main__":
     #### STAGE 2 - Load environment variables, Azure Account:
 
 
+    open_env_file()
     if still_good:
-        open_env_file()
-    if still_good:
-        macos_sys_info()
+        if show_trace:
+            macos_sys_info()
 
 
     #### STAGE 3 - Load Azure environment variables, Azure Account:
@@ -2596,31 +2744,35 @@ if __name__ == "__main__":
         register_subscription_providers(my_credential, my_subscription_id)
         my_tenant_id = get_tenant_id()
         
-        region_choice_basis = "closest"  # "cost" or "closest" [Edit Manually]
-        if region_choice_basis == "closest":
+        region_choice_basis = "cost"  # "cost" or "distance" or "latency" [Edit Manually]
+        if region_choice_basis == "distance":
             longitude, latitude = get_longitude_latitude() # from parms or .env file calling 
             get_geo_coordinates("")  # (zip_code if you have it)
             my_az_svc_region = closest_az_region_by_latlong(longitude, latitude)
                 #get_elevation(longitude, latitude)  # has error
         elif region_choice_basis == "cost":
-            # az_svc_skus = ["KeyVault"]  # global
-            my_az_svc_region = get_lowest_cost_region("Standard_NP20s")
+            armSkuNameToFind = "Standard_NP20s"  # from https://learn.microsoft.com/en-us/azure/virtual-machines/ ???
+            # rc = load_costs_from_api("latest")
+            # if rc: my_az_svc_region = get_azure_service_costs(armSkuNameToFind)
+            my_az_svc_region = get_cheapest_az_region(armSkuNameToFind)
+        elif region_choice_basis == "latency":
+            my_az_svc_region = measure_storage_latency()
         else:
-            print_error(f"region_choice_basis: \"{region_choice_basis}\" not recognized.")
-            
-        # az_costmanagement(my_subscription_id)
+            print_fail(f"region_choice_basis: \"{region_choice_basis}\" not recognized.")
+            exit(9)
 
         my_resource_group = get_resource_group(my_subscription_id, my_az_svc_region)        
         my_storage_account = get_az_blog_storage_acct()
         if not my_storage_account:
             my_storage_account = create_az_blog_storage_acct(my_credential, my_subscription_id, my_resource_group, my_az_svc_region)
-            print(f"my_storage_account: {my_storage_account}")
-            still_good = False
-
-    # ping_az_storage_acct(my_storage_account)
- 
-    # measure_http_latency(my_storage_account, attempts=5)
-
+            if not my_storage_account:
+                still_good = False
+        if still_good:    
+            #ping_az_storage_acct(my_storage_account)
+            measure_storage_latency(my_storage_account, attempts=5)
+    exit()
+    still_good = False
+        # az_costmanagement(my_subscription_id)
     
     #### STAGE 4 - Azure Key Vault at a location:
 
@@ -2637,9 +2789,8 @@ if __name__ == "__main__":
         #print_info(f"translated_text: \"{translated_text}\"")
 
     if still_good:
-        if KEYVAULT_NAME:
-            my_resource_group = KEYVAULT_NAME
-            my_keyvault_name = KEYVAULT_NAME
+        if AZURE_KEYVAULT_NAME:
+            my_keyvault_name = AZURE_KEYVAULT_NAME
         else:
             my_keyvault_name = define_keyvault_name(my_az_svc_region)
             #my_resource_group = create_get_resource_group(my_credential, my_keyvault_name, my_az_svc_region, my_subscription_id)
@@ -2651,77 +2802,75 @@ if __name__ == "__main__":
         if rc is False:  # False (does not exist), so create it:
             create_keyvault(my_credential, my_subscription_id, my_resource_group, my_keyvault_name, my_az_svc_region, my_tenant_id, my_user_principal_id)
 
+        # List Azure Key Vaults:
+        # Equivalent of Portal: List Key Vaults: https://portal.azure.com/#browse/Microsoft.KeyVault%2Fvaults
+        # TODO: List costs like https://portal.azure.com/#view/HubsExtension/BrowseCosts.ReactView
+        # PRICING: STANDARD SKU: $0.03 per 10,000 app restart operation, plus $3 for cert renewal, PLUS $1/HSM/month.
+            # See https://www.perplexity.ai/search/what-is-the-cost-of-running-a-Fr6DTbKQSWKzpdSGv6qyiw
+    
+        # Add secrets to Azure Key Vault:
+
+        #my_secret_name = os.environ["MY_SECRET_NAME"]
+        #my_secret_value = os.environ["MY_SECRET_PLAINTEXT"]
+
+        #rp_result = populate_keyvault_secret(my_credential, my_keyvault_name, my_secret_name, my_secret_value)
+
+        # TODO: List secrets in Key Vault
+
+        #rp_result = get_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
+    
+        # delete_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
+
+        # Retrieve secrets from Azure Key Vault:    
+        # Rotate secrets in Azure Key Vault:
+        # Azure Key Vault allows you to more securely store and manage SSL/TLS certificates.
+
+        #my_principal_id = os.environ["AZURE_KEYVAULT_PRINCIPAL_ID"]
+
+
     #### STAGE 5 - Azure AI
 
-    print_wall_times()
-    print("DEBUGGING EXIT")
-    exit()
 
-    # List Azure Key Vaults:
-    # Equivalent of Portal: List Key Vaults: https://portal.azure.com/#browse/Microsoft.KeyVault%2Fvaults
-    # TODO: List costs like https://portal.azure.com/#view/HubsExtension/BrowseCosts.ReactView
-    # PRICING: STANDARD SKU: $0.03 per 10,000 app restart operation, plus $3 for cert renewal, PLUS $1/HSM/month.
-        # See https://www.perplexity.ai/search/what-is-the-cost-of-running-a-Fr6DTbKQSWKzpdSGv6qyiw
-    
-    # Add secrets to Azure Key Vault:
+    #if still_good:
+        # Before: Register an app in Azure and create a client secret.
+        #my_app_id = os.environ["AZURE_APP_ID"]
+        #my_client_id = os.environ["AZURE_CLIENT_ID"]
+        #my_client_secret = os.environ["AZURE_CLIENT_SECRET"]
+        #my_principal_id = get_app_principal_id(my_credential, my_app_id, my_tenant_id)
+        #if not my_principal_id:
+        #    print(f"get_app_principal_id() failed with JSON: \"{my_principal_id}\" ")
+        #    exit(9)
+        # Alternative: Using Azure Function App Headers (For Authenticated Users) using Easy Auth and returns the signed-in user's principal ID.
 
-    my_secret_name = os.environ["MY_SECRET_NAME"]
-    my_secret_value = os.environ["MY_SECRET_PLAINTEXT"]
 
-    rp_result = populate_keyvault_secret(my_credential, my_keyvault_name, my_secret_name, my_secret_value)
-
-    # TODO: List secrets in Key Vault
-
-    rp_result = get_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
-    
-    # delete_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
-
-    # Retrieve secrets from Azure Key Vault:    
-    # Rotate secrets in Azure Key Vault:
-    # Azure Key Vault allows you to more securely store and manage SSL/TLS certificates.
-
-    #### STAGE 6 - Azure Resource Group for Azure Key Vault at a location:
-
-    #my_principal_id = os.environ["AZURE_KEYVAULT_PRINCIPAL_ID"]
-
-    # Before: Register an app in Azure and create a client secret.
-    my_app_id = os.environ["AZURE_APP_ID"]
-    my_client_id = os.environ["AZURE_CLIENT_ID"]
-    my_client_secret = os.environ["AZURE_CLIENT_SECRET"]
-    #my_principal_id = get_app_principal_id(my_credential, my_app_id, my_tenant_id)
-    if not my_principal_id:
-        print(f"get_app_principal_id() failed with JSON: \"{my_principal_id}\" ")
-        exit(9)
-    # Alternative: Using Azure Function App Headers (For Authenticated Users) using Easy Auth and returns the signed-in user's principal ID.
-    exit()
-
-    #### STAGE 6 - Azure Resource Group for Azure Key Vault at a location:
- 
-    
-    #### STAGE 7 - Billing and Cost Management:
+    #### STAGE 6 - ABilling and Cost Management:
     
     # https://portal.azure.com/#view/Microsoft_Azure_GTM/Billing.MenuView/~/overview/scopeId/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/scope/BillingAccount
     #az_billing(my_credential, my_subscription_id)  # has error
     # Cost Analysis: https://portal.azure.com/#view/Microsoft_Azure_CostManagement/CostAnalysis/scope/%2Fproviders%2FMicrosoft.Billing%2FbillingAccounts%2F5ba2e1dd-9482-5047-3b24-7e9e94ef26f0%3A065621ab-5bf1-4373-962d-178897041d45_2019-05-31/externalState~/%7B%22dateRange%22%3A%22ThisMonth%22%2C%22query%22%3A%7B%22timeframe%22%3A%22None%22%7D%7D
     
     
-    #### STAGE 8 - Delete what was created (to stop charge accumulation and cruft):
+    #### STAGE 7 - Delete what was created (to stop charge accumulation and cruft):
     
     # -D to delete Key Vault created above.
-
     if DELETE_KV_AFTER:
         rp_result = delete_keyvault(my_credential, my_keyvault_name, vault_url)
 
     # -D to delete Resource Group for Key Vault created above.
-
     if DELETE_RG_AFTER:
         rp_result = delete_resource_group(my_credential, my_keyvault_name, my_subscription_id)
 
 
 
-    #### Perplexity.ai: Sonar API 
+    #    Perplexity.ai: Sonar API 
     # https://docs.perplexity.ai/home
     # https://docs.perplexity.ai/api-reference/chat-completions
     # https://perplexityhackathon.devpost.com/
+
+
+    #### STAGE 8 - SUMMARY STATISTICS
+
+    print_wall_times()
+    print("DONE")
 
 # END
