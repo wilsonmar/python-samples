@@ -11,8 +11,8 @@ ruff check az-keyvault.py
 
 #### SECTION 01. Metadata about this program file:
 
-__commit_date__ = "2025-05-04"
-__last_commit__ = "v013 + requirements.txt, my_storage_account :az-keyvault.py"
+__commit_date__ = "2025-05-05"
+__last_commit__ = "v014 + cheapest resource :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -1360,7 +1360,7 @@ def get_tenant_id() -> str:
     """
     try:
         tenant_id = os.environ["AZURE_TENANT_ID"]  # EntraID
-        print_info(f"--tenant (AZURE_TENANT_ID from .env): \"{tenant_id}\"")
+        print_info(f"AZURE_TENANT_ID from .env: \"{tenant_id}\"")
         return tenant_id
     except KeyError:   
         # import subprocess
@@ -1542,7 +1542,7 @@ def register_subscription_providers(credential, subscription_id) -> bool:
         # Get all providers and their registration states:
         all_providers = {provider.namespace: provider.registration_state for provider in resource_client.providers.list()}
 
-        print_heading(f"register_subscription_providers() {len(all_providers)}:")
+        print_verbose(f"register_subscription_providers() {len(all_providers)}:")
         for provider in required_providers:
             reg_state = all_providers.get(provider, None)
             if reg_state != "Registered":  # Register providers if not registered:
@@ -1838,18 +1838,18 @@ def build_az_pricing_table(json_data, table_data):
         
 def get_cheapest_az_region(armSkuNameToFind) -> str:
     """
-    Return the region with the lowest retailPrice for a given SKU.
+    Return the region with the lowest retailPrice for a given SKU (Stock Keeping Unit).
     For the given SKU, after listing prices in all regions.
     """
     print_verbose(f"Among {len(AZURE_REGIONS)} possible AZURE_REGIONS in get_cheapest_az_region(): ")
     
-    table_data.append(['retailPrice', 'unitOfMeasuree', 'armRegionName', 'productName'])
+    table_data.append(['retailPrice', 'unitOfMeasure', 'armRegionName', 'productName'])
     #table_data.append(OrderedDict(['Retail Price', 'Unit of Measure', 'Region', 'Product Name']))
     desired_order = ["retailPrice", "unitOfMeasure", "armRegionName"]
     
     api_url = "https://prices.azure.com/api/retail/prices?api-version=2021-10-01-preview"
     # Loop through earmRegionName eq 'southcentralus' etc. from AZURE_REGIONS array:
-    print_verbose(f"FILTER: armSkuName='{armSkuNameToFind}', meterName='NP20s Spot', priceType='Consumption'")
+    print_verbose(f"For: armSkuName='{armSkuNameToFind}', meterName='NP20s Spot', priceType='Consumption'")
     query = f"armSkuName eq '{armSkuNameToFind}' and priceType eq 'Consumption' and contains(meterName, 'Spot')"
     response = requests.get(api_url, params={'$filter': query})
     json_data = json.loads(response.text)
@@ -1864,23 +1864,50 @@ def get_cheapest_az_region(armSkuNameToFind) -> str:
         nextPage = json_data['NextPageLink']
         build_az_pricing_table(json_data, table_data)
 
+    # Sort the table data by price (first column) - skip the header row
+    header = table_data[0]
+    data_rows = table_data[1:]
+    sorted_data = sorted(data_rows, key=lambda x: x[0])  # Sort by price (first column)
+    
+    # Reconstruct the table with header and sorted data
+    sorted_table = [header] + sorted_data
+
+    if len(sorted_data) > 0:
+        print(tabulate(sorted_table, headers='firstrow', tablefmt='psql'))
+    else:
+        print_error(f"No pricing data found for {armSkuNameToFind}")
+        return None
+
+    # If data exists, return the cheapest region
+    #if len(sorted_data) > 0:
+    #    cheapest_region = sorted_data[0][2]  # Region is the third column
+    #    cheapest_price = sorted_data[0][0]   # Price is the first column
+    #    print(f"\nCheapest region for {armSkuNameToFind}: {cheapest_region} at ${cheapest_price:.4f}/hour")
+    #    return cheapest_region
+
     # TODO: Add to table the distance from each Azure region from user/client location.
 
-    print_verbose(tabulate(table_data, headers='firstrow', tablefmt='psql'))
         # Among 53 possible AZURE_REGIONS: 
         # FILTER: armSkuName='Standard_NP20s', meterName='NP20s Spot', priceType='Consumption'
         # +---------------+------------------+-----------------+------------------------------------+
         # |   retailPrice | unitOfMeasuree   | armRegionName   | productName                        |
         # |---------------+------------------+-----------------+------------------------------------|
         # |        0.462  | 1 Hour           | eastus          | Virtual Machines NP Series         |
-
+        # |        0.462  | 1 Hour           | westus2         | Virtual Machines NP Series         |
     # INSTEAD OF:
     # df = pd.DataFrame(table_data)
     # df = df[desired_order]  # Reorder columns
     # print(tabulate(df, headers='firstrow', tablefmt='psql'))
         # KeyError: "None of [Index(['retailPrice', 'unitOfMeasure', 'armRegionName'], dtype='object')] are in the [columns]"
 
-    print_todo(f"TODO: Sort by price, region")
+    print_todo(f"Sort by price, region")
+
+    az_svc_region = sorted_data[0][2]
+    if az_svc_region:
+        print_info(f"my_az_svc_region: \"{az_svc_region}\" at get_cheapest_az_region() ")
+        return az_svc_region
+    else:
+        return None
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -2755,6 +2782,8 @@ if __name__ == "__main__":
             # rc = load_costs_from_api("latest")
             # if rc: my_az_svc_region = get_azure_service_costs(armSkuNameToFind)
             my_az_svc_region = get_cheapest_az_region(armSkuNameToFind)
+            print("DEBUGGING")
+            exit()
         elif region_choice_basis == "latency":
             my_az_svc_region = measure_storage_latency()
         else:
