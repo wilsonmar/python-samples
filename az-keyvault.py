@@ -427,6 +427,7 @@ parser.add_argument("-v", "--verbose", action="store_true", help="Show each down
 parser.add_argument("-vv", "--debug", action="store_true", help="Show debug")
 parser.add_argument("-l", "--log", help="Log to external file")
 
+parser.add_argument("-ri", "--runid", action="store_true", help="Run ID (no spaces or special characters)")
 parser.add_argument("-u", "--user", help="User email (for credential)")
 # --tenant
 parser.add_argument("-sub", "--subscription", help="Subscription ID (for costing)")
@@ -439,6 +440,9 @@ parser.add_argument("-t", "--text", help="Text input (for language detection)")
 
 # -h = --help (list arguments)
 args = parser.parse_args()
+
+RUNID = "R011"  # This value should have no spaces or special characters.
+   # TODO: Store and increment externally each run (usign Python Generators?) into a database for tying runs to parmeters such as the PROMPT_TEXT, etc. https://www.linkedin.com/learning/learning-python-generators-17425534/
 
 show_fail = True       # Always show
 show_error = True      # Always show
@@ -471,8 +475,10 @@ else:
     show_trace = False     # -vv Display responses from API calls for debugging code
 
 show_secrets = False   # Never show
-show_dates_in_logs = False
 LOG_DOWNLOADS = args.log
+show_dates_in_logs = False
+
+SHOW_SUMMARY_COUNTS = True
 
 AZURE_ACCT_NAME = args.user
 AZURE_SUBSCRIPTION_ID = args.subscription
@@ -658,8 +664,8 @@ def set_cli_parms(count):
     # Test by running: ./python-examples.py --help
 
 
-def open_env_file() -> None:
-    """Return a Boolean obtained from .env file based on key provided.
+def open_env_file() -> bool:
+    """Update global variables obtained from .env file based on key provided.
     """
     global global_env_path
     global user_home_dir_path
@@ -687,6 +693,7 @@ def open_env_file() -> None:
         # Wait until variables for print_trace are retrieved:
         print_info(f"open_env_file() to \"{global_env_path}\" ")
 
+    return True
 
 def get_str_from_env_file(key_in) -> str:
     """Return a value of string data type from OS environment or .env file
@@ -758,6 +765,40 @@ def get_log_datetime() -> str:
     # if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
 
     return time_str
+
+
+def show_summary(in_seq: int) -> None:
+    """Prints summary of timings together at end of run.
+    """
+    if not SHOW_SUMMARY_COUNTS:
+        return None
+
+    pgm_stop_mem_diff = get_mem_used() - pgm_strt_mem_used
+    print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run {RUNID}.")
+
+    pgm_stop_disk_diff = pgm_strt_disk_free - get_disk_free()
+    print_info(f"{pgm_stop_disk_diff:.6f} GB disk space consumed during run {RUNID}.")
+
+    print_info("Monotonic wall times (seconds):")
+    # TODO: Write to log for longer-term analytics
+
+    # For wall time of std imports:
+    std_elapsed_wall_time = std_stop_timestamp -  std_strt_timestamp
+    print_verbose("for import of Python standard libraries: "+ \
+        f"{std_elapsed_wall_time:.4f}")
+
+    # For wall time of xpt imports:
+    xpt_elapsed_wall_time = xpt_stop_timestamp -  xpt_strt_timestamp
+    print_verbose("for import of Python extra    libraries: "+ \
+        f"{xpt_elapsed_wall_time:.4f}")
+
+    pgm_stop_timestamp =  time.monotonic()
+    pgm_elapsed_wall_time = pgm_stop_timestamp -  pgm_strt_timestamp
+    # pgm_stop_perftimestamp = time.perf_counter()
+    print_verbose("for whole program run:                   "+ \
+        f"{pgm_elapsed_wall_time:.4f}")
+
+    # TODO: Write wall times to log for longer-term analytics
 
 
 def print_wall_times():
@@ -981,6 +1022,9 @@ def macos_sys_info():
 
 
 def get_mem_used() -> str:
+    """
+    Returns the memory used by the current process in MiB.
+    """
     # import os, psutil  #  psutil-5.9.5
     process = psutil.Process()
     mem=process.memory_info().rss / (1024 ** 2)  # in bytes
@@ -990,11 +1034,14 @@ def get_mem_used() -> str:
 
 
 def get_disk_free():
+    """
+    Returns the disk space free in GB.
+    """
     # import shutil
     # Replace '/' with your target path (e.g., 'C:\\' on Windows)
     usage = shutil.disk_usage('/')
     pct_free = ( float(usage.free) / float(usage.total) ) * 100
-    gb = 1024 * 1024 * 1024
+    gb = 1073741824  # = 1024 * 1024 * 1024 = Terrabyte
     disk_gb_free = float(usage.free) / gb
     return f"{disk_gb_free:.2f} ({pct_free:.2f}%)"
 
@@ -1013,7 +1060,7 @@ def handle_fatal_exit():
 
 def get_resource_group(subscription_id, region_filter) -> str:
     """
-    Returns a list of resources for a specified region.
+    Returns a list of existing resources for a specified region.
     Alternative to https://portal.azure.com/#browse/resourcegroups
     # https://learn.microsoft.com/en-us/azure/developer/python/sdk/examples/azure-sdk-example-list-resource-groups?tabs=bash
     """
@@ -1031,8 +1078,7 @@ def get_resource_group(subscription_id, region_filter) -> str:
 
         # Print each line using "rg" the common abbreviation for "resource group":
         for rg in list(group_list):
-            if region_filter:
-                #if rg.location == region_filter:
+            if rg.location == region_filter:
                 print_info(f"Resource_group: \"{rg.name}\" for region {rg.location} within get_resource_group() ")
                 return rg.name  # the first one
             else:
@@ -1825,8 +1871,7 @@ def az_billing(credential, subscription_id) -> bool:
 #### SECTION 14. Region & Location Geo utilities:
 
 
-# Global variables:
-table_data = []
+table_data = []  # Global variable
 def build_az_pricing_table(json_data, table_data):
     """ from collections import OrderedDict
     """
@@ -1840,12 +1885,11 @@ def get_cheapest_az_region(armSkuNameToFind) -> str:
     """
     Return the region with the lowest retailPrice for a given SKU (Stock Keeping Unit).
     For the given SKU, after listing prices in all regions.
+    Equivalent CLI: az vm list-sizes --location westus
     """
     print_verbose(f"Among {len(AZURE_REGIONS)} possible AZURE_REGIONS in get_cheapest_az_region(): ")
     
     table_data.append(['retailPrice', 'unitOfMeasure', 'armRegionName', 'productName'])
-    #table_data.append(OrderedDict(['Retail Price', 'Unit of Measure', 'Region', 'Product Name']))
-    desired_order = ["retailPrice", "unitOfMeasure", "armRegionName"]
     
     api_url = "https://prices.azure.com/api/retail/prices?api-version=2021-10-01-preview"
     # Loop through earmRegionName eq 'southcentralus' etc. from AZURE_REGIONS array:
@@ -1867,42 +1911,27 @@ def get_cheapest_az_region(armSkuNameToFind) -> str:
     # Sort the table data by price (first column) - skip the header row
     header = table_data[0]
     data_rows = table_data[1:]
-    sorted_data = sorted(data_rows, key=lambda x: x[0])  # Sort by price (first column)
+    sorted_data = sorted(data_rows, key=lambda x: x[0])  # Sort by price ([0]=first column)
     
-    # Reconstruct the table with header and sorted data
+    # Reconstruct the table with header and sorted data:
     sorted_table = [header] + sorted_data
-
     if len(sorted_data) > 0:
         print(tabulate(sorted_table, headers='firstrow', tablefmt='psql'))
     else:
         print_error(f"No pricing data found for {armSkuNameToFind}")
         return None
 
-    # If data exists, return the cheapest region
-    #if len(sorted_data) > 0:
-    #    cheapest_region = sorted_data[0][2]  # Region is the third column
-    #    cheapest_price = sorted_data[0][0]   # Price is the first column
-    #    print(f"\nCheapest region for {armSkuNameToFind}: {cheapest_region} at ${cheapest_price:.4f}/hour")
-    #    return cheapest_region
-
     # TODO: Add to table the distance from each Azure region from user/client location.
 
-        # Among 53 possible AZURE_REGIONS: 
-        # FILTER: armSkuName='Standard_NP20s', meterName='NP20s Spot', priceType='Consumption'
-        # +---------------+------------------+-----------------+------------------------------------+
-        # |   retailPrice | unitOfMeasuree   | armRegionName   | productName                        |
-        # |---------------+------------------+-----------------+------------------------------------|
-        # |        0.462  | 1 Hour           | eastus          | Virtual Machines NP Series         |
-        # |        0.462  | 1 Hour           | westus2         | Virtual Machines NP Series         |
-    # INSTEAD OF:
-    # df = pd.DataFrame(table_data)
-    # df = df[desired_order]  # Reorder columns
-    # print(tabulate(df, headers='firstrow', tablefmt='psql'))
-        # KeyError: "None of [Index(['retailPrice', 'unitOfMeasure', 'armRegionName'], dtype='object')] are in the [columns]"
+    #    ***  Among 53 possible AZURE_REGIONS in get_cheapest_az_region():  
+    #    ***  FILTER: armSkuName='Standard_NP20s', meterName='NP20s Spot', priceType='Consumption' 
+    #    +---------------+-----------------+-----------------+------------------------------------+
+    #    |   retailPrice | unitOfMeasure   | armRegionName   | productName                        |
+    #    |---------------+-----------------+-----------------+------------------------------------|
+    #    |        0.462  | 1 Hour          | eastus          | Virtual Machines NP Series         |
+    #    |        0.462  | 1 Hour          | westus2         | Virtual Machines NP Series         |
 
-    print_todo(f"Sort by price, region")
-
-    az_svc_region = sorted_data[0][2]
+    az_svc_region = sorted_data[0][2]   # First armRegionName value.
     if az_svc_region:
         print_info(f"my_az_svc_region: \"{az_svc_region}\" at get_cheapest_az_region() ")
         return az_svc_region
@@ -2234,7 +2263,7 @@ def ping_az_storage_acct(storage_account_name) -> str:
 # TODO: Synapse Analytics (Spark ETL jobs)
 
 
-def measure_storage_latency(storage_account_name, attempts=5) -> str:
+def get_az_region_by_latency(storage_account_name, attempts=5) -> str:
     """
     Returns the HTTP latency to a storage account within the Azure cloud.
     """
@@ -2266,7 +2295,7 @@ def measure_storage_latency(storage_account_name, attempts=5) -> str:
         avg_latencies = sum(valid_latencies)/len(valid_latencies)
         print_info(f"HTTP latency to : avg {avg_latencies:.2f} ms")
     else:
-        print_error(f"measure_storage_latency(): requests failed to {url}")
+        print_error(f"get_az_region_by_latency(): requests failed to {url}")
         return None
 
 
@@ -2739,6 +2768,7 @@ def translate_text_using_az_ai_rest_client(text_in, ai_languages, location_in):
 #### SECTION 20. Billing and Cost Management:
 
 
+
 #### SECTION 21. Main control loop:
 
 
@@ -2749,13 +2779,14 @@ if __name__ == "__main__":
     #### STAGE 1 - Show starting environment:
 
     print_info(f"Started: {get_user_local_time()}, in logs: {get_log_datetime()} ")
-    print_info(f"Started: {get_mem_used()} MiB RAM being used.")
-    print_info(f"Started: {get_disk_free()} GB disk space free.")
+    pgm_strt_mem_used = get_mem_used()
+    print_info(f"Started: {pgm_strt_mem_used} MiB RAM being used.")
+    pgm_strt_disk_free = get_disk_free()
+    print_info(f"Started: {pgm_strt_disk_free} GB disk space free.")
 
     #### STAGE 2 - Load environment variables, Azure Account:
 
-
-    open_env_file()
+    still_good = open_env_file()
     if still_good:
         if show_trace:
             macos_sys_info()
@@ -2782,15 +2813,14 @@ if __name__ == "__main__":
             # rc = load_costs_from_api("latest")
             # if rc: my_az_svc_region = get_azure_service_costs(armSkuNameToFind)
             my_az_svc_region = get_cheapest_az_region(armSkuNameToFind)
-            print("DEBUGGING")
-            exit()
         elif region_choice_basis == "latency":
-            my_az_svc_region = measure_storage_latency()
+            my_az_svc_region = get_az_region_by_latency()
         else:
             print_fail(f"region_choice_basis: \"{region_choice_basis}\" not recognized.")
             exit(9)
-
+    
         my_resource_group = get_resource_group(my_subscription_id, my_az_svc_region)        
+
         my_storage_account = get_az_blog_storage_acct()
         if not my_storage_account:
             my_storage_account = create_az_blog_storage_acct(my_credential, my_subscription_id, my_resource_group, my_az_svc_region)
@@ -2798,8 +2828,9 @@ if __name__ == "__main__":
                 still_good = False
         if still_good:    
             #ping_az_storage_acct(my_storage_account)
-            measure_storage_latency(my_storage_account, attempts=5)
-    exit()
+            get_az_region_by_latency(my_storage_account, attempts=5)
+
+    print("DEBUGGING")
     still_good = False
         # az_costmanagement(my_subscription_id)
     
