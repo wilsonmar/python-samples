@@ -12,7 +12,7 @@ ruff check az-keyvault.py
 #### SECTION 01. Metadata about this program file:
 
 __commit_date__ = "2025-05-05"
-__last_commit__ = "v014 + cheapest resource :az-keyvault.py"
+__last_commit__ = "v017 + get_az_blob_storage_acct_name :az-keyvault.py"
 
 # Unlike regular comments in code, docstrings are available at runtime to the interpreter:
 __repository__ = "https://github.com/wilsonmar/python-samples"
@@ -75,6 +75,8 @@ uv lock
 uv sync
 uv venv  # to create an environment,
 source .venv/bin/activate
+    ./scripts/activate       # PowerShell only
+    ./scripts/activate.bat   # Windows CMD only
 
 uv python install 3.12
 # See https://realpython.com/python-pyproject-toml/ & https://realpython.com/python-uv/
@@ -767,17 +769,17 @@ def get_log_datetime() -> str:
     return time_str
 
 
-def show_summary(in_seq: int) -> None:
+def show_summary() -> bool:
     """Prints summary of timings together at end of run.
     """
     if not SHOW_SUMMARY_COUNTS:
         return None
 
-    pgm_stop_mem_diff = get_mem_used() - pgm_strt_mem_used
-    print_info(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run {RUNID}.")
+    pgm_stop_mem_diff = get_mem_used() - float(pgm_strt_mem_used)
+    print_info(f"{pgm_stop_mem_diff:.2f} MB memory consumed during run {RUNID}.")
 
     pgm_stop_disk_diff = pgm_strt_disk_free - get_disk_free()
-    print_info(f"{pgm_stop_disk_diff:.6f} GB disk space consumed during run {RUNID}.")
+    print_info(f"{pgm_stop_disk_diff:.2f} GB disk space consumed during run {RUNID}.")
 
     print_info("Monotonic wall times (seconds):")
     # TODO: Write to log for longer-term analytics
@@ -799,31 +801,7 @@ def show_summary(in_seq: int) -> None:
         f"{pgm_elapsed_wall_time:.4f}")
 
     # TODO: Write wall times to log for longer-term analytics
-
-
-def print_wall_times():
-    """Prints All the timings together for consistency of output:
-    Instead of datetime.datetime.now(), time.perf_counter(), time.monotonic()
-    """
-    print_heading("Wall times (hh:mm:sec.microsecs):")
-    # TODO: Write to log for longer-term analytics
-
-    # For wall time of std imports:
-    std_elapsed_wall_time = std_stop_timestamp -  std_strt_timestamp
-    print_verbose("for import of Python standard libraries: "+ \
-        f"{std_elapsed_wall_time:.4f}")
-
-    # For wall time of xpt imports:
-    xpt_elapsed_wall_time = xpt_stop_timestamp -  xpt_strt_timestamp
-    print_verbose("for import of Python extra    libraries: "+ \
-        f"{xpt_elapsed_wall_time:.4f}")
-
-    pgm_stop_timestamp =  time.monotonic()
-    pgm_elapsed_wall_time = pgm_stop_timestamp -  pgm_strt_timestamp
-    # pgm_stop_perftimestamp = time.perf_counter()
-    print_verbose("for whole program run:                   "+ \
-        f"{pgm_elapsed_wall_time:.4f}")
-
+    return True
 
 
 #### SECTION 10. Obtain program environment metadata:
@@ -1021,7 +999,7 @@ def macos_sys_info():
     is_uv_venv_activated()  # both True:
 
 
-def get_mem_used() -> str:
+def get_mem_used() -> float:
     """
     Returns the memory used by the current process in MiB.
     """
@@ -1029,11 +1007,11 @@ def get_mem_used() -> str:
     process = psutil.Process()
     mem=process.memory_info().rss / (1024 ** 2)  # in bytes
     print_trace(str(process))
-    return str(mem)
+    return float(mem)
     # to print_verbose("get_mem_used(): "+str(mem)+" MiB used.")
 
 
-def get_disk_free():
+def get_disk_free() -> float:
     """
     Returns the disk space free in GB.
     """
@@ -1043,7 +1021,8 @@ def get_disk_free():
     pct_free = ( float(usage.free) / float(usage.total) ) * 100
     gb = 1073741824  # = 1024 * 1024 * 1024 = Terrabyte
     disk_gb_free = float(usage.free) / gb
-    return f"{disk_gb_free:.2f} ({pct_free:.2f}%)"
+    print_verbose(f"{disk_gb_free:.2f} ({pct_free:.2f}%) disk free")
+    return disk_gb_free
 
 
 def handle_fatal_exit():
@@ -1933,7 +1912,7 @@ def get_cheapest_az_region(armSkuNameToFind) -> str:
 
     az_svc_region = sorted_data[0][2]   # First armRegionName value.
     if az_svc_region:
-        print_info(f"my_az_svc_region: \"{az_svc_region}\" at get_cheapest_az_region() ")
+        print_info(f"my_az_svc_region: \"{az_svc_region}\" from get_cheapest_az_region() ")
         return az_svc_region
     else:
         return None
@@ -1991,11 +1970,11 @@ def closest_az_region_by_latlong(latitude: float, longitude: float) -> str:
 
 #### SECTION 15. Azure Blob Storage Containers
 
-
-def get_az_blog_storage_acct() -> str:
+    
+def get_az_blob_storage_acct_name() -> str:
     """
     Return the storage account name from parm or the environment variable AZURE_STORAGE_ACCOUNT in os.environ.
-    useing my_subscription_id and my_az_svc_region # from global
+    using from global my_subscription_id and my_az_svc_region
     ??? Authenticate using a connection string or with Azure Active Directory (recommended for security). 
     """
     # NOTE: Parms defined in CLI call take precedence over .env:
@@ -2003,52 +1982,65 @@ def get_az_blog_storage_acct() -> str:
     # STEP 3: Try to get AZURE_STORAGE_ACCOUNT from CLI parms:
     # AZURE_STORAGE_ACCOUNT = args.storage  # done in code above.
     if AZURE_STORAGE_ACCOUNT:
-        print_info(f"--storage_account \"{AZURE_STORAGE_ACCOUNT}\" from parms within get_az_blog_storage_acct() ")
+        print_info(f"--storage_account \"{AZURE_STORAGE_ACCOUNT}\" from parms within get_az_blob_storage_acct_name() ")
         return AZURE_STORAGE_ACCOUNT
     else:
-        print_trace(f"--storage_account \"___\" not defined in parms within get_az_blog_storage_acct() ")
+        print_trace(f"--storage_account \"___\" not defined in parms within get_az_blob_storage_acct_name() ")
 
     # STEP 2: Try to get AZURE_STORAGE_ACCOUNT from .env file:
     storage_account_name = get_str_from_env_file("AZURE_STORAGE_ACCOUNT")
         # instead of storage_account_name = os.environ["AZURE_STORAGE_ACCOUNT"]
     if storage_account_name:
-        print_info(f"AZURE_STORAGE_ACCOUNT=\"{storage_account_name}\" from .env within get_az_blog_storage_acct() ")
+        print_info(f"AZURE_STORAGE_ACCOUNT=\"{storage_account_name}\" from .env within get_az_blob_storage_acct_name() ")
         return storage_account_name
     # else:
 
-    # STEP 3: Identify azure blob storage accounts used by a subscription id
-    # Replace with your subscription ID
-    subscription_id = my_subscription_id  # from global
-    if not subscription_id:  # available:
-        print_error(f"No global Subscription_id for use within get_az_blog_storage_acct()!")
-        return None
-    
-    print_trace(f"Using global subscription_id=\"{subscription_id}\" within get_az_blog_storage_acct() ")
-    # from azure.identity import DefaultAzureCredential
-    credential = DefaultAzureCredential()   # Authenticate.
-    # from azure.mgmt.storage import StorageManagementClient
-    storage_client = StorageManagementClient(credential, subscription_id)
-    # List all storage accounts in the subscription
-    accounts_obj = storage_client.storage_accounts.list()
-    print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_az_blog_storage_acct() ")
-    if list(accounts_obj):
-        # TODO: Print storage account names and their blob endpoints:
-        print_info(f"get_az_blog_storage_acct(): specify --storage or AZURE_STORAGE_ACCOUNT in .env!")
-        for account in accounts_obj:
-            print(f"Name: {account.name}")
-            print(f"Resource Group: {account.id.split('/')[4]}")
-            # Blob endpoint is typically in the primary_endpoints property
-            if account.primary_endpoints and account.primary_endpoints.blob:
-                print(f"Blob Endpoint: {account.primary_endpoints.blob}")
-            print("-" * 40)
-    else:
-        print_error(f"No Azure blob storage accounts found for subscription_id within get_az_blog_storage_acct()!")
-        # TODO: Create storage account:
+    # STEP 3: See if an account has already been created within global subscription id
+    if my_subscription_id:
+        subscription_id = my_subscription_id  # from global
+        if not subscription_id:  # available:
+            print_error(f"No global Subscription_id for use within get_az_blob_storage_acct_name()!")
+            return None    
+        print_trace(f"Using global subscription_id=\"{subscription_id}\" within get_az_blob_storage_acct_name() ")
+        # from azure.identity import DefaultAzureCredential
+        credential = DefaultAzureCredential()   # Authenticate.
+        # from azure.mgmt.storage import StorageManagementClient
+        storage_client = StorageManagementClient(credential, subscription_id)
+        # List all storage accounts in the subscription
+        accounts_obj = storage_client.storage_accounts.list()
+        print_trace(f"accounts_obj=\"{list(accounts_obj)}\" within get_az_blob_storage_acct_name() ")
+        if list(accounts_obj):
+            # TODO: Print storage account names and their blob endpoints:
+            print_info(f"get_az_blob_storage_acct_name(): specify --storage or AZURE_STORAGE_ACCOUNT in .env!")
+            for account in accounts_obj:
+                print(f"Name: {account.name}")
+                print(f"Resource Group: {account.id.split('/')[4]}")
+                # Blob endpoint is typically in the primary_endpoints property
+                if account.primary_endpoints and account.primary_endpoints.blob:
+                    print(f"Blob Endpoint: {account.primary_endpoints.blob}")
+                print("-" * 40)
+        else:
+            print_error(f"No Azure blob storage accounts found for subscription_id within get_az_blob_storage_acct_name()!")
+            # TODO: Create storage account:
 
+    # STEP 4: Define new account based on the Region:
+    # WARNING: No underlines or dashes in storage account name up to 24 characters:
+    if not my_az_svc_region:
+        print_error(f"Global Region not available in get_az_blob_storage_acct_name()")
+        return None
+    else:
+        # get_az_blob_storage_acct_name()
+        fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
+        date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
+        # Max. my_az_svc_region is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
+        storage_account_name = f"{date_str}{my_az_svc_region}"  # no dashes/underlines
+        # Example: AZURE_STORAGE_ACCOUNT="germanywestcentral-2504"
+        # Alternative: AZURE_STORAGE_ACCOUNT = f"pythonazurestorage{random.randint(1,100000):05}"
+        print_verbose(f"storage_acct_name \"{storage_account_name}\" defined from global region in create_az_blog_storage_acct() ")
     return None
 
 
-def create_az_blog_storage_acct(credential, subscription_id, resource_group_name, new_location) -> str:
+def create_az_blog_storage_acct(storage_acct_name, credential, subscription_id, resource_group_name, new_location) -> str:
     """
     Returns an Azure storage account object for the given account name
     using global AZURE_STORAGE_ACCOUNT
@@ -2058,11 +2050,23 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
     # TODO: allowed_copy_scope = "MicrosoftEntraID" to prevent data exfiltration from untrusted sources.
         See https://www.perplexity.ai/search/python-code-to-set-azure-stora-549_KJogQOKcFMcHvynG3w#0
     # TODO: PrivateLink endpoints
+    https://microsoftlearning.github.io/DP-900T00A-Azure-Data-Fundamentals/Instructions/Labs/dp900-02-storage-lab.html
     """
     #from azure.identity import DefaultAzureCredential
     #from azure.mgmt.storage import StorageManagementClient
     #from azure.storage.blob import BlobServiceClient
     #import os
+
+    if not storage_acct_name:
+        # WARNING: No underlines or dashes in storage account name up to 24 characters:
+        fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
+        date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
+        # Max. my_az_svc_region is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
+        storage_account_name = f"{date_str}{my_az_svc_region}"  # no dashes/underlines
+        # Example: AZURE_STORAGE_ACCOUNT="germanywestcentral-2504"
+        # Alternative: AZURE_STORAGE_ACCOUNT = f"pythonazurestorage{random.randint(1,100000):05}"
+        print_verbose(f"storage_acct_name \"{storage_account_name}\" defined from region in create_az_blog_storage_acct() ")
+
 
     # Fetch current account properties
     storage_client = obtain_blob_storage_object(credential, subscription_id)
@@ -2072,24 +2076,6 @@ def create_az_blog_storage_acct(credential, subscription_id, resource_group_name
     else:  # redundant
         print_trace(f"create_az_blog_storage_acct(): {storage_client}")
 
-    if AZURE_STORAGE_ACCOUNT:  # defined by parameter:
-        print_info(f"--storage \"{AZURE_STORAGE_ACCOUNT}\"  # (AZURE_STORAGE_ACCOUNT) from parms being used.")
-        return AZURE_STORAGE_ACCOUNT
-    try:
-        storage_account_name = os.environ["AZURE_STORAGE_ACCOUNT"]
-        print_info(f"AZURE_STORAGE_ACCOUNT = \"{AZURE_STORAGE_ACCOUNT}\"  # from .env file being used.")
-        return storage_account_name
-    except KeyError:
-        pass
-
-    # WARNING: No underlines or dashes in storage account name up to 24 characters:
-    fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
-    date_str = fts.strftime("%y%m")  # EX: "...-250419" no year, minute, UTC %y%m%d%H%M%Z https://strftime.org
-    # Max. my_az_svc_region is "germanywestcentral" of 19 characters + 5 (yymm of 2504) = 24 characters (the max):
-    storage_account_name = f"{my_az_svc_region}{date_str}"  # no dashes/underlines
-       # Example: AZURE_STORAGE_ACCOUNT="germanywestcentral-2504"
-    # Alternative: AZURE_STORAGE_ACCOUNT = f"pythonazurestorage{random.randint(1,100000):05}"
-    print_verbose(f"create_az_blog_storage_acct() considering name: \"{storage_account_name}\" ")
 
     try:
         # Fetch current storage account properties:
@@ -2197,7 +2183,7 @@ def obtain_blob_storage_object(credential, subscription_id) -> object:
     #from azure.identity import DefaultAzureCredential
     #from azure.mgmt.storage import StorageManagementClient
     #import os
-    storage_account_name = get_az_blog_storage_acct()
+    storage_account_name = get_az_blob_storage_acct_name()
     if storage_account_name:
         print_verbose("Storage Account: \"{storage_account_name}\" within obtain_blob_storage_object() ")
         return storage_account_name
@@ -2780,9 +2766,9 @@ if __name__ == "__main__":
 
     print_info(f"Started: {get_user_local_time()}, in logs: {get_log_datetime()} ")
     pgm_strt_mem_used = get_mem_used()
-    print_info(f"Started: {pgm_strt_mem_used} MiB RAM being used.")
+    print_info(f"Started: {pgm_strt_mem_used:.2f} MiB RAM being used.")
     pgm_strt_disk_free = get_disk_free()
-    print_info(f"Started: {pgm_strt_disk_free} GB disk space free.")
+    print_info(f"Started: {pgm_strt_disk_free:.2f} GB disk space free.")
 
     #### STAGE 2 - Load environment variables, Azure Account:
 
@@ -2821,7 +2807,7 @@ if __name__ == "__main__":
     
         my_resource_group = get_resource_group(my_subscription_id, my_az_svc_region)        
 
-        my_storage_account = get_az_blog_storage_acct()
+        my_storage_account = get_az_blob_storage_acct_name()
         if not my_storage_account:
             my_storage_account = create_az_blog_storage_acct(my_credential, my_subscription_id, my_resource_group, my_az_svc_region)
             if not my_storage_account:
@@ -2830,8 +2816,6 @@ if __name__ == "__main__":
             #ping_az_storage_acct(my_storage_account)
             get_az_region_by_latency(my_storage_account, attempts=5)
 
-    print("DEBUGGING")
-    still_good = False
         # az_costmanagement(my_subscription_id)
     
     #### STAGE 4 - Azure Key Vault at a location:
@@ -2876,6 +2860,11 @@ if __name__ == "__main__":
         #rp_result = populate_keyvault_secret(my_credential, my_keyvault_name, my_secret_name, my_secret_value)
 
         # TODO: List secrets in Key Vault
+
+        # Use KeyVault: https://www.youtube.com/watch?v=VisyAWX533U&pp=ygUcYXp1cmUga2V5IHZhdWx0IHB5dGhvbiBsb2NhbA%3D%3D
+            # Get Azure Key Vault Secrets within Python
+            # https://www.youtube.com/watch?v=Vs3wyFk9upo&pp=ygUcYXp1cmUga2V5IHZhdWx0IHB5dGhvbiBsb2NhbA%3D%3D
+            # https://www.youtube.com/watch?v=FI44MhwklSc&pp=ygUcYXp1cmUga2V5IHZhdWx0IHB5dGhvbiBsb2NhbA%3D%3D
 
         #rp_result = get_keyvault_secret(my_credential, my_keyvault_name, my_secret_name)
     
@@ -2930,7 +2919,7 @@ if __name__ == "__main__":
 
     #### STAGE 8 - SUMMARY STATISTICS
 
-    print_wall_times()
+    show_summary()
     print("DONE")
 
 # END
