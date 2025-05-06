@@ -3,7 +3,7 @@
 # IntelliJ IDE settings
 /.idea/
 
-logs
+/logs/
 payload.json
 
 # Byte-compiled / optimized / DLL files
@@ -81,15 +81,19 @@ Template*
 
 # virtualenv
 /venv/
+/.venv/
 
 # pyenv
 .python-version
 
-# celery beat schedule file
-celerybeat-schedule
-
 # SageMath parsed files
 *.sage.py
+
+# mypy
+.mypy_cache/
+
+# celery beat schedule file
+celerybeat-schedule
 
 # dotenv
 .env
@@ -105,5 +109,3 @@ ENV/
 # mkdocs documentation
 /site
 
-# mypy
-.mypy_cache/
