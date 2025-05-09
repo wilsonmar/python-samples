@@ -8,7 +8,7 @@ implementing https://www.youtube.com/watch?v=D6xkbGLQesk "Intro to BigO".
 
 STATUS: Working on macOS.
 
-git commit -m "v016 stats crossover :sorting.py"
+git commit -m "v019 setrecursionlimit :sorting.py"
 
 from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63b96c8dc4f919456d4a54ea43fb7
  See https://aistudio.google.com/app/prompts/time-complexity?_gl=1*9jhuuq*_ga*NTY0MTM5MjUwLjE3MzY5OTM0Mjg.*_ga_P1DBVKWT6V*MTczNjk5MzQyOC4xLjEuMTczNjk5Mzc0NC4yNC4wLjEwMTQ2Njk0NzI.
@@ -41,7 +41,9 @@ import threading
 import time    # for timed_func()
 import timeit
 from timeit import default_timer as timer
-
+# To keep Python from crashing with deep recursion, update the default recursion depth limit:
+import sys
+sys.setrecursionlimit(10000)
 try:
     import matplotlib.pyplot as plt
     # import seaborn as sns
