@@ -53,23 +53,31 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 
 # pip install yubikey-manager
 
-# Buikt-in: import os
+# Built-in modules within the Python interpreter:
 from datetime import datetime
 from datetime import timedelta, timezone
 import argparse
-# brew install miniconda
-# conda create -n py313
-# conda activate py313
-# conda install --name py313 requestsa
 import pathlib
-import urllib.parse
-import requests
 import math
 import os
 
-# Based on: conda install -c conda-forge load_dotenv
-from dotenv import load_dotenv
-# Based on: conda install python-dotenv   # found!
+try:
+    # Based on: conda install -c conda-forge load_dotenv
+    from dotenv import load_dotenv
+    # After: brew install miniconda
+    # Based on: conda install python-dotenv   # found!
+    # conda create -n py313
+    # conda activate py313
+    # conda install --name py313 requestsa
+    import urllib.parse
+    import requests
+except Exception as e:
+    print(f"Python module import failed: {e}")
+    #print("    sys.prefix      = ", sys.prefix)
+    #print("    sys.base_prefix = ", sys.base_prefix)
+    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    exit(9)
+
 
 #### TODO: Pull from command arguemnt:
 # Constants used within functions:
@@ -544,7 +552,7 @@ if __name__ == "__main__":
 
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
-    check_yubikey_serial()
+    #check_yubikey_serial()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on/off flag
