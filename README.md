@@ -1,8 +1,113 @@
+---
+layout: post
+date: "2025-05-20"
+lastchange: "v010 + myutils :README.md"
+url: "https://github.com/wilsonmar/python-samples/main/blob/README.md"
+---
 # python-samples/README
 
-Sample Python coding with a lot of security and technical features, all in one rep for easy adoption.
+The objective of this repo is to provide examples of professional use of the Python language.
 
-## Programs alphabetically
+There are plenty of other sites and repos offering code to play games or demonstrate a coding trick.
+
+Not here. 
+
+Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
+
+## Projects
+
+* <strong>myutils.py</strong> is a python module that provides myutil_ functions used in other Python programs in this repo:
+
+* <strong>gcp-services.py</strong> is a conglomeration of many features.
+* <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
+* <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
+* <strong>sorting.py</strong> to run different sorting algorithms and display their performance on a matplotlib visualization.
+* <strong>youtube-download.py</strong> downloads videos based on its URL from a list of URLs in a CSV file.
+
+## Coding Practices to use MyUtils
+
+Below are notes about coding practices, from the top down:
+
+1.  At the very top of the file:
+    ```python
+    #!/usr/bin/env python3
+    ```
+    That enables you to run the program as a script without typing python3:
+    ```bash
+    ./mondrian-gen.py
+    ```
+    instead of 
+    ```bash
+    python3 mondrian-gen.py
+    ```
+
+1.  This specifies that emjois and non-English characters (such as Japanese, Chinese, etc.)may be in the code file:
+    ```python
+    # -*- coding: utf-8 -*-
+    ```
+
+1.  SPDX (Software Package Data Exchange) license identifiers provide machine-readable tags to communicate the license governing a piece of software. 
+    ```python
+    # SPDX-License-Identifier: MPL-2.0
+    ```
+    The MPL-2.0 (Mozilla Public License version 2.0) is a moderately permissive open-source license with some copyleft provisions. Its key characteristics include:
+    * Allows code to be freely used, modified, and shared
+    * Requires modifications to MPL-licensed files to be shared under the same license
+    * Allows MPL-licensed code to be combined with code under different licenses
+    * Provides patent protection for contributors and users
+    * Requires preservation of copyright notices
+
+1.  Dunder (double underscore) variables in the module define metadata about the program. PEP specifies that such variables can be read by other programs without opening the source code.
+    ```python
+    __commit_date__ = "2025-05-20"
+    __version__ = "1.0.0"
+    __author__ = "Your Name"
+    __license__ = "MIT"
+    __commit_date__ = "2025-05-20"
+    __commit_hash__ = "a1b2c3d4e5f6"
+    __status__ = "Production"
+    __doc__ = "This module demonstrates the use of dunder (double underscore) variables in Python."
+    ```
+    # TODO: How to get the commit hash? Doesn't adding it changes the hash value?
+
+1.  To capture the program start time at the earliest moment, the built-in time module is used:
+    ```python
+    import time
+    std_strt_timestamp = time.monotonic()
+    ```
+    <tt>time.monotonic()</tt> returns the time since an arbitrary point in the past, which is not affected by system clock changes.
+
+1.  External dependencies are specified in a requirements.txt file.
+    ```python
+    import requests
+    ```
+
+1.  Within the requirements.txt file, the <strong>myutils</strong> module is loaded to provide all other custom Python programs in this repo:
+   ```python
+   import myutils
+   ```
+
+1.  Modules used The ast (Abstract Syntax Tree) module parses Python source code into a structure so code can be better analyzed or modified programmatically.
+   ```python
+   import ast
+   ```
+   ast is used by linters, type checkers, and other such tools to analyze code without running it.
+
+1.  All functions defined in this file are prefixed with myutil_ to avoid name conflicts in other modules.
+    ```python
+    def myutil_print(msg):
+        print(msg)
+    ```
+
+1.  The function issuing a message to the console is printed along with the message:
+    ```python
+    def myutil_print(msg):
+        print(msg)
+    ```
+
+
+
+## Other Programs alphabetically
 
 * argparse-samples.py shows how to specify command line arguments into this program.
 * bookmarks_export.py to export bookmarks from Chrome to a HTML file.
@@ -13,11 +118,9 @@ Sample Python coding with a lot of security and technical features, all in one r
 * it-media.py to create a database of IT movies and sort them by rating, year, or title.
 
 * ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
-* <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 
 * num2words.py simply converts a number input to its word.
 * otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
-* <strong>openweather.py</strong> to obtain from API calls and format weather data as fuzzy tokens
 
 * pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
 * perf-ns.py obtains timings in nanosecond-level resolution.
@@ -29,11 +132,17 @@ Sample Python coding with a lot of security and technical features, all in one r
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
 * roman2int.py converts Roman numerals to base 10 numbers.
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
-* sklearn-sample calculates
+* sklearn-sample.py calculates
 * try-accept.py to show usage of try/except/else/finally exceptions
 * unittest_calculator.py is an example of how to use Python's Unit Test feature.
 * variables.py to experiment with defining and viewing objects of various data types.
-* <strong>youtube-download.py</strong> downloads videos based on its URL.
+
+## Coding Practices
+
+Below 
+
+
+
 
 ## Experiments being built
 
