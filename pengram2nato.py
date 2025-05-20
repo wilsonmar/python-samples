@@ -2,16 +2,20 @@
 # SPDX-License-Identifier: MPL-2.0
 """
 This is pengram2nato.py of Pengram holoalphabetic sentence that 
-contains every letter of the 26 letters of the alphabet at least once.
-Used to display typefaces and test typing equipment.
-https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
+contains every letter of the 26 letters of the English alphabet at least once.
 
-gas "v006 Add t to Juliet & CR/LF explainer :pengram2nato.py"
+git commit -m "v007 Add similar url :pengram2nato.py"
+
+Pengrams are used to display typefaces and test typing equipment.
+https://github.com/wilsonmar/python-samples/blob/main/pengram2nato.py
 
 Created by perpexity.ai based on this prompt:
 For the sentence "The quick brown fox jumps over the lazy dog", 
 write a python program to substitute each letter of the sentence with 
 a NATO pengram alphabet word.
+
+Similar to https://github.com/t2kio/myutils/blob/master/check_pangram.py
+which identifies whether a sentence is a pangram or not.
 """
 
 import platform  # to detect if this program is running Windows OS.
