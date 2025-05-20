@@ -1,8 +1,8 @@
 ---
 layout: post
 date: "2025-05-20"
-lastchange: "v010 + myutils :README.md"
-url: "https://github.com/wilsonmar/python-samples/main/blob/README.md"
+lastchange: "v010 + myutils qr :README.md"
+url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 # python-samples/README
 
