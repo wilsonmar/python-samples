@@ -16,13 +16,16 @@ Here we aim to provide code that exhibit the security and technical features nee
 
 ## Projects
 
-* <strong>myutils.py</strong> is a python module that provides myutil_ functions used in other Python programs in this repo:
+* <strong>myutils.py</strong> is a private python module that provides myutil_ functions used in other Python programs in this repo:
 
 * <strong>gcp-services.py</strong> is a conglomeration of many features.
 * <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 * <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
-* <strong>sorting.py</strong> to run different sorting algorithms and display their performance on a matplotlib visualization.
+* <strong>saytime.py</strong> to use the macos say CLI command to voice the time or other text.
+* <strong>sorting.py</strong> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
 * <strong>youtube-download.py</strong> downloads videos based on its URL from a list of URLs in a CSV file.
+
+<a href="#OtherPrograms">Other samples in this repo</a> 
 
 ## Coding Practices to use MyUtils
 
@@ -41,7 +44,7 @@ Below are notes about coding practices, from the top down:
     python3 mondrian-gen.py
     ```
 
-1.  This specifies that emjois and non-English characters (such as Japanese, Chinese, etc.)may be in the code file:
+1.  This specifies that emjois and non-English characters (such as Japanese, Chinese, etc.) may be in the code file:
     ```python
     # -*- coding: utf-8 -*-
     ```
@@ -64,11 +67,11 @@ Below are notes about coding practices, from the top down:
     __author__ = "Your Name"
     __license__ = "MIT"
     __commit_date__ = "2025-05-20"
-    __commit_hash__ = "a1b2c3d4e5f6"
     __status__ = "Production"
     __doc__ = "This module demonstrates the use of dunder (double underscore) variables in Python."
     ```
-    # TODO: How to get the commit hash? Doesn't adding it changes the hash value?
+    # TODO: Some also have like <tt>__commit_hash__ = "a1b2c3d4e5f6"</tt>
+    # But How to get the commit hash? Doesn't adding it change the hash value?
 
 1.  To capture the program start time at the earliest moment, the built-in time module is used:
     ```python
@@ -106,6 +109,7 @@ Below are notes about coding practices, from the top down:
     ```
 
 
+<a name="OtherPrograms"></a>
 
 ## Other Programs alphabetically
 
@@ -117,6 +121,7 @@ Below are notes about coding practices, from the top down:
 * endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
 * it-media.py to create a database of IT movies and sort them by rating, year, or title.
 
+* logging.py to use the logging module to log messages to a file.
 * ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
 
 * num2words.py simply converts a number input to its word.
