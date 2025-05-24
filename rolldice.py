@@ -5,7 +5,7 @@
 #    ./rolldice.py
 
 __lastchange__ = "2025-05-24"
-__commit_text__ = "v001 new :rolldice.py"
+__commit_text__ = "v002 histogram :rolldice.py"
 
 # For a study in programming user features:
 # The value from a few rolls can be skewed.
@@ -61,7 +61,7 @@ def display_detailed_histogram(dice_history, width=40):
     max_count = max(counts.values())
     sorted_values = sorted(counts.keys())
     
-    print("histogram of dice roll history:")
+    print("histogram of dice roll history (from 1/6 = 16.67%):")
     print(f"{'Value':<5} │ {'Rolls':<5} │ {'Percent':<6} │ {'Frequency bars':<{width}}")
     # print("─" * (width + 25))
     
