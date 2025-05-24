@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-05-20"
-lastchange: "v010 + myutils qr :README.md"
+date: "2025-05-24"
+lastchange: "v011 + rolldice :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 # python-samples/README
@@ -111,7 +111,7 @@ Below are notes about coding practices, from the top down:
 
 <a name="OtherPrograms"></a>
 
-## Other Programs alphabetically
+## Other Programs here (alphabetically)
 
 * argparse-samples.py shows how to specify command line arguments into this program.
 * bookmarks_export.py to export bookmarks from Chrome to a HTML file.
@@ -134,6 +134,7 @@ Below are notes about coding practices, from the top down:
 * pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 
 * recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
+* rolldice.py rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
 * roku-set.py opens Roku at a given IP address to the YouTube video specified.
 * roman2int.py converts Roman numerals to base 10 numbers.
 * rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
@@ -142,11 +143,11 @@ Below are notes about coding practices, from the top down:
 * unittest_calculator.py is an example of how to use Python's Unit Test feature.
 * variables.py to experiment with defining and viewing objects of various data types.
 
-## Coding Practices
+## Ones I would like to create
 
-Below 
+* Reset all my passwords automatically. This would involve my database in KeePassXC and 1Password, then programmatic control operating Authy and emails to confirm.
 
-
+* Functions to reference a physical Yubikey containing secrets and cryptographic certificates.
 
 
 ## Experiments being built
