@@ -5,7 +5,7 @@
 #    ./rolldice.py
 
 __lastchange__ = "2025-05-24"
-__commit_text__ = "v002 histogram :rolldice.py"
+__commit_text__ = "v005 + menus, epoch timestamp :rolldice.py"
 
 # For a study in programming user features:
 # The value from a few rolls can be skewed.
@@ -85,7 +85,9 @@ if __name__ == "__main__":
         print(f"{num}:{emoji} ", end="")
     print("")
 
-    print("\nPress Enter to roll, or type 'q' (press contorl+C) to exit:")    
+    print("\nPress Enter to roll, or type 'q' (press contorl+C) to exit. Press")
+    print("h for histogram, u for unicode, n for number, or a ")
+    print("number for repeat count:")
     while True:  # infinite loop
         user_input = input()
         if user_input.lower() == 'q':  # for quit like linux commands.
@@ -116,10 +118,11 @@ if __name__ == "__main__":
                     result_str = result_str + " " + str(roll)
                 # TODO: Recognize full house and other Yahtzee combinations.
                 round_num = i + 1   # ordinal
+                current_epoch = time.time()
                 dice_history.append({
                     'round': round_num,
                     'value': roll,
-                    'timestamp': f"{time.monotonic()}"
+#                   'timestamp': f"{current_epoch}"
                 })
             rolled_count += 1  # increment
             # ALT: dice_array = np.random.randint(1, 7, size=5)  # 5 dice
