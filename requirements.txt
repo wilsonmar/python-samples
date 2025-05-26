@@ -1,4 +1,6 @@
+    myutils
     aiohttp   # for async features
+    asyncio
     azure-ai-contentsafety
     azure-ai-inference   # instead of azure-ai-foundry
     azure-ai-projects 
@@ -16,23 +18,40 @@
     azure-mgmt-resource
     azure-mgmt-storage
     azure-storage-blob
+
+    google-auth
+    google-auth-httplib2
+    google-auth-oauthlib
+    google-api-python-client
+
+    #google-cloud-aiplatform 
+    google-cloud-bigquery
+    google-cloud-compute
+    google-cloud-core
+    google-cloud-pubsub
+    google-cloud-secret-manager
+
+    fastapi
     flask
-    logging
-    matplotlib   # or plotly
+    matplotlib
     numpy
     opentelemetry-api
     opentelemetry-distro 
     opentelemetry-sdk
+    openai
     pandas
     pathlib
     pillow     # https://realpython.com/courses/python-pillow/
-    platform   # https://docs.python.org/3/library/platform.html
+    plotly
     psutil     # psutil-7.0.0
+    pydantic
     pylint 
     python-dotenv
     pythonping
     pytz
     requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
+    seaborn
+    statsd
     tabulate
     uuid
     # NOT msgraph-core           # for msgraph.core.GraphClient
