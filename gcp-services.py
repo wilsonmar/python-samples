@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
-__commit_date__ = "2025-05-20"
-__last_commit__ = "v004 + envload custom print functions :gcp-services.py"
-__repository__ = "https://github.com/wilsonmar/python-samples/blob/main/gcp-services.py"
+__commit_date__ = "2025-05-25"
+__last_commit__ = "v006 + getcwd myutils :gcp-services.py"
+__repository__ = "https://github.com/bomonike/agentic/blob/main/gcp-services.py"
 
 """gcp-services.py
 
@@ -126,13 +126,14 @@ ruff check gcp-services.py
 # 8. Hit Ctrl-C to exit CLI session.
 """
 
-# Built-ins (alphabetically):
+#### Built-in imports (alphabetically):
+
 import time
 std_strt_timestamp = time.monotonic()
 import argparse
 import collections
 import configparser
-import datetime
+# import datetime - removed to avoid conflict with myutils import
 import functools
 import importlib.util
 import inspect
@@ -143,20 +144,39 @@ import os
 from pathlib import Path
 import pickle         
 import pip
+import platform     # https://docs.python.org/3/library/platform.html
 import random
-import requests
 from requests.exceptions import RequestException
 import subprocess
 import sys
 import webbrowser
 std_stop_timestamp = time.monotonic()
 
-# For wall time of xpt imports:
-xpt_strt_datetimestamp = time.monotonic()
+#### External imports:
+
+# Enable import of local module (myutils)
+sys.path.append(os.getcwd())  # Returns None
+    # Example: /Users/johndoe/github-wilsonmar/python-samples
+#sys.path.insert(0, '.')
+# Now import myutils with a forced reload
+import importlib
+import myutils
+# from myutils import *   # import all objects into the symbol table
+# importlib.reload(myutils)
+print(f"sys.path={sys.path}")
+
+# Clear any cached modules to ensure fresh imports
+for module in ['myutils', 'datetime']:
+    if module in sys.modules:
+        del sys.modules[module]
+
+# Import datetime first to ensure it's properly initialized
+from datetime import datetime, timezone
+
+xpt_strt_datetimestamp = time.monotonic()   # For wall time of xpt imports
 try:
     # External: No known vulnerabilities were found by: pip-audit -r requirements.txt
     # See https://realpython.com/python39-new-features/#proper-time-zone-support
-    import myutils
     import google.auth
     from google.auth.transport.requests import Request       # google-auth-httplib2
     from google_auth_oauthlib.flow import InstalledAppFlow   # google-auth-oauthlib
@@ -169,13 +189,14 @@ try:
 
     from google.cloud import bigquery       # pip install google-cloud-bigquery
     from google.cloud import compute_v1     # pip install google-cloud-compute
-    #from google.cloud import core           # pip install google-cloud-core
+    #from google.cloud import core          # pip install google-cloud-core
     from google.cloud import pubsub_v1      # pip install google-cloud-pubsub
     from google.cloud import secretmanager  # pip install google-cloud-secret-manager
     from google.cloud import storage        # pip install google-cloud-core
 
-    #import matplotlib.pyplot as plt
-    from statsd import StatsClient
+    import matplotlib.pyplot as plt        # statsd
+    from numpy import numpy as np
+    from statsd import StatsClient    # pip install python-statsd or statsd
     import tabulate       # pip install tabulate
     from typing import Callable, Optional, Type, Union, List, Dict, Any
     import pandas as pd   # pip install pandas
@@ -186,14 +207,21 @@ except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
-    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    print(f"Please activate your virtual environment:\n  python3 -m venv venv && source venv/bin/activate")
+    print(f"   pip install --upgrade -r requirements.txt")
     exit(9)
+
+# FIXME: ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+# google-cloud-aiplatform 1.92.0 requires google-cloud-storage<3.0.0,>=1.32.0, but you have 
+# google-cloud-storage 3.1.0 which is incompatible.
+# google-adk 0.5.0 requires google-cloud-storage<3.0.0,>=2.18.0, but you have 
+# google-cloud-storage 3.1.0 which is incompatible.
 
 # For wall time of xpt imports:
 xpt_stop_datetimestamp = time.monotonic()
 
+#### Global CLI parameters:
 
-# Global CLI parameters:
 parser = argparse.ArgumentParser(description='gcp-services.py for Google Cloud Authentication')
 parser.add_argument("-q", "--quiet", action="store_true", help="Quiet")
 parser.add_argument("-v", "--verbose", action="store_true", help="Show each download")
@@ -217,31 +245,47 @@ SHOW_FUNCTIONS = False
 LIST_REGIONS = False
 LIST_GCS = True
 
+#### Global variables:
+
 my_service_account = args.service_account
 my_project_id = args.project
 my_account = args.user
 output_format = args.format
 
+#### DEBUG:
 
-#### Global variables:
+if SHOW_DEBUG:
+    myutils.show_print_samples()
 
-    
-### Python code utilities:
+    THIS_PGM = os.path.basename(__file__)  # "gcp-services.py"
+             # os.path.splitext(os.path.basename(__file__))[0]
+    myutils.print_trace(f"Filename without extension: {THIS_PGM}")
+    myutils.print_trace(f"fuid (F User ID): {myutils.get_fuid(THIS_PGM)})")
+    myutils.print_trace(f"realpath={os.path.realpath(__file__)} ")
+    # Get file timestamp using myutils.filetimestamp
+    try:
+        file_path = THIS_PGM
+        # First attempt to use myutils.filetimestamp
+        timestamp = myutils.filetimestamp(file_path)
+        myutils.print_trace(f"File last modified: {timestamp} ")
+    except Exception as e:
+        myutils.print_trace(f"Warning: Could not get timestamp using myutils: {e}")
+        # Fallback to direct datetime usage if myutils fails
+        t = os.path.getmtime(file_path)
+        timestamp = datetime.fromtimestamp(t).strftime("%Y-%m-%d-%H:%M")
+        myutils.print_trace(f"File last modified: {timestamp} ")
 
-def list_pgm_functions(filename):
-    #import importlib.util
-    spec = importlib.util.spec_from_file_location("module", filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    
-    # Get all functions:
-    # import inspect
-    functions = inspect.getmembers(module, inspect.isfunction)
-    
-    # Print function names:
-    print(f"-vv # Functions defined within this program {sys.argv[0]}, alphabetically: ")
-    for name, func in functions:
-        print("    "+name)
+    dunder_items = myutils.extract_dunder_variables(THIS_PGM)
+    for i, (key, value) in enumerate(dunder_items.items(), 1):
+        myutils.print_trace(f"{key}: {value}")   # without {i}. 
+
+    myutils.print_heading(f"sys.path to import external modules:")
+    syspaths = sys.path
+    for i, path in enumerate(syspaths, 1):
+        myutils.print_trace(f"{i}. {path}")
+
+    # FIXME: myutils.print_trace(myutils.list_pgm_functions(THIS_PGM))
+    # FIXME: myutils.print_trace(myutils.list_files())
 
 
 ### Logging and Monitoring utilities:
@@ -280,8 +324,12 @@ def backoff(
     on_backoff: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Callable:
     """
-    A decorator for retrying function calls with exponential backoff.
-    
+    A @decorator added to function definitions to automatically retry function calls that fail
+    with exponential backoff, jitter, etc.
+    Rather than use 3rd-party tenacity or backoff lib at https://pypi.org/project/backoff/
+        or https://github.com/alexferl/justbackoff
+    See https://medium.com/@suryasekhar/exponential-backoff-decorator-in-python-26ddf783aea0
+    and https://medium.com/@oggy/retry-mechanisms-in-python-practical-guide-with-real-life-examples-ed323e7a8871
     Args:
         max_retries: Maximum number of retries before giving up
         exceptions: Exception or tuple of exceptions to catch and retry on
@@ -388,7 +436,7 @@ def authenticate_with_adc():
         # Get credentials and project ID using ADC
         #import google.auth
         credentials, project_id = google.auth.default()
-        print(f"✅ Authenticated with ADC Project ID: \"{project_id}\" within authenticate_with_adc() ")
+        print(f"✅ Authenticated with ADC Project ID: \"{project_id}\" ")
         return credentials, project_id
     except Exception as e:
         print(f"Authentication failed: {e}")
@@ -703,6 +751,15 @@ def check_install_packages():
         print("Please manually install the required packages:")
         print("pip install google-cloud-storage google-auth google-auth-oauthlib google-auth-httplib2")
         return False
+
+
+def get_google_billing_id():
+    """
+    Intro to Google Billing: https://youtu.be/raEbnlIohLE
+    Prerequisite: Link Billing account to your project at https://cloud.google.com/products/calculator?hl=en
+    Add entry ~/.env GOOGLE_BILLING_ACCT="123456-789012-345678"
+    See https://console.cloud.google.com/billing
+    """
 
 
 ### Projects
@@ -1140,9 +1197,11 @@ def use_storage_with_adc():
     
     # List buckets
     buckets = storage_client.list_buckets()
-    print("Cloud Storage Buckets:")
+    myutils.print_heading("Cloud Storage Buckets:")
     for bucket in buckets:
         print(f"- {bucket.name}")
+    else:
+        print("No storage found.")
 
 def use_bigquery_with_adc():
     """Example of using BigQuery with ADC"""
@@ -1151,7 +1210,7 @@ def use_bigquery_with_adc():
     
     # List datasets
     datasets = list(bigquery_client.list_datasets())
-    print("BigQuery Datasets:")
+    myutils.print_heading("BigQuery Datasets:")
     if datasets:
         for dataset in datasets:
             print(f"- {dataset.dataset_id}")

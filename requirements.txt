@@ -16,7 +16,7 @@
     azure-mgmt-keyvault
     azure-mgmt-network
     azure-mgmt-resource
-    azure-mgmt-storage
+    #azure-mgmt-storage
     azure-storage-blob
 
     google-auth
