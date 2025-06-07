@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-05-24"
-lastchange: "v011 + rolldice :README.md"
+date: "2025-06-07"
+lastchange: "v012 + ls_al.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 # python-samples/README
@@ -18,6 +18,7 @@ Here we aim to provide code that exhibit the security and technical features nee
 
 * <strong>myutils.py</strong> is a private python module that provides myutil_ functions used in other Python programs in this repo:
 
+* <strong>ls_al.py</strong> lists files in a directory like the Linux command ls -al.
 * <strong>gcp-services.py</strong> is a conglomeration of many features.
 * <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 * <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
