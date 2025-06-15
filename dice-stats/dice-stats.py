@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MPL-2.0
 
-__lastchange__  = "2025-06-13"
-__commit_text__ = "v008 + rename from rolldice.py :dice-stats.py"
-__status__      = "CANNOT run on macOS Sequoia 15.3.1 with Python 3.13.3"
+__lastchange__  = "2025-06-15"
+__commit_text__ = "v009 + rm time ref err :dice-stats.py"
+__status__      = "uv run python dice-stats.py # on macOS Sequoia 15.3.1 with Python 3.13.3"
 # FIXME: Python module import failed: No module named 'numpy'
 
 """ dice-stats.py
@@ -206,7 +206,7 @@ def print_histogram_summary(dice_history):
         count = hist_metrics['counts'][i]
         percent = hist_metrics['relative_frequency'][i] * 100
         bar = "█" * int(percent * 2)  # Scale the bar length
-        print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
+        print(f"{int(bin_center):2d}    {count:4d}   {percent:5.1f}%  {bar}")
 
     print(f"Total: {hist_metrics['data_size']} rolls")
     print(f"Range:                    {hist_metrics['range']:.2f}")
@@ -282,7 +282,7 @@ if __name__ == "__main__":
                     result_str = result_str + " " + str(roll)
                 # TODO: Recognize full house and other Yahtzee combinations.
                 round_num = i + 1   # ordinal
-                current_epoch = time.time()
+                #current_epoch = time.time()
                 dice_history.append({
                     'round': round_num,
                     'value': roll,
