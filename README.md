@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-06-07"
-lastchange: "v012 + ls_al.py :README.md"
+date: "2025-06-12"
+lastchange: "v013 + other projects :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 # python-samples/README
@@ -14,21 +14,59 @@ Not here.
 
 Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
 
-## Projects
-
-* <strong>myutils.py</strong> is a private python module that provides myutil_ functions used in other Python programs in this repo:
+## Featured Projects
 
 * <strong>ls_al.py</strong> lists files in a directory like the Linux command ls -al.
-* <strong>gcp-services.py</strong> is a conglomeration of many features.
 * <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 * <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
 * <strong>saytime.py</strong> to use the macos say CLI command to voice the time or other text.
 * <strong>sorting.py</strong> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
 * <strong>youtube-download.py</strong> downloads videos based on its URL from a list of URLs in a CSV file.
 
-<a href="#OtherPrograms">Other samples in this repo</a> 
+<a name="OtherPrograms"></a>
 
-## Coding Practices to use MyUtils
+## Other Programs in this repo (alphabetically)
+
+* argparse-samples.py shows how to specify command line arguments into this program.
+* bookmarks_export.py to export bookmarks from Chrome to a HTML file.
+* calculator-tk.py is a calculator created using the Tk GUI library.
+* dijkstras.py to compare calculations of shortest path on a graph
+* dijkstra-yt.py to calculate shortest path using heapq library
+* endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
+* it-media.py to create a database of IT movies and sort them by rating, year, or title.
+
+* logging.py to use the logging module to log messages to a file.
+* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
+
+* num2words.py simply converts a number input to its word.
+* otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
+
+* pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
+* perf-ns.py obtains timings in nanosecond-level resolution.
+* plotting.py to create common visualizations using matplotlib.
+* python-samples.py is a conglomeration of many features.
+* pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
+
+* recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
+* rolldice.py rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
+* roku-set.py opens Roku at a given IP address to the YouTube video specified.
+* roman2int.py converts Roman numerals to base 10 numbers.
+* rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
+* sklearn-sample.py calculates
+* try-accept.py to show usage of try/except/else/finally exceptions
+* unittest_calculator.py is an example of how to use Python's Unit Test feature.
+* variables.py to experiment with defining and viewing objects of various data types.
+* fido2-titan.py to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
+
+
+<a href="#OtherPrograms">Other coding samples</a> 
+
+* bomonike/memon to generate a strong passphrase based on random words in English and German
+* bomonike/google/<strong>gcp-services</strong> has authentication and other functions to access services within the Google Cloud Platform (GCP)
+* bomonike/google/<strong>myutils.py</strong> contains utility functions useful for calling by other programs.
+
+
+## Coding Practices
 
 Below are notes about coding practices, from the top down:
 
@@ -109,40 +147,6 @@ Below are notes about coding practices, from the top down:
         print(msg)
     ```
 
-
-<a name="OtherPrograms"></a>
-
-## Other Programs here (alphabetically)
-
-* argparse-samples.py shows how to specify command line arguments into this program.
-* bookmarks_export.py to export bookmarks from Chrome to a HTML file.
-* calculator-tk.py is a calculator created using the Tk GUI library.
-* dijkstras.py to compare calculations of shortest path on a graph
-* dijkstra-yt.py to calculate shortest path using heapq library
-* endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
-* it-media.py to create a database of IT movies and sort them by rating, year, or title.
-
-* logging.py to use the logging module to log messages to a file.
-* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
-
-* num2words.py simply converts a number input to its word.
-* otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
-
-* pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
-* perf-ns.py obtains timings in nanosecond-level resolution.
-* plotting.py to create common visualizations using matplotlib.
-* python-samples.py is a conglomeration of many features.
-* pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
-
-* recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
-* rolldice.py rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
-* roku-set.py opens Roku at a given IP address to the YouTube video specified.
-* roman2int.py converts Roman numerals to base 10 numbers.
-* rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
-* sklearn-sample.py calculates
-* try-accept.py to show usage of try/except/else/finally exceptions
-* unittest_calculator.py is an example of how to use Python's Unit Test feature.
-* variables.py to experiment with defining and viewing objects of various data types.
 
 ## Ones I would like to create
 
