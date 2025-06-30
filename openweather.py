@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
 
-git commit -m "v027 + feels_like :openweather.py"
+git commit -m "v027 + apisec fix :openweather.py"
 
 STATUS: working
 
@@ -297,6 +297,16 @@ def read_env_file():
         my_longitude = "104.322"
         print_warning(">>> my_longitude="+my_longitude+" from default!")
 
+    global my_zip_code
+    my_zip_code = get_str_from_env_file('MY_ZIP_CODE')
+    if my_zip_code == None:
+        my_zip_code = "59041"
+        print_warning(">>> my_zip_code="+my_zip_code+" from default!")
+
+    # More precise Longitude & Latitude in .env overrides zip code:
+    global apispec
+    apispec="lat=" + my_latitude +"&lon=" + my_longitude
+
     return
 
 def get_str_from_env_file(key_in) -> str:
@@ -569,20 +579,26 @@ if __name__ == "__main__":
 
     if args.zip:
         zip_code = ' '.join(map(str, args.zip))   # convert list from parms to string.
+        if zip_code.isdigit() and len(zip_code) == 5:
+            my_zip_code = zip_code
+
         DISTANCEMATRIX_API_KEY = get_str_from_env_file('DISTANCEMATRIX_API_KEY')
         if not DISTANCEMATRIX_API_KEY:
             print("DISTANCEMATRIX_API_KEY not specified in .env file!")
+            if my_longitude and my_latitude:  # from .env file:
+                apispec="lat=" + my_latitude +"&lon=" + my_longitude
+            else:
+                apispec=f"zip={zip_code}"
         else:
-            apispec=f"zip={zip_code}"
             latitude, longitude = get_coordinates(zip_code, DISTANCEMATRIX_API_KEY)
-            latitude_direction = "North of" if latitude >= 0 else "South of"
-            longitude_direction = "West of" if longitude >= 0 else "East of"
-            my_latitude = f"{latitude:.7f}"
-            my_longitude = f"{longitude:.7f}"
-            # print(f'--zip {zip_code} is at Latitude {my_latitude}, Longitude {my_longitude}')
-            apispec="lat=" + my_latitude +"&lon=" + my_longitude
-    #else:
-    #    apispec="lat=" + my_latitude +"&lon=" + my_longitude    # from env file
+            if longitude and latitude:  # from .env file:
+                my_latitude = f"{latitude:.7f}"
+                my_longitude = f"{longitude:.7f}"
+
+    latitude_direction = "North of" if float(my_latitude) >= 0 else "South of"
+    longitude_direction = "West of" if float(my_longitude) >= 0 else "East of"
+    # print(f'--zip {zip_code} is at Latitude {my_latitude}, Longitude {my_longitude}')
+    apispec="lat=" + my_latitude +"&lon=" + my_longitude
 
     openweathermap_api_key = get_str_from_env_file('OPENWEATHERMAP_API_KEY')
     if not openweathermap_api_key:
@@ -701,8 +717,10 @@ if __name__ == "__main__":
     if not station_name == None:
         print(f"{station_name} {country_text}",end="")
     print(f" {GRAY}\"{apispec}\"{RESET}")
-    print(f"     Latitude:  {my_latitude}° {latitude_direction} the Equator &")
-    print(f"     Longitude: {my_longitude}° {longitude_direction} the Meridian at Greenwich, UK")
+    if latitude_direction:
+        print(f"     Latitude:  {my_latitude}° {latitude_direction} the Equator &")
+    if longitude_direction:
+        print(f"     Longitude: {my_longitude}° {longitude_direction} the Meridian at Greenwich, UK")
 
     if USE_IMPERIAL_UNITS:
         temp_f = celcius2fahrenheit(temp_c)
