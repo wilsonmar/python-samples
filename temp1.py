@@ -12,3 +12,4 @@ print("%.21f" % time.get_clock_info('clock').resolution)
 print("%.21f" % time.get_clock_info('monotonic').resolution)
 print("%.21f" % time.get_clock_info('perf_counter').resolution)
 print("%.21f" % time.get_clock_info('process_time').resolution)
+\n#
