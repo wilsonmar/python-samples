@@ -39,6 +39,8 @@ wheels/
 *.manifest
 *.spec
 
+uv.lock
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -80,6 +82,7 @@ target/
 Template*
 
 # virtualenv
+/venv312/
 /venv/
 /.venv/
 
