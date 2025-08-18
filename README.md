@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-06-12"
-lastchange: "v013 + other projects :README.md"
+date: "2025-08-18"
+lastchange: "v014 + print-inkjet.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 # python-samples/README
@@ -15,7 +15,8 @@ Not here.
 Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
 
 ## Featured Projects
-
+These contain various utilities, by recentcy:
+* <strong>print-inkjet.py</strong> keeps print heads clear by sending a pdf containing colored text and images.
 * <strong>ls_al.py</strong> lists files in a directory like the Linux command ls -al.
 * <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 * <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
