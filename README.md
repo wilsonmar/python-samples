@@ -1,10 +1,9 @@
 ---
 layout: post
 date: "2025-08-18"
-lastchange: "v014 + print-inkjet.py :README.md"
+lastchange: "v015 + link to featured .py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
-# python-samples/README
 
 The objective of this repo is to provide examples of professional use of the Python language.
 
@@ -16,13 +15,19 @@ Here we aim to provide code that exhibit the security and technical features nee
 
 ## Featured Projects
 These contain various utilities, by recentcy:
-* <strong>print-inkjet.py</strong> keeps print heads clear by sending a pdf containing colored text and images.
-* <strong>ls_al.py</strong> lists files in a directory like the Linux command ls -al.
-* <strong>mondrian-gen.py</strong> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
-* <strong>openweather.py</strong> to obtain from API calls and format weather data (as fuzzy tokens)
-* <strong>saytime.py</strong> to use the macos say CLI command to voice the time or other text.
-* <strong>sorting.py</strong> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
-* <strong>youtube-download.py</strong> downloads videos based on its URL from a list of URLs in a CSV file.
+* <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images.
+
+* <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
+
+* <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
+
+* <a href="openweather.py"><strong>openweather.py</strong></a> to obtain from API calls and format weather data (as fuzzy tokens)
+
+* <a href="saytime.py.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
+
+* <a href="sorting.py"><strong>sorting.py</strong></a> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
+
+* <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
 
 <a name="OtherPrograms"></a>
 
