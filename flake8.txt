@@ -1,0 +1,39 @@
+# flake8.txt
+# This is referenced by the flake8 Python code scanner utility installed on macOS (from any folder):
+#    brew install flake8
+# Run for all .py (code) files in the current folder :
+#    flake8 .
+# See https://flake8.pycqa.org/en/latest/user/configuration.html
+# Note that flake8 audits are incorporated within the ruff utility.
+
+# __last_commit__ = "v002 + put in github :flake8.txt"
+
+[flake8]
+max-line-length = 120
+exclude = test*/*
+max-complexity = 10
+ignore = E265,
+         E402,
+         F401,
+         E301,
+         E501
+
+# E301 line too long (81 > 79 characters)
+# E501 line too long (97 > 79 characters)
+# E301 expected 1 blank line, found 0
+# W292 no newline at end of file
+
+# E713 test for membership should be 'not in'
+
+# E128 continuation line under-indented for visual indent
+# F405 'MappingStartEvent' may be undefined, or defined from star imports: .events, .nodes
+
+# PROTIP: solved by setting your IDE to automatically remove
+# W391 blank line at end of file
+# W293 blank line contains whitespace
+# 1. Open VS Code settings (Ctrl+, or Cmd+,)
+# 2. Search for "trim trailing whitespace"
+# 3. Check the box for "Files: Trim Trailing Whitespace" Or add this in VSCode's settings.json:
+#    json{
+#       "files.trimTrailingWhitespace": true
+#    }
