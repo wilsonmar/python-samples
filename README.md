@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-08-18"
-lastchange: "v015 + link to featured .py :README.md"
+date: "2025-08-20"
+lastchange: "v016 + link to other featured .py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -14,7 +14,9 @@ Not here.
 Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
 
 ## Featured Projects
-These contain various utilities, by recentcy:
+
+These contain various utilities and features:
+
 * <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images.
 
 * <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
@@ -29,45 +31,48 @@ These contain various utilities, by recentcy:
 
 * <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
 
+
 <a name="OtherPrograms"></a>
 
-## Other Programs in this repo (alphabetically)
+## Other Programs in this repo (alphabetically):
 
-* argparse-samples.py shows how to specify command line arguments into this program.
-* bookmarks_export.py to export bookmarks from Chrome to a HTML file.
-* calculator-tk.py is a calculator created using the Tk GUI library.
-* dijkstras.py to compare calculations of shortest path on a graph
-* dijkstra-yt.py to calculate shortest path using heapq library
-* endecode-protobuf.py encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
-* it-media.py to create a database of IT movies and sort them by rating, year, or title.
+* <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
+* <a href="argparse-samples.py">argparse-samples.py</a> to specify command line arguments into this program.
+* <a href="bookmarks_export.py">bookmarks_export.py</a> to export bookmarks from Chrome to a HTML file.
 
-* logging.py to use the logging module to log messages to a file.
-* ml-metrics.py to use PyTorch & Scikit to generate metrics for Machine Learning.
+* <a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
+* <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
+* <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
+* <a href="endecode-protobuf.py">endecode-protobuf.py</a> encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
+* <a href="fido2-titan.py">fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
+* <a href="it-media.py">it-media.py</a> to create a database of IT movies and sort them by rating, year, or title.
 
-* num2words.py simply converts a number input to its word.
-* otel-flask.py - a simple Flask app with automatic OpenTelemetry instrumentation
+* <a href="logging.py">logging.py</a> to use the logging module to log messages to a file.
+* <a href="ml-metrics.py">ml-metrics.py</a> to use PyTorch & Scikit to generate metrics for Machine Learning.
 
-* pengram2nato.py to use the NATO phonetic alphabet spell out a sentence.
-* perf-ns.py obtains timings in nanosecond-level resolution.
-* plotting.py to create common visualizations using matplotlib.
-* python-samples.py is a conglomeration of many features.
-* pytorch-mnist.py Use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
+* <a href="num2words.py">num2words.py</a> simply converts a number input to its word.
+* <a href="otel-flask.py">otel-flask.py</a> - a simple Flask app with automatic OpenTelemetry instrumentation
 
-* recursive-cache.py shows faster Fibonnici recursion calls when using functools cache.
-* rolldice.py rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
-* roku-set.py opens Roku at a given IP address to the YouTube video specified.
-* roman2int.py converts Roman numerals to base 10 numbers.
-* rot13.py is used on UseNet to encode sentences using a cypher that's 13 characters away.
-* sklearn-sample.py calculates
-* try-accept.py to show usage of try/except/else/finally exceptions
-* unittest_calculator.py is an example of how to use Python's Unit Test feature.
-* variables.py to experiment with defining and viewing objects of various data types.
-* fido2-titan.py to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
+* <a href="pengram2nato.py">pengram2nato.py</a> to use the NATO phonetic alphabet spell out a sentence.
+* <a href="perf-ns.py">perf-ns.py</a> obtains timings in nanosecond-level resolution.
+* <a href="plotting.py">plotting.py</a> to create common visualizations using matplotlib.
+* <a href="pytorch-mnist.py">pytorch-mnist.py</a> to use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 
+* <a href="random-niche.py">random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
+* <a href="recursive-cache.py">recursive-cache.py</a> shows faster Fibonnici recursion calls when using functools cache.
+* <a href="rolldice.py">rolldice.py</a> rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
+* <a href="rot13.py">rot13.py</a> is used on UseNet to encode sentences using a cypher that's 13 characters away.
+
+* <a href="roku-set.py">roku-set.py</a> opens Roku at a given IP address to the YouTube video specified.
+* <a href="roman2int.py">roman2int.py</a> converts Roman numerals to base 10 numbers.
+* <a href="sklearn-sample.py">sklearn-sample.py</a> calculates
+* <a href="try-accept.py">try-accept.py</a> to show usage of try/except/else/finally exceptions
+* <a href="unittest_calculator.py">unittest_calculator.py</a> to use Python's Unit Test feature.
+* <a href="variables.py">variables.py</a> to experiment with defining and viewing objects of various data types.
 
 <a href="#OtherPrograms">Other coding samples</a> 
 
-* bomonike/memon to generate a strong passphrase based on random words in English and German
+* bomonike/memon to generate a strong passphrase based on random words in English and German.
 * bomonike/google/<strong>gcp-services</strong> has authentication and other functions to access services within the Google Cloud Platform (GCP)
 * bomonike/google/<strong>myutils.py</strong> contains utility functions useful for calling by other programs.
 
