@@ -5,6 +5,9 @@
 # SECTION 01: Define Python modules used by this program (in alphabetical order):
 # See https://bomonike.github.io/python-samples.py/#PackagesInstalled
 
+# 2025-08-25
+__last_commit__ = "v008 + instagram, id inkjet :print-inkjet.py"
+
 # built-in modules:
 import os
 import subprocess   # to run CLI commands
@@ -331,6 +334,8 @@ def get_quotes():
         # Websites like Inc. Magazine publish daily inspirational quotes, with a collection of 365 quotes for every day of the year.
         # https://www.americanbible.org/engage/daily-bible-reading/
         # https://www.dailyscripture.net/daily-meditation/ features daily scripture readings with meditations.
+        # https://www.instagram.com/jesus_is___king/?hl=en
+
         red_text = "?"
         green_text = "?"
         blue_text = "?"
@@ -388,11 +393,11 @@ def gen_quote_pdf( red_txt, green_txt, blue_txt, out_file_path):
 
         # using http://wilsonmar.com/1colors.htm for CMYK to RGB
         square_color = HexColor("#0097da")  # Cyan color (Red 0, G 151, B: 218)
-        c.rect(10, 200, square_size, square_size, fill=1)
+        c.rect(10, 100, square_size, square_size, fill=1)
         c.setFillColor(square_color)
 
         square_color = HexColor("#dc147d")  # Magenta color (Red 220, G: 20, Blue 125)
-        c.rect(10, 100, square_size, square_size, fill=1)
+        c.rect(10, 200, square_size, square_size, fill=1)
         c.setFillColor(square_color)
 
         square_color = HexColor("#f5e100")  # Yellow color (R 245, G 225, B 0)
