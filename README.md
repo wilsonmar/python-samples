@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2025-08-20"
-lastchange: "v016 + link to other featured .py :README.md"
+date: "2025-08-29"
+lastchange: "v019 + sections seq :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -13,13 +13,73 @@ Not here.
 
 Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
 
+
+<a name="Sections"></a>
+
+## Code sections sequence
+
+The features in each code section:
+
+* SECTION 01: Preparations before running this program:
+   Bash CLI commands to load external libraries (such as <tt>uv add matplotlib ...</tt>
+
+   <tt>__last_commit__ = "v007 + ruff checks & fixes :print-inkjet.py"</tt>
+
+* SECTION 02: Load modules used by this program:
+   External libraries are imported within a try/except structure so instructions are given on fail.
+
+* SECTION 03: Logging: <a target="_blank" href="https://bomonike.github.io/python-samples/#StartingTime">Capture pgm start date/time</a>
+   (as global variables)
+
+* SECTION 04: Define utilities to print messages:
+
+* SECTION 05: Globals: Define hard-coded Global variables as parm defaults:
+
+* SECTION 06: Show args_prompt() menu and read params specified on program command line:
+   -v SHOW_VERBOSE 
+   * See https://bomonike.github.io/linux-setup/#Args
+   * See https://bomonike.github.io/linux-setup/#EchoFunctions
+* SECTION 06-2: Set display and exit
+* SECTION 06-3: Read parameters as command arguments:
+# SECTION 06-4: Show start time & pgm values:
+* SECTION 06-5: Edit parameter values from command arguments:
+
+* SECTION 07: Obtain variables from .env file and secrets vault (in cloud):
+   MY_USERNAME, MY_LOCATION, MY_PRINTER, MY_REGION, etc.
+
+* SECTION 08: Validate values from all sources above:
+   * File or database specified of correct format and exists?
+
+* SECTION 09: Login:
+
+* SECTION 10: Define utilities to read and delete files and folders:
+   (folder_, file_, csv_, pdf, png, sqldb_, docdb_, graphdb_, rag_, etc. => 
+   _check, _create, _search, _seqread, _delete, _update, _audit, _graph, etc.)
+
+* SECTION 11: Define utilities to list and print to printers:
+    * CHECK_FOR_FILE_IN_PATH if an existing .pdf file exists in path to print.
+
+* SECTION 12: Create custom outputs:
+   * Create a pdf containing colors printed (if requested by CREATE_COLOR_BLOCKS)
+
+* SECTION 13: Audit outputs and send alerts
+
+* SECTION 14: Clean up: Delete (remove) .pdf file created by this program if REMOVE_PDF_FILE_CREATED = True    
+
+* SECTION 15: pgm_stats() to show how long the program ran and how many items were processed.
+
+* SECTION 16: Main calls to functions defined above:
+
+
 ## Featured Projects
 
-These contain various utilities and features:
+These contain various utilities I wrote. Each contains helpful features implemented as identified during each build.
 
 * <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images.
 
 * <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
+
+* <a href="log-time-csv.py"><strong>log-time-csv.py</strong></a> writes files to 
 
 * <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 
@@ -28,6 +88,8 @@ These contain various utilities and features:
 * <a href="saytime.py.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
 
 * <a href="sorting.py"><strong>sorting.py</strong></a> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
+
+* <a href="sqlite-sample.py"><strong>sqlite-sample.py</strong></a> to create and maintain a SQLite database and 
 
 * <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
 
@@ -44,7 +106,7 @@ These contain various utilities and features:
 * <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
 * <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
 * <a href="endecode-protobuf.py">endecode-protobuf.py</a> encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
-* <a href="fido2-titan.py">fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
+* <a href="fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
 * <a href="it-media.py">it-media.py</a> to create a database of IT movies and sort them by rating, year, or title.
 
 * <a href="logging.py">logging.py</a> to use the logging module to log messages to a file.
@@ -58,13 +120,13 @@ These contain various utilities and features:
 * <a href="plotting.py">plotting.py</a> to create common visualizations using matplotlib.
 * <a href="pytorch-mnist.py">pytorch-mnist.py</a> to use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 
-* <a href="random-niche.py">random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
+* <a href="random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
 * <a href="recursive-cache.py">recursive-cache.py</a> shows faster Fibonnici recursion calls when using functools cache.
 * <a href="rolldice.py">rolldice.py</a> rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
 * <a href="rot13.py">rot13.py</a> is used on UseNet to encode sentences using a cypher that's 13 characters away.
-
 * <a href="roku-set.py">roku-set.py</a> opens Roku at a given IP address to the YouTube video specified.
 * <a href="roman2int.py">roman2int.py</a> converts Roman numerals to base 10 numbers.
+
 * <a href="sklearn-sample.py">sklearn-sample.py</a> calculates
 * <a href="try-accept.py">try-accept.py</a> to show usage of try/except/else/finally exceptions
 * <a href="unittest_calculator.py">unittest_calculator.py</a> to use Python's Unit Test feature.
