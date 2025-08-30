@@ -1,7 +1,6 @@
 ---
 layout: post
-date: "2025-08-29"
-lastchange: "v019 + sections seq :README.md"
+lastchange: "25-08-30 v020 + log-time-csv.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -73,13 +72,13 @@ The features in each code section:
 
 ## Featured Projects
 
-These contain various utilities I wrote. Each contains helpful features implemented as identified during each build.
+These contain various utilities I wrote which have the most <strong>practical usefulness</strong>.
+
+Each contains helpful features implemented as identified during each build.
 
 * <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images.
 
 * <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
-
-* <a href="log-time-csv.py"><strong>log-time-csv.py</strong></a> writes files to 
 
 * <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 
@@ -109,6 +108,7 @@ These contain various utilities I wrote. Each contains helpful features implemen
 * <a href="fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
 * <a href="it-media.py">it-media.py</a> to create a database of IT movies and sort them by rating, year, or title.
 
+* <a href="log-time-csv.py"><strong>log-time-csv.py</strong></a> creates the path to a CSV file based on static naming standards to write a sequential time stamp to a CSV file. Has limits to an infinite loop.
 * <a href="logging.py">logging.py</a> to use the logging module to log messages to a file.
 * <a href="ml-metrics.py">ml-metrics.py</a> to use PyTorch & Scikit to generate metrics for Machine Learning.
 
