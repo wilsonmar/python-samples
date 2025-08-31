@@ -12,7 +12,7 @@ USAGE:
 1. install external: pytz for time zones
 """ 
 
-__last_change__ = "25-08-31 v006 + fix rm_first :log-time-csv.py"
+__last_change__ = "25-08-31 v007 + append write :log-time-csv.py"
 
 # Built-in libraries:
 import os
@@ -29,6 +29,7 @@ SHOW_VERBOSE = True
 MAX_LOOPS = 5   # 0 = infinite
 SLEEP_SECS = 1
 MAX_FILE_SIZE_B = 1024
+rm_first = False
 
 # Utility Functions:
 
@@ -118,16 +119,14 @@ def log_utc_time(loops_count, log_path):
     # Format the UTC timestamp as a string, e.g., ISO 8601 format
     timestamp = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    write_mode = 'a'
     if os.path.isfile(log_path):   # exists:
         file_size = os.path.getsize(log_path)
         if file_size >= MAX_FILE_SIZE_B:
             print(f"FATAL: Maximum file size of {MAX_FILE_SIZE_B} bytes reached.")
             exit(9)
-        else:
-            write_mode = 'w'
-
-        with open(log_path, mode=write_mode) as output_file:
+    
+        # write_mode = 'a' = append
+        with open(log_path, mode='a') as output_file:
             log_record=f"{loops_count},{timestamp}"
             try:
                 output_file.write(f"{log_record}\n")
