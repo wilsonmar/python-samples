@@ -12,7 +12,7 @@ USAGE:
 1. install external: pytz for time zones
 """ 
 
-__last_change__ = "v003 + ruff fixes, rename from log-text.py :log-time-csv.py"
+__last_change__ = "25-08-31 v006 + fix rm_first :log-time-csv.py"
 
 # Built-in libraries:
 import os
@@ -26,11 +26,22 @@ import csv
 
 # Global static variables:
 SHOW_VERBOSE = True
-MAX_LOOPS = 5
+MAX_LOOPS = 5   # 0 = infinite
 SLEEP_SECS = 1
 MAX_FILE_SIZE_B = 1024
 
 # Utility Functions:
+
+def gen_local_timestamp() -> str:
+    """Generate a timestamp straing containing the local time with AM/PM & Time zone code."""
+    # import pytz
+    # now = datetime.now(tz)  # adds time zone.
+
+    # from datetime import datetime
+    local_time_obj = datetime.now().astimezone()
+    local_timestamp = local_time_obj.strftime("%Y-%m-%d_%I:%M:%S %p %Z%z")  # local timestamp with AM/PM & Time zone codes
+    return local_timestamp
+
 
 def count_log_path(file_path) -> str:
     """Return count of rows in csv file at file_path."""
@@ -42,26 +53,34 @@ def count_log_path(file_path) -> str:
 
         first_value_last_row = "0" # Default value
 
-        if row_count > 0:
-            last_row = rows[-1]
-            if len(last_row) > 0: # Check if the last row itself is not empty
-                first_value_last_row = last_row[0]
+        # If there's more than just the header row, get the first value from the last actual data row.
+        # Assuming the first row is always a header and subsequent rows are data.
+        if row_count > 1:
+            last_data_row = rows[-1]
+            if len(last_data_row) > 0:
+                first_value_last_row = last_data_row[0]
             else:
-                print(f"WARNING: Last row in {file_path} is empty.")
+                first_value_last_row = 0
+                print(f"WARNING: Last row in {file_path} is empty (after header).")
 
         print(f"INFO: {row_count} records in {file_path} ending with Seq# {first_value_last_row}.")
+
         return first_value_last_row
 
 
-def create_log_path() -> str:
-    """Create path to log file based on static naming standards (in user's $HOME folder).
+def get_log_path(rm_first=False) -> str:
+    """Get path to log file based on static naming standards (in user's $HOME folder).
 
+    Default parm to create file if not exist.
+    Optional "rm_first" to delete file if file exists.
     Returns the path to the log file.
     """
+    # TODO: Load from .env or -parm?
     # from pathlib import Path
     home_dir = Path.home()
-    # TODO: Load from .env or -parm?
-    file_path = home_dir / "log-text.txt"   # string concatenated.
+    file_path = home_dir / "log-time-csv.txt"   # string concatenated.
+    if rm_first:
+        delete_log_path(file_path)
     if os.path.exists(file_path):
         print(f"VERBOSE: file_path {file_path} already exists.")
         return file_path
@@ -74,6 +93,18 @@ def create_log_path() -> str:
     if os.path.exists(file_path):
         print(f"INFO: file_path {file_path} created.")
         return file_path
+
+
+def delete_log_path(file_path) -> str:
+    """Delete csv log file at end of path."""
+    # import os
+    # TODO: WARNING Verify authorization before descructive action. 
+    # TODO: Ensure backup was taken before delete.
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        os.remove(file_path)
+        print(f"INFO: File {file_path} deleted!")
+    else:
+        print(f"ERROR: File {file_path} NOT found!")
 
 
 def log_utc_time(loops_count, log_path):
@@ -91,47 +122,42 @@ def log_utc_time(loops_count, log_path):
     if os.path.isfile(log_path):   # exists:
         file_size = os.path.getsize(log_path)
         if file_size >= MAX_FILE_SIZE_B:
-           write_mode = 'w'
-        else:
             print(f"FATAL: Maximum file size of {MAX_FILE_SIZE_B} bytes reached.")
             exit(9)
+        else:
+            write_mode = 'w'
 
         with open(log_path, mode=write_mode) as output_file:
             log_record=f"{loops_count},{timestamp}"
-            output_file.write(f"{log_record}\n")
-            if SHOW_VERBOSE:
-                print(log_record)
-
+            try:
+                output_file.write(f"{log_record}\n")
+                if SHOW_VERBOSE:
+                    print(log_record)
+            except KeyboardInterrupt:
+                print("Ctrl-C pressed! Exiting gracefully.")        
+                exit
 
 if __name__ == '__main__':
 
-    # import pytz
-    # now = datetime.now(tz)  # adds time zone.
-
-    # Get current local date and time with time zone info (Python 3.6+)
-    # from datetime import datetime
-    local_time = datetime.now().astimezone()
-
-    local_timestamp = local_time.strftime("%Y-%m-%d_%I:%M:%S %p %Z%z")  # local timestamp with AM/PM & Time zone codes
-
-    log_path = create_log_path()
+    local_timestamp = gen_local_timestamp()
+    log_path = get_log_path(rm_first=True)
     first_value_last_row = count_log_path(log_path)
     # TODO: Verify first_value_last_row is a number.
-    loops_seq = int(first_value_last_row) + 1
-    print(f"INFO: log-time-csv.py starting at {local_timestamp} from {loops_seq} ...")
-
-    MAX_LOOPS_COUNT = loops_seq + MAX_LOOPS    # the largest sequence from a run of this program.
-
+    loops_seq = int(first_value_last_row)
+    print(f"VERBOSE: log-time-csv.py starting at {local_timestamp} from {loops_seq} ...")
+    
+    # the largest sequence from a run of this program:
+    MAX_LOOPS_COUNT = loops_seq + MAX_LOOPS    
+    
     loops_count = 0
     while True:  # infinite loop:
         loops_count += 1   # increment
         loops_seq += 1 
-        if MAX_LOOPS_COUNT > 0:   # infinite.
+        if MAX_LOOPS > 0:   # 0 = infinite.
             if loops_count > MAX_LOOPS_COUNT:
-                exit()
-
+                exit(9)
         log_utc_time(loops_seq, log_path)
         time.sleep(SLEEP_SECS)
 
-    print(f"INFO: Stopped at loop # {loops_count} for next run.")
+    print(f"INFO: Ended at loop # {loops_count}.")
     
