@@ -4,30 +4,50 @@
 # USAGE: Simulates a 6-sided die rolled repeated until "quit".
 #    ./rolldice.py
 
-__lastchange__ = "2025-05-25"
-__commit_text__ = "v007 + descriptive stats text :rolldice.py"
-
 # For a study in programming user features:
 # The value from a few rolls can be skewed.
 # But with several thousand rolls, each value should be the same percentage.
 
 # Based on Claude
 
+"""rolldice.py here.
+
+> uv run rolldice.py
+Dice Roll Histogram Metrics:
+Value  Rolls  Percent   Frequency bar
+ 1     78     17.1% ██████████████████████████████████
+ 2     57     12.5% █████████████████████████
+ 3     67     14.7% █████████████████████████████
+ 3     76     16.7% █████████████████████████████████
+ 4     85     18.7% █████████████████████████████████████
+ 5     92     20.2% ████████████████████████████████████████
+Total: 455 rolls
+Range:                    5.00
+Mode (most common value): 6
+Mean (Average):                3.68
+Median:                        4.00
+Standard deviation:            1.76
+Coefficient of Variation:      2.09 (Average/Std. Dev.)
+Variance (spread of data):     3.09 (high variance)
+Skewness (distribution asymmetry):  -0.18 (>0 = tendency for lower values on the left)
+Kurtosis (extreme tailedness):      -1.29 (-3 = platykurtic = low (skinny) # of outliers)
+"""
+
+__commit_text__ = "2025-09-09 v008 + coefficient of var :rolldice.py"
+
 import random
 import time     # for timestamp
 
 try:
     import numpy as np
-    import matplotlib.pyplot as plt
     from scipy import stats
-    from statsd import StatsClient    # pip install python-statsd or statsd
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
     #print(f"Please setup your virtual environment:\n  python3 -m venv venv && source venv/bin/activate")
-    print(f"Please setup your virtual environment:\n  uv venv && source .venv/bin/activate")
-    print(f"  uv pip install numpy matplotlib scipy")
+    print("Please setup your virtual environment:\n  uv venv && source .venv/bin/activate")
+    print("  uv pip install numpy matplotlib scipy")
     exit(9)
 
 
@@ -49,11 +69,12 @@ dice_faces = {  # Dice emoji Unicode characters
 }
 
 def roll_die(sides=6) -> int:
-    """Roll a 6-sided (non-physical) die and return an integer"""
+    """Roll a 6-sided (non-physical) die and return an integer."""
     return random.randint(1, sides)
 
 
 def is_number(s) -> bool:
+    """Return True if input s is number data type."""
     try:
         float(s)
         return True
@@ -62,9 +83,7 @@ def is_number(s) -> bool:
 
 
 def display_detailed_histogram(dice_history, width=40):
-    """
-    Display a detailed text histogram with percentages
-    """
+    """Display a detailed text histogram with percentages."""
     if not dice_history:
         print("No data to display")
         return
@@ -97,14 +116,14 @@ def display_detailed_histogram(dice_history, width=40):
 
 
 def calculate_histogram_metrics(data, bins=6):
-    """
-    Calculate comprehensive metrics for a histogram.
+    """Calculate comprehensive metrics for a histogram.
     
     Args:
         data: array-like, the input data
         bins: int or array-like, number of bins or bin edges
     
-    Returns:
+    Returns
+    -------
         dict: Dictionary containing all calculated metrics
     """
     data = np.array(data)
@@ -163,8 +182,7 @@ def calculate_histogram_metrics(data, bins=6):
     return metrics
 
 def print_histogram_summary(dice_history):
-    """
-    Display histogram metrics for dice roll history
+    """Display histogram metrics for dice roll history.
     
     Args:
         dice_history: List of dictionaries containing dice roll history
@@ -183,7 +201,7 @@ def print_histogram_summary(dice_history):
     print("\nDice Roll Histogram Metrics:")
     # Create a simple ASCII histogram
     # print("\nDistribution of dice values:")
-    print(f"Value  Rolls  Percent   Frequency bar")
+    print("Value  Rolls  Percent   Frequency bar")
     for i in range(len(hist_metrics['counts'])):
         bin_center = hist_metrics['bin_centers'][i]
         count = hist_metrics['counts'][i]
@@ -192,12 +210,14 @@ def print_histogram_summary(dice_history):
         print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
 
     print(f"Total: {hist_metrics['data_size']} rolls")
-    print(f"Range:                    {hist_metrics['range']:.2f}")
+    print(f"Range:                    {hist_metrics['range']:.2f}    (between smallest and largest)")
     print(f"Mode (most common value): {hist_metrics['mode']}")
-    print(f"Mean (Average):                {hist_metrics['mean']:.2f}")
-    print(f"Median:                        {hist_metrics['median']:.2f}")
-    print(f"Standard deviation:            {hist_metrics['std_dev']:.2f}")
-    
+    print(f"Mean (Average):                {hist_metrics['mean']:.2f} ")
+    print(f"Median:                        {hist_metrics['median']:.2f} ")
+    print(f"Standard deviation:            {hist_metrics['std_dev']:.2f} ")
+    cov = hist_metrics['mean'] / hist_metrics['std_dev']
+    print(f"Coefficient of Variation:      {cov:.2f} (Average/Std. Dev.)")
+
     # Additional statistics:
     if hist_metrics['variance'] > 0:
         variance_text = "(high variance)"
