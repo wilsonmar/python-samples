@@ -4,7 +4,7 @@
 
 https://github.com/wilsonmar/python-samples/blob/main/weather/wttr-weather.py
 
-Crafts URL for weather forecasts in text CLI console.
+This code crafts a URL to wattr.in to respond with a 3-day weather forecast text in CLI console.
 
 See full-screen output layout at:
 https://www.geeksforgeeks.org/python/how-to-extract-weather-data-from-google-in-python/
@@ -15,7 +15,7 @@ To run this, in Terminal CLI:
     ruff check wttr-weather.py
     uv run wttr-weather.py -v -vv
 """
-__last_change__ = "25-09-07 v004 + percentage escape quote() :wttr-weather.py"
+__last_change__ = "25-09-09 v004 + percentage escape quote() :wttr-weather.py"
 
 # Importing the requests module
 import requests
