@@ -31,7 +31,9 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 # TODO: Capture memory to calculate usage for measuring space complexity.
 
 """
-
+import pandas as pd
+import seaborn as sns
+import matplotlib
 # For the time taken to execute a small bit of Python code:
 import argparse
 import datetime
@@ -376,7 +378,78 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
 
     # Display the plot
     plt.show()
+def plot_joint_seaborn(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
+    """
+    https://seaborn.pydata.org/tutorial/relational.html#relational-tutorial
+    Annotation/text in a dynamic way overlaps text hence used Legend in the figure
+    """
+def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
+    column_names = [x2,bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results]
+    dataframe = pd.DataFrame(column_names)
+    #transposed the dataset for plotting x -axis correctly
+    dataframet=dataframe.T
+    sns.set_theme(style='darkgrid')
+    plt.title(f"BigO Time Complexity by sorting.py on {RANDOMNESS} data")
+    plt.ylabel('y = Microseconds Run Time')
+    plt.xlabel(f"x = N elements (growing geometrically within {len(x2)} batches)")
+    
+    # no marker='o':
+    plt.plot(x2, bubble_sort_results, label='Bubble sort')
+    plt.plot(x2, quicksort_results, label='Quicksort')
+    plt.plot(x2, insertion_sort_results, label='Insertion sort')
+    plt.plot(x2, merge_sort_results, label='Merge sort')
+    plt.plot(x2, mtm_sort_results, label='MTM sort')
+    
 
+    # Calculate positions of floating text:
+
+    if SHOW_RUNTIMES_IN_FUNC:
+       print(f"x={str(x2)}")
+    last_x2_index = len(x2) -1
+    last_x2 = int(x2[last_x2_index]) -20
+    if SHOW_RESULTS_CALCS:
+       print(f"last_x2_index = {last_x2_index}")
+       print(f"last_x2 = {last_x2}")
+
+    last_bubble_sort_index = len(bubble_sort_results) -1
+    last_bubble_sort_y = int(bubble_sort_results[last_bubble_sort_index]) +0.5
+    if SHOW_RESULTS_CALCS:
+       print(f"last_bubble_sort_index = {last_bubble_sort_index}")
+       print(f"last_bubble_sort_y = {last_bubble_sort_y}")
+    #plt.annotate("Bubble sort O(n^2))",xy=(last_x2, last_bubble_sort_y),xytext=(last_x2, last_bubble_sort_y),va='center', ha='center')    
+    # At upper-left corner:
+    current_date = datetime.now()
+    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
+    plt.text(50, last_bubble_sort_y, run_date, fontsize=12, va='bottom',ha='left',
+           bbox=dict(facecolor='None', edgecolor='None', alpha=0.7))
+
+    last_quicksort_index = len(quicksort_results) -1
+    last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_quicksort_index = {last_quicksort_index}")
+       print(f"last_quicksort_y = {last_quicksort_y}")
+    #plt.annotate("Quicksort O(logN))",xy=(last_x2, last_quicksort_y),xytext=(last_x2, last_quicksort_y),va='center', ha='center')
+    last_insertion_sort_index = len(insertion_sort_results) -1
+    last_insertion_sort_y = int(insertion_sort_results[last_insertion_sort_index] * 1.1)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_insertion_sort_index = {last_insertion_sort_index}")
+       print(f"last_insertion_sort_y = {last_insertion_sort_y}")
+    #plt.annotate("Insertion sort O(n)",xy=(last_x2, last_insertion_sort_y),xytext=(last_x2, last_insertion_sort_y),va='center', ha='center')
+    last_merge_sort_index = len(merge_sort_results) -1
+    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_merge_sort_index = {last_merge_sort_index}")
+       print(f"last_merge_sort_y = {last_merge_sort_y}")
+    #plt.annotate("Merge sort O(logN)",xy=(last_x2, last_merge_sort_y),xytext=(last_x2, last_merge_sort_y),va='center', ha='center')
+    last_mtm_sort_index = len(mtm_sort_results) -1
+    last_mtm_sort_y = int(mtm_sort_results[last_mtm_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_mtm_sort_index = {last_mtm_sort_index}")
+       print(f"last_mtm_sort_y = {last_mtm_sort_y}")
+    #plt.annotate("MTM sort O(?logN)",xy=(last_x2, last_mtm_sort_y),xytext=(last_x2, last_mtm_sort_y),va='center', ha='center')
+    #
+    sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
+    matplotlib.pyplot.show()
 
 if __name__ == "__main__":
 
@@ -509,5 +582,6 @@ if __name__ == "__main__":
     if SHOW_PLOTS:
         # Display results of runs to plot using Matplotlib or Seaborn.
         x = np.array(batches_array)
-        plot_multiple_lines(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results)
+        #plot_multiple_lines(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results)
+        plot_joint_seaborn(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results)
 
