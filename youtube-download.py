@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-""" youtube-download.py at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
+"""youtube-download.py here.
+
+at https://github.com/wilsonmar/python-samples/blob/main/youtube-download.py
 
 CURRENT STATUS: WORKING for single file.
-git commit -m "v023 + Downie mac app :youtube-download.py"
 
 This program has a full set of features:
 1. Specify first line #!/usr/bin/env python3 to run program directly.
@@ -45,10 +46,6 @@ conda create -n py312
 conda activate py312
 conda config --set solver classic   # ModuleNotFoundError: No module named 'pycups'
 conda install -c conda-forge python=3.12 argparse logging
-brew install yt-dlp
-chmod +x youtube-download.py
-    python -m venv
-    source venv/bin/activate
 source venv/activate
 python3 -m pip install argparse yt_dlp logging pytz
 
@@ -57,35 +54,47 @@ python3 -m pip install argparse yt_dlp logging pytz
 ./youtube-download.py -f youtube-downloads.csv -v -vv
 
 Alternative is $19.99 macOS app https://software.charliemonroe.net/downie/
+
+brew install yt-dlp
+    source venv/bin/activate
+Run usage:
+    python -m venv
+    ruff check youtube-download.py
+    chmod +x youtube-download.py
+    ./youtube-download.py
 """
 
-# import external library (from outside this program):
-import argparse
-
-# brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
-# which issues a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
-import yt_dlp  # yt_dlp-2024.11.4 at https://pypi.org/project/yt-dlp/
-    # Import "yt_dlp" could not be resolvedPylancereportMissingImports
-    # See https://www.perplexity.ai/search/what-about-the-yt-dlp-python-l-RPFKoI3yTrqsC8w.cI4NtQ
-    # NOTE: Alternative pytube.io had errors.
-# pip install logging
-import logging  # error.
-from logging.handlers import RotatingFileHandler
-
+__last_change__ = "25-09-11 v024 + lib imports :youtube-download.py"
 
 # Built-in libraries (no pip/conda install needed):
-from datetime import datetime
-from contextlib import redirect_stdout
+import argparse
 from datetime import datetime
 import io
 import os
-from pytz import timezone
 import signal
 import sys
 from time import perf_counter_ns
 import time
 import platform
-import random
+#import random
+
+# import external library (from outside this program):
+try:
+    from contextlib import redirect_stdout
+    from pytz import timezone
+    # brew install yt-dlp instead of pip3 install yt_dlp and instead of conda
+    # which issues a non-default solver backend (libmamba) but it was not recognized. Choose one of: classic
+    import yt_dlp  # yt_dlp-2024.11.4 at https://pypi.org/project/yt-dlp/
+        # Import "yt_dlp" could not be resolvedPylancereportMissingImports
+        # See https://www.perplexity.ai/search/what-about-the-yt-dlp-python-l-RPFKoI3yTrqsC8w.cI4NtQ
+        # NOTE: Alternative pytube.io had errors.
+    # pip install logging
+    import logging  # error.
+    from logging.handlers import RotatingFileHandler
+except Exception as e:
+    print(f"Python module import failed: {e}")
+    print("Please activate your virtual environment:\n  uv env env\n  source .venv/bin/activate")
+    exit(9)
 
 
 # Globals to vary program run behavior:
@@ -97,6 +106,17 @@ if os.name == "nt":  # Windows operating system
     print(f"*** Windows Edition: {platform.win32_edition()} Version: {platform.win32_ver()}")
 else:
     SLASH_CHAR = "/"
+
+show_info = True
+show_verbose = False
+show_todo = True
+show_fail = True
+show_trace = False
+SHOW_DEBUG = False
+show_heading = False
+show_warning = True
+show_dates_in_logs = False
+show_secrets = False
 
 parser = argparse.ArgumentParser(description="YouTube download")
 parser.add_argument("-d", "--desc", help="Description (file prefix)")
@@ -121,7 +141,7 @@ SAVE_FOLDER = args.folder
 # SAVE_PATH = os.getcwd()  # cwd=current working directory.
 SAVE_PATH = os.path.expanduser("~")  # user home folder path
 # On Linux: //mount/?to_do
-if SAVE_FOLDER == None:
+if SAVE_FOLDER is None:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + "Downloads"
 else:
     SAVE_PATH = SAVE_PATH + SLASH_CHAR + SAVE_FOLDER
@@ -133,7 +153,7 @@ INCLUDE_DATE_OUT = False  # date/time stamp within file name
 LOGGER_FILE_PATH = SAVE_PATH + SLASH_CHAR + os.path.basename(__file__) + '.log'
 LOGGER_NAME = os.path.basename(__file__)  # program script name.py
 LOG_DOWNLOADS = args.log
-if SAVE_FOLDER == None:  # write logs outside the program
+if SAVE_FOLDER is None:  # write logs outside the program
     LOG_DOWNLOADS = False  # hard-coded default
 
 SHOW_SUMMARY = args.summary
@@ -151,7 +171,7 @@ if SHOW_DEBUG:  # -vv
     print(f"*** SHOW_VERBOSE={SHOW_VERBOSE} SHOW_DEBUG={SHOW_DEBUG} SHOW_DOWNLOAD_PROGRESS={SHOW_DOWNLOAD_PROGRESS}")
 
 SLEEP_SECS = args.sleepsecs  # average seconds to wait between tasks to not overwhelm server.
-if SLEEP_SECS == None:
+if SLEEP_SECS is None:
    SLEEP_SECS = 0.5  # hard-coded default
 
 SHOW_VERBOSE = args.verbose
@@ -160,7 +180,9 @@ SHOW_VERBOSE = args.verbose
 # Functions:
 
 
-class bcolors:  # ANSI escape sequences:
+class BColors:
+    """Define ANSI escape sequences."""
+
     BOLD = '\033[1m'       # Begin bold text
     UNDERLINE = '\033[4m'  # Begin underlined text
 
@@ -179,75 +201,82 @@ class bcolors:  # ANSI escape sequences:
     RESET = '\033[0m'   # switch back to default color
 
 def print_separator():
-    """ A function to print a blank line."""
+    """Print a blank line."""
     print(" ")
 
 def print_heading(text_in):
+    """Print heading before a group of more messages."""
     if show_heading:
         if str(show_dates_in_logs) == "True":
-            print('\n***', get_log_datetime(), bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+            print('\n***', get_log_datetime(), BColors.HEADING+BColors.UNDERLINE,f'{text_in}', BColors.RESET)
         else:
-            print('\n***', bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
+            print('\n***', BColors.HEADING+BColors.UNDERLINE,f'{text_in}', BColors.RESET)
 
 def print_fail(text_in):  # when program should stop
+    """Show failure before abort."""
     if show_fail:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.FAIL, "FAIL:", f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
+            print('***', BColors.FAIL, "FAIL:", f'{text_in}', BColors.RESET)
 
 def print_error(text_in):  # when a programming error is evident
+    """Show error."""
     if show_fail:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.ERROR, "ERROR:", f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
+            print('***', BColors.ERROR, "ERROR:", f'{text_in}', BColors.RESET)
 
 def print_warning(text_in):
+    """Show warning."""
     if show_warning:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.WARNING, f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
+            print('***', BColors.WARNING, f'{text_in}', BColors.RESET)
 
 def print_todo(text_in):
+    """Print TODO for programmer."""
     if show_todo:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.CVIOLET, "TODO:", f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
+            print('***', BColors.CVIOLET, "TODO:", f'{text_in}', BColors.RESET)
 
 def print_info(text_in):
+    """Print info to user."""
     if show_info:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.INFO+BColors.BOLD, f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
+            print('***', BColors.INFO+BColors.BOLD, f'{text_in}', BColors.RESET)
 
 def print_verbose(text_in):
+    """Print verbose."""
     if show_verbose:
         if str(show_dates_in_logs) == "True":
-            print('***', get_log_datetime(), bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+            print('***', get_log_datetime(), BColors.VERBOSE, f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
+            print('***', BColors.VERBOSE, f'{text_in}', BColors.RESET)
 
 def print_trace(text_in):  # displayed as each object is created in pgm:
+    """Print trace."""
     if show_trace:
         if str(show_dates_in_logs) == "True":
-            print('***',get_log_datetime(), bcolors.TRACE, f'{text_in}', bcolors.RESET)
+            print('***',get_log_datetime(), BColors.TRACE, f'{text_in}', BColors.RESET)
         else:
-            print('***', bcolors.TRACE, f'{text_in}', bcolors.RESET)
+            print('***', BColors.TRACE, f'{text_in}', BColors.RESET)
 
 def print_secret(secret_in):
-    """ Outputs only the first few characters (like Git) with dots replacing the rest 
-    """
+    """Output only the first few characters (like Git) with dots replacing the rest."""
     # See https://stackoverflow.com/questions/3503879/assign-output-of-os-system-to-a-variable-and-prevent-it-from-being-displayed-on
     if show_secrets:  # program parameter
         if str(show_dates_in_logs) == "True":
             now_utc=datetime.now(timezone('UTC'))
-            print('*** ',now_utc,bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+            print('*** ',now_utc,BColors.CBEIGE, "SECRET: ", f'{secret_in}', BColors.RESET)
         else:
-            print('***', bcolors.CBEIGE, "SECRET: ", f'{secret_in}', bcolors.RESET)
+            print('***', BColors.CBEIGE, "SECRET: ", f'{secret_in}', BColors.RESET)
     else:
         # same length regardless of secret length to reduce ability to guess:
         secret_len = 32
@@ -256,29 +285,30 @@ def print_secret(secret_in):
         else:
             secret_out = secret_in[0:4] + "."*(secret_len-1)
             if str(show_dates_in_logs) == "True":
-                print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
+                print('***', get_log_datetime(), BColors.WARNING, f'{secret_in}', BColors.RESET)
             else:
-                print('***', bcolors.CBEIGE, " SECRET: ", f'{secret_out}', bcolors.RESET)
+                print('***', BColors.CBEIGE, " SECRET: ", f'{secret_out}', BColors.RESET)
 
 
 def signal_handler(sig, frame):
+    """Handle signal."""
     print("\n*** Manual Interrupt control+C or ctrl+C received.")
     sys.exit(0)
 
 
 def display_run_env():
+    """Display run environment info."""
     print(f"*** {os.name} {sys.version_info}")
     print(f"*** Python version: {sys.version}")
 
 
 #  if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
 def get_log_datetime() -> str:
-
-    # getting the current time in UTC timezone
-    now_utc = datetime.now(timezone('UTC'))
+    """Get the current time in UTC timezone."""
+    #now_utc = datetime.now(timezone('UTC'))
 
     # TODO: Give datetime the user or system defined LOCALE:
-    MY_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
+    #MY_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
     # Format the above DateTime using the strftime() https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
     time_str=datetime.utcnow().strftime('%F %T.%f')
        # ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
@@ -293,8 +323,9 @@ def get_log_datetime() -> str:
 
 
 def file_creation_datetime(path_to_file):
-    """ Get the datetime stamp that a file was created, 
-    falling back to when it was last modified if that isn't possible.
+    """Get the datetime stamp that a file was created.
+
+    Fall back to when it was last modified if that isn't possible.
     See http://stackoverflow.com/a/39501288/1709587 for explanation.
     WARNING: Use of epoch time means resolution is to the seconds (not microseconds)
     """
@@ -322,7 +353,7 @@ def file_creation_datetime(path_to_file):
 
 
 def get_file_size_on_disk(file_path):
-    """Returns integer bytes from the OS for a file path """
+    """Return integer bytes from the OS for a file path."""
     try:
         stat_result = os.stat(file_path)
         return stat_result.st_blocks * 512  # st_blocks is in 512-byte units
@@ -386,9 +417,8 @@ def log_event(logger, event_type, message, level='info'):
 
 
 def download_one_video(youtube_prefix,youtube_id):
-    # Uses globals SHOW_VERBOSE, INCLUDE_DATE_OUT, SLASH_CHAR, LOG_DOWNLOADS
-
-    URL_TO_DOWNLOAD="https://www.youtube.com/watch?v=" + youtube_id
+    """Use globals SHOW_VERBOSE, INCLUDE_DATE_OUT, SLASH_CHAR, LOG_DOWNLOADS."""
+    url_to_download="https://www.youtube.com/watch?v=" + youtube_id
     # https://www.youtube.com/watch?v=rISzLipRm7Y hd-spin-right
     # YOUTUBE_PREFIX = "google-colab"
     # YOUTUBE_ID = "V7RXyqFUR98"  # Supercharge your Programming in Colab with AI-Powered tools by Google Research
@@ -398,24 +428,25 @@ def download_one_video(youtube_prefix,youtube_id):
     # YouTube URL to download (with time start and playlist):
 
     # Build: /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4
-    YOUTUBE_FILE_NAME = youtube_prefix + "-" + youtube_id
+    youtube_file_name = youtube_prefix + "-" + youtube_id
     if INCLUDE_DATE_OUT:
         # Add local time zone to local timezone instead of Z for UTC:
         now = datetime.now()
-        YOUTUBE_FILE_NAME += "-" + now.strftime("%Y%m%dT%H%M%SZ")+".mp4"
+        youtube_file_name += "-" + now.strftime("%Y%m%dT%H%M%SZ")+".mp4"
     else:
-        YOUTUBE_FILE_NAME += ".mp4"
+        youtube_file_name += ".mp4"
 
-    YOUTUBE_FILE_PATH = SAVE_PATH + SLASH_CHAR + YOUTUBE_FILE_NAME
+    youtube_file_path = SAVE_PATH + SLASH_CHAR + youtube_file_name
     if SHOW_DEBUG:
-        print(f"*** YOUTUBE_FILE_PATH = {YOUTUBE_FILE_PATH}")
+        print(f"*** youtube_file_path = {youtube_file_path}")
 
-    result = download_video(URL_TO_DOWNLOAD,YOUTUBE_FILE_PATH)
+    result = download_video(url_to_download,youtube_file_path)
     return result
 
 
 def download_video(in_url,out_path):
-    """ Download a YouTube based on URL.
+    """Download a YouTube based on URL.
+
     See https://ostechnix.com/yt-dlp-tutorial/
     """
     ydl_opts = {
@@ -448,7 +479,7 @@ def download_video(in_url,out_path):
         ns_duration_µs = ns_duration_ns / 1000      # microseconds (µs)
         ns_duration_ms = ns_duration_µs / 1000      # milliseconds (ms)
         ns_duration_secs = ns_duration_ms / 1000    #      seconds (secs)
-        ns_duration_mins = ns_duration_secs / 1000  #      minutes (mins)
+        #ns_duration_mins = ns_duration_secs / 1000  #      minutes (mins)
 
         file_create_datetime = file_creation_datetime(out_path)
         file_bytes = get_file_size_on_disk(out_path)  # type = number
@@ -456,9 +487,9 @@ def download_video(in_url,out_path):
             print(f"*** result = {result}")
         return_text = f"{out_path} {file_create_datetime} - {file_bytes:,} bytes"
         if result:  # True = good:
-            return_text += f" in {t_ns_duration_secs:,.3f} secs."
+            return_text += f" in {ns_duration_secs:,.3f} secs."
         else:
-            return_text += f" - EXISTS"
+            return_text += " - EXISTS"
         return return_text
     except Exception as err:
         print(f"*** ERROR: {err}")
@@ -466,7 +497,7 @@ def download_video(in_url,out_path):
 
 
 def download_youtube_from_csv(read_list_path):
-    """Returns file size from each download based on line in CSV file."""
+    """Return file size from each download based on line in CSV file."""
     try:
         with open(read_list_path,'r', newline='') as file:
             # Instead of creating a csv.reader(file) object:
@@ -506,7 +537,7 @@ def download_youtube_from_csv(read_list_path):
         return line_number, downloads_count
     # control+C on macOS or Ctrl+C on Windows.
     except SystemExit:  # instead of KeyboardInterrupt
-        print(f"*** SystemExit gracefully after KeyboardInterrupt.")
+        print("*** SystemExit gracefully after KeyboardInterrupt.")
         return line_number, downloads_count
     except Exception as e:
         print(f"*** ERROR {read_list_path} {e}")
@@ -520,7 +551,8 @@ if __name__ == "__main__":
 
     if LOG_DOWNLOADS:
         logger = setup_logger()
-    if SHOW_DEBUG: display_run_env()
+    if SHOW_DEBUG:
+        display_run_env()
     downloads_count = 0
 
     if SHOW_DEBUG:
@@ -548,7 +580,7 @@ if __name__ == "__main__":
 """ OUTPUT:
 *** posix sys.version_info(major=3, minor=12, micro=7, releaselevel='final', serial=0)
 *** Python version: 3.12.7 | packaged by conda-forge | (main, Oct  4 2024, 15:57:01) [Clang 17.0.6 ]
-*** YOUTUBE_FILE_PATH = /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4
+*** youtube_file_path = /Users/johndoe/Downloads/ai-database-ops-4SnvMieJiuw.mp4
 [youtube] Extracting URL: https://www.youtube.com/watch?v=4SnvMieJiuw
 [youtube] 4SnvMieJiuw: Downloading webpage
 [youtube] 4SnvMieJiuw: Downloading ios player API JSON
