@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-"""sorting.py at https://github.com/wilsonmar/python-samples/blob/main/sorting.py
+"""sorting.py here.
+
+At https://github.com/wilsonmar/python-samples/blob/main/sorting.py
 
 This program sorts a list of numbers using several algorithms
 (bubble sort, merge sort, quicksort),
@@ -31,34 +33,35 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 # TODO: Capture memory to calculate usage for measuring space complexity.
 
 """
-import pandas as pd
-import seaborn as sns
 
-import matplotlib as mpl
+__last_change__ = "25-09-11 v026 + rm timsort :sorting.py"
 
-# For the time taken to execute a small bit of Python code:
+# Internal imports (no pip/uv add needed):
 import argparse
-import datetime
-from datetime import datetime
+from datetime import datetime, timezone
 import random
-import threading
 import time    # for timed_func()
 import timeit
-from timeit import default_timer as timer
+#from timeit import default_timer as timer
 # To keep Python from crashing with deep recursion, update the default recursion depth limit:
 import sys
 sys.setrecursionlimit(10000)
+
 try:
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
-    # import seaborn as sns
     import numpy as np
+    import pandas as pd
+    import seaborn as sns
+    import threading
 except Exception as e:
     print(f"Python module import failed: {e}")
-    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    print("Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
     exit(9)
 
 
 def timed_func(func_to_time):
+    """Time function."""
     def timed(*args, **kwargs):
         start = time.perf_counter()
         res = func_to_time(*args, **kwargs)
@@ -68,8 +71,9 @@ def timed_func(func_to_time):
 
 
 def bubble_sort(array):
-    """ The Bubble Sort algorithm has a time complexity of 
-    O(n^2) in the worst and average cases, 
+    """Use Bubble Sort algorithm has a time complexity of O(n^2).
+     
+    In the worst and average cases, 
     and O(n) in the best case (already sorted list). 
     This is because it iterates through the list multiple times, 
     comparing and swapping adjacent elements. 
@@ -97,11 +101,12 @@ def bubble_sort(array):
 
 
 def quicksort(array):
-    """quicksort has worst-case runtime complexity of O(n^2) but otherwise
-    best/average case time & space complexity of O(n log n). 
+    """Quicksort has worst-case runtime complexity of O(n^2).
+
+        But otherwise best/average case time & space complexity of O(n log n). 
     But it is not considered "stable" as other sorting algorithms.
     Args: list_to_sort: A list of numbers to be sorted.
-    Returns: A new list with the numbers sorted in ascending order.
+    Returns a new list with the numbers sorted in ascending order.
     """
     # A copy of the list is not needed because swaps use indexes:
     if len(array) < 2:
@@ -117,7 +122,8 @@ def quicksort(array):
 
 
 def insertion_sort(items, left=0, right=None):
-    """ This is slightly more efficient than Bubble sort by 
+    """Use a slightly more efficient than Bubble sort.
+
     working on a slice of a list rather than the full list.
     # O(n^2) in worst case as it's less efficient on large lists than quicksort, or merge sort.
     # @author Liam Pulsifer at RealPython
@@ -139,14 +145,13 @@ def insertion_sort(items, left=0, right=None):
 
 # @timed_func cannot be used because of recursive logic.
 def merge_sort(list_to_sort):
-    """The Merge Sort algorithm has a time complexity of 
-    O(n log n). 
+    """Merge Sort using algorithm has a time complexity of O(n log n).
+
     The list is split into sublists of size 1,
     and then merged back together in a sorted order.
     Args:
         list_to_sort: A list of numbers to be sorted.
-    Returns:
-        A new list with the numbers sorted in ascending order.
+    Returns a new list with the numbers sorted in ascending order.
     """
     if len(list_to_sort) <= 1:
         return list_to_sort
@@ -161,6 +166,7 @@ def merge_sort(list_to_sort):
     return merge(left_half, right_half)
 
 def merge(left, right):
+    """Merge."""
     merged = []
     i = j = 0
 
@@ -178,6 +184,7 @@ def merge(left, right):
 
 
 def multi_threaded_merge_sort(arr, num_threads=4):
+    """Multi-thread merge sort."""
     if num_threads <= 1:
         return merge_sort(arr)
 
@@ -214,44 +221,9 @@ def multi_threaded_merge_sort(arr, num_threads=4):
     return sorted_sublists[0] if sorted_sublists else []
 
 
-def timsort(items):
-    """ TimSort was the default in Python until v3.11. 
-    # Named for its inventor Tim Peters. https://www.youtube.com/watch?v=rbbTd-gkajw&t=8m39s
-    # For avg. complexity of O(n log n), it creates "runs" using insertion_sort, then 
-    # uses merge-sort on the smallet arrays and merges them. 
-    # @author Liam Pulsifer
-    """
-    # TODO: Test this timsort
-
-    min_subsection_size = 32
-
-    # Sort each subsection of size 32
-    # (The real algorithm carefully chooses a subsection size for performance.)
-    for i in range(0, len(items), min_subsection_size):
-        # WARNING: Recursive function call:
-        insertion_sort(items, i, min((i + min_subsection_size - 1), len(items) - 1))
-
-    # Move through the list of subsections and merge them using merge_sorted_lists
-    # (Again, the real algorithm carefully chooses when to do this.)
-    size = min_subsection_size
-    while size < len(items):
-        for start in range(0, len(items), size * 2):
-            midpoint = start + size - 1
-            end = min((start + size * 2 - 1), (len(items) - 1)) # arithmetic to properly index
-
-            # Merge using merge_sorted_lists
-            merged_array = merge_sorted_lists(
-                items[start:midpoint + 1],
-                items[midpoint + 1:end + 1])
-
-            items[start:start + len(merged_array)] = merged_array # Insert merged array
-        size *= 2 # Double the size of the merged chunks each time until it reaches the whole list
-
-    return items
-
-
 def report_elap_time(cur_batch, task_in, elap_time ):
-    """ Vertically aligned columns of human-reable numbers converted to microseconds/nanoseconds:
+    """Assign vertical columns of human-reable numbers converted to microseconds/nanoseconds.
+
     8 Bubble sort    elap_time:   1390.2921 microseconds
     8 Insertion sort elap_time:    832.5831 microseconds
     8 Quicksort      elap_time:    951.2911 microseconds
@@ -294,7 +266,8 @@ def report_elap_time(cur_batch, task_in, elap_time ):
 
 
 def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
-    """
+    """Plot multiple lines.
+
     See https://matplotlib.org/stable/tutorials/pyplot.html
     and https://www.w3schools.com/python/matplotlib_line.asp
     """
@@ -380,12 +353,12 @@ def plot_multiple_lines(x1,bubble_sort_results, merge_sort_results, quicksort_re
 
     # Display the plot
     plt.show()
-def plot_joint_seaborn(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
-    """
-    https://seaborn.pydata.org/tutorial/relational.html#relational-tutorial
-    Annotation/text in a dynamic way overlaps text hence used Legend in the figure
-    """
+#def plot_joint_seaborn(results_x, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
 def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results):
+    """Annotate text in a dynamic way overlaps text hence used Legend in the figure.
+
+    See https://seaborn.pydata.org/tutorial/relational.html#relational-tutorial
+    """
     column_names = [x2,bubble_sort_results, merge_sort_results, quicksort_results, mtm_sort_results]
     dataframe = pd.DataFrame(column_names)
     #transposed the dataset for plotting x -axis correctly
@@ -419,12 +392,14 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
        print(f"last_bubble_sort_index = {last_bubble_sort_index}")
        print(f"last_bubble_sort_y = {last_bubble_sort_y}")
     #plt.annotate("Bubble sort O(n^2))",xy=(last_x2, last_bubble_sort_y),xytext=(last_x2, last_bubble_sort_y),va='center', ha='center')    
-    # At upper-left corner:
-    current_date = datetime.now()
-    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
+
+    # At upper-left corner: Image captured at:
+    # https://res.cloudinary.com/dcajqrroq/image/upload/v1757602240/sorting-587x456_kdocdc.png
+    now_utc = datetime.now(timezone.utc)
+    run_date = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
     plt.text(50, last_bubble_sort_y, run_date, fontsize=12, va='bottom',ha='left',
            bbox=dict(facecolor='None', edgecolor='None', alpha=0.7))
-
+    
 
     last_quicksort_index = len(quicksort_results) -1
     last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
