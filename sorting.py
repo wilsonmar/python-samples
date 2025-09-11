@@ -33,7 +33,9 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 """
 import pandas as pd
 import seaborn as sns
-import matplotlib
+
+import matplotlib as mpl
+
 # For the time taken to execute a small bit of Python code:
 import argparse
 import datetime
@@ -423,6 +425,7 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
     plt.text(50, last_bubble_sort_y, run_date, fontsize=12, va='bottom',ha='left',
            bbox=dict(facecolor='None', edgecolor='None', alpha=0.7))
 
+
     last_quicksort_index = len(quicksort_results) -1
     last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
     if SHOW_RESULTS_CALCS:
@@ -448,8 +451,10 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
        print(f"last_mtm_sort_y = {last_mtm_sort_y}")
     #plt.annotate("MTM sort O(?logN)",xy=(last_x2, last_mtm_sort_y),xytext=(last_x2, last_mtm_sort_y),va='center', ha='center')
     #
-    sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
-    matplotlib.pyplot.show()
+    ax=sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
+    ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
+    #sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
+    mpl.pyplot.show()
 
 if __name__ == "__main__":
 
