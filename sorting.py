@@ -38,7 +38,7 @@ import matplotlib as mpl
 # For the time taken to execute a small bit of Python code:
 import argparse
 import datetime
-from datetime import datetime
+from datetime import datetime,timezone
 import random
 import threading
 import time    # for timed_func()
@@ -419,8 +419,8 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
        print(f"last_bubble_sort_y = {last_bubble_sort_y}")
     #plt.annotate("Bubble sort O(n^2))",xy=(last_x2, last_bubble_sort_y),xytext=(last_x2, last_bubble_sort_y),va='center', ha='center')    
     # At upper-left corner:
-    current_date = datetime.now()
-    run_date = current_date.strftime("%Y-%m-%d %H:%M:%S")
+    current_date = datetime.now(timezone.utc)
+    run_date = current_date.strftime("%Y-%m-%dT%H:%M:%SZ")
     plt.text(50, last_bubble_sort_y, run_date, fontsize=12, va='bottom',ha='left',
            bbox=dict(facecolor='None', edgecolor='None', alpha=0.7))
 
