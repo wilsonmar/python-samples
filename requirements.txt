@@ -33,12 +33,14 @@
 
     fastapi
     flask
+    keras
     matplotlib
     numpy
     opentelemetry-api
     opentelemetry-distro 
     opentelemetry-sdk
     openai
+
     pandas
     pathlib
     pillow     # https://realpython.com/courses/python-pillow/
@@ -49,6 +51,7 @@
     python-dotenv
     pythonping
     pytz
+
     requests   # For https://microsoftlearning.github.io/AI-102-AIEngineer/Instructions/00-setup.html
     seaborn
     statsd

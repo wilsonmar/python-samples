@@ -33,7 +33,9 @@ from https://www.cuantum.tech/app/section/41-divide-and-conquer-algorithms-ecd63
 """
 import pandas as pd
 import seaborn as sns
+
 import matplotlib as mpl
+
 
 # For the time taken to execute a small bit of Python code:
 import argparse
@@ -419,6 +421,7 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
        print(f"last_bubble_sort_y = {last_bubble_sort_y}")
     #plt.annotate("Bubble sort O(n^2))",xy=(last_x2, last_bubble_sort_y),xytext=(last_x2, last_bubble_sort_y),va='center', ha='center')    
     # At upper-left corner:
+
     current_date = datetime.now(timezone.utc)
     run_date = current_date.strftime("%Y-%m-%dT%H:%M:%SZ")
     plt.text(50, last_bubble_sort_y, run_date, fontsize=12, va='bottom',ha='left',
@@ -454,6 +457,34 @@ def plot_joint_seaborn(x2, bubble_sort_results, merge_sort_results, quicksort_re
     #sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
     mpl.pyplot.show()
 
+
+    last_quicksort_index = len(quicksort_results) -1
+    last_quicksort_y = int(quicksort_results[last_quicksort_index] * 0.5)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_quicksort_index = {last_quicksort_index}")
+       print(f"last_quicksort_y = {last_quicksort_y}")
+    #plt.annotate("Quicksort O(logN))",xy=(last_x2, last_quicksort_y),xytext=(last_x2, last_quicksort_y),va='center', ha='center')
+    last_insertion_sort_index = len(insertion_sort_results) -1
+    last_insertion_sort_y = int(insertion_sort_results[last_insertion_sort_index] * 1.1)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_insertion_sort_index = {last_insertion_sort_index}")
+       print(f"last_insertion_sort_y = {last_insertion_sort_y}")
+    #plt.annotate("Insertion sort O(n)",xy=(last_x2, last_insertion_sort_y),xytext=(last_x2, last_insertion_sort_y),va='center', ha='center')
+    last_merge_sort_index = len(merge_sort_results) -1
+    last_merge_sort_y = int(merge_sort_results[last_merge_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_merge_sort_index = {last_merge_sort_index}")
+       print(f"last_merge_sort_y = {last_merge_sort_y}")
+    #plt.annotate("Merge sort O(logN)",xy=(last_x2, last_merge_sort_y),xytext=(last_x2, last_merge_sort_y),va='center', ha='center')
+    last_mtm_sort_index = len(mtm_sort_results) -1
+    last_mtm_sort_y = int(mtm_sort_results[last_mtm_sort_index] * 1.2)
+    if SHOW_RESULTS_CALCS:
+       print(f"last_mtm_sort_index = {last_mtm_sort_index}")
+       print(f"last_mtm_sort_y = {last_mtm_sort_y}")
+    #plt.annotate("MTM sort O(?logN)",xy=(last_x2, last_mtm_sort_y),xytext=(last_x2, last_mtm_sort_y),va='center', ha='center')
+    #
+    sns.lineplot(data=dataframet,x=last_x2_index,y=x2)
+    matplotlib.pyplot.show()
 
 if __name__ == "__main__":
 

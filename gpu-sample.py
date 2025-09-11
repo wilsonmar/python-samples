@@ -2,6 +2,8 @@
 
 """gpu-sample.py here.
 
+https://github.com/wilsonmar/python-samples/blob/main/gpu-sample.py
+
 This code provides a microbenchmark structure to compare results of several runs of 
 PyTorch displayed as a bar graph such as this:
 https://res.cloudinary.com/dcajqrroq/image/upload/v1757128591/mac-mps-1033x626_w6wx1p.png
@@ -49,9 +51,16 @@ Previous to that, PyTorch supported only CUDA devices. NVIDIA's proprietary GPU 
 
      To view your CPU and GPU usage, Open Activity Monitor, then Window -> GPU History (command 4), and then Window -> CPU History (command 3).
 
+     uv venv venv
+     source .venv/bin/activate
+     uv venv --python python3.12
+     uv add psutil numpy torch torchvision torchaudio tensorflow source subprocess-v
+     chmod +x gpu-sample.py
+     uv pip install requests
+     ruff check gpu-sample.py
      uv run gpu-sample.py
 """
-__last_change__ = "25-09-06 v004 + user_gb_mem_avail() :gpu-sample.py"
+__last_change__ = "25-09-10 v005 + subprocess-tee :gpu-sample.py"
 
 # Built-in libraries:
 import argparse
@@ -60,14 +69,16 @@ from pathlib import Path
 import time
 from typing import NamedTuple
 
-# External libraries:
+# External libraries defined in requirements.txt:
 try:
     #import matplotlib. pyplot
     import numpy as np          # uv pip install numpy
     import platform
     import psutil
     import re
-    import subprocess
+    import subprocess_tee    # uv add subprocess-tee
+    # from subprocess_tee import run    # uv add subprocess-tee
+    # [B404:blacklist] Consider possible security implications associated with the subprocess module.
     import torch        # uv pip install torch torchvision torchaudio
     from torch import Tensor
         #       •  torch==2.8.0 - The main PyTorch framework
@@ -163,11 +174,12 @@ def apple_silicon_chip() -> str | None:
     This approach avoids false negatives under "arm" platform emulation and 
     thus more robust for real chip detection.
     """
-    #import subprocess
+    #import subprocess-tee
     #import re
     try:
         cmd = ['system_profiler', 'SPHardwareDataType']
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
+        # Substitute subprocess module flagged by bandit:
+        result = subprocess_tee.run(cmd, stdout=subprocess_tee.PIPE, stderr=subprocess_tee.PIPE, encoding='utf8')
         if result.returncode != 0:
             return None
         match = re.search(r'Chip: Apple (M\d+)', result.stdout)
@@ -372,6 +384,15 @@ def sound_from_torchaudio() -> str:
     # Frequency is how many times a sound wave repeats itself in one second. 440 Hz (A4 note) is the international standard pitch reference for tuning instruments.
     # The human ear can hear frequencies up to around 20,000 Hz, which is why audio formats like CDs use a 44,100 Hz sampling rate to accurately capture the full range of human hearing.
     print(label)  # Returns speech command, like 'backward'
+
+    # Trend the highest levels of memory allocation and caching on the GPU,
+    # to identify trends for identifying memory leaks or inefficiencies:
+    # torch.cuda.max_memory_allocated()
+    # torch.cuda.max_memory_cached()
+    
+    # Release GPU memory no longer in use:
+    # torch.cuda.empty_cache() 
+
     return label
 
 
@@ -574,28 +595,37 @@ if __name__ == '__main__':
     #tensor = tensor.to(target_device)
 
     # TODO: Do different runs of this program using different devices:
-    device_to_use = "mps"   # "mps" or "cpu" or "cpu"
-    a = 30000
-    b = 50000
-    data_points = a * b
+    device_to_use = "cpu"   # "mps" or "cpu" or "cpu"
+    a = 3000
+    b = 5000
+    processing = "multiply"
+
+    if processing == "multiply":
+        data_points = a * b
     func_strt_mem_used, pgm_process = pgm_memory_used()
-    print(f"DEBUG: {pgm_process}")
-    print("DEBUG: pgm_memory used()="+str(func_strt_mem_used)+" MiB being used.")
+    if SHOW_DEBUG:
+        print(f"DEBUG: {pgm_process}")
+        print("DEBUG: pgm_memory used()="+str(func_strt_mem_used)+" MiB being used.")
 
     my_tensor, secs = tensor_create(a,b,device_to_use)
         # my_tensor = torch.randn((3, 3))
 
-    #print(f"my_tensor.size={my_tensor.size()} ")  # Output: torch.Size([2, 3])
-    print(f"INFO: tensor_create({a},{b},\"{device_to_use}\") => {secs:.9f} seconds")
+    if SHOW_DEBUG:
+        #print(f"my_tensor.size={my_tensor.size()} ")  # Output: torch.Size([2, 3])
+        print(f"INFO: tensor_create({a},{b},\"{device_to_use}\") => {secs:.9f} seconds")
     # results(platform, device, data_points, secs )
 
     func_stop_mem_used, process_data = pgm_memory_used()
     func_stop_mem_diff = func_stop_mem_used - func_strt_mem_used
-    print(f"{func_stop_mem_diff:.6f} MB memory consumed during run in {process_data}.")
+    if SHOW_DEBUG:
+        print(f"{func_stop_mem_diff:.6f} MB memory consumed during run in {process_data}.")
 
-    # plot results
+    print("\n# assemble results:")
+    print("utc_stamp,data_points,secs,mem_used")
+    print(gen_utc_timestamp()+","+str(data_points)+","+device_to_use+\
+          ","+processing+","+str(secs)+","+str(func_stop_mem_diff))
+    # plot results:
 
-    exit()
 
     func_time_strt = func_timer_strt()
     device_to_use = "cpu"   # "mps" or "cpu" or "cpu"
@@ -617,6 +647,7 @@ if __name__ == '__main__':
         # https://www.youtube.com/watch?v=uYas6ysyjgY GPU-Acceleration for PyTorch on M1 Macs!
         # https://www.youtube.com/watch?v=-TOdEjcFldI
 
-    loops_count = 0
-    if SHOW_SUMMARY:
-        pgm_summary(pgm_strt_datetimestamp, loops_count)
+    #if SHOW_SUMMARY:
+    print("TODO: Summary line graph of response times as run n increase.")
+    loops_count = 0   # TODO: update
+    pgm_summary(pgm_strt_datetimestamp, loops_count)
