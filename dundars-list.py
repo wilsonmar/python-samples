@@ -23,15 +23,15 @@ Run usage:
     chmod +x dundars-list.py
     ./dundars-list.py
 """
+__last_change__ = "25-09-11 v010 + fixed list with no dunder by pgm :dundars-list.py"
 __doc__ = "List the contents of special dunder variables from all python (.py) files in this repo, without opening the files."
-__status__ = "Debugging"
-__last_change__ = "25-09-11 v007 + fix list with no dunder by pgm :dundars-list.py"
+__status__ = "Seems to work"
 
 import os
 import time
-import ast  # has coding error.
+import ast
 
-SHOW_VERBOSE = False
+SHOW_VERBOSE = True
 SHOW_DEBUG = False
 
 
@@ -41,6 +41,26 @@ def get_module_docstring(module_path):
         source = file.read()
     parsed = ast.parse(source)
     return ast.get_docstring(parsed)
+
+
+def get_dunder_variable(module_path, var_name):
+    """Extract a dunder variable value from a Python file using AST parsing."""
+    try:
+        with open(module_path, 'r', encoding='utf-8') as file:
+            source = file.read()
+        parsed = ast.parse(source)
+        
+        for node in ast.walk(parsed):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == var_name:
+                        if isinstance(node.value, ast.Str):  # For older Python versions
+                            return node.value.s
+                        elif isinstance(node.value, ast.Constant):  # For Python 3.8+
+                            return node.value.value
+        return None
+    except Exception:
+        return None
 
 
 def print_sorted_last_change(folder_path="."):
@@ -58,7 +78,11 @@ def print_sorted_last_change(folder_path="."):
         print(f"{pgm_name:<30}  {readable_time}")
             # TODO: File size
         if SHOW_VERBOSE:
-            print(f"   {__last_change__}")
+            last_change = get_dunder_variable(filepath, '__last_change__')
+            if last_change:
+                print(f"   {last_change}")
+            #else:
+            #    print(f"   No __last_change__ found")
 
             #print(f"   {__doc__}")
             #docstring = get_module_docstring(os.path.basename(filepath))
