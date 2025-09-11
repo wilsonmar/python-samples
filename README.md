@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-08-30 v020 + log-time-csv.py :README.md"
+lastchange: "25-09-11 v021 + dunder-list.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -11,6 +11,146 @@ There are plenty of other sites and repos offering code to play games or demonst
 Not here. 
 
 Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
+
+<a name="Featured"></a>
+
+## Featured Projects
+
+These contain various utilities I wrote which have the most <strong>practical usefulness</strong>.
+
+Each contains helpful features implemented as identified:
+
+PROTIP: List the <tt>__last_change__</tt> of all python (.py) files in this repo by running:
+```
+chmod +x dundars-list.py
+./dundars-list.py
+```
+
+* <a href="./dundars-list.py">dundars-list.py</a> lists Python programs and each of their __last_change__ text.
+
+* <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
+
+* <a href="gpu-sample.py">gpu-sample.py</a> recognizes what GPU is available (CUDA or Apple MPS) and runs sample PyTorch <strong>microbenchmarks</strong> of timings and memory used. Enhancements:
+
+* About Google's Tensorflow: <a target="_blank" href="https://github.com/ageron/handson-ml3">ipynb</a> based on the <a target="_blank" href="https://learning.oreilly.com/videos/-/0636920876441/">VIDEO</a>: Awaiting the 2025 4th edition to <a target="_blank" href="https://learning.oreilly.com/library/view/hands-on-machine-learning/9781098125967/">October 2022 O'Reilly book: Hands-on Machine Learning with Scikit-Learn, Keras and TensorFlow (3rd edition)</a> by <a target="_blank" href="https://www.linkedin.com/in/aurelien-geron/">Aurélien Geron</a> (<a target="_blank" href="https://www.youtube.com/c/AurelienGeron">YouTube</a>, <a target="_blank" href="https://www.linkedin.com/feed/update/urn:li:activity:7368776563716186113/">interview</a>, <a target="_blank" href="https://x.com/aureliengeron/with_replies">X</a>)
+
+* <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images. Features and enhancements:
+   * Quotes scraped from the internet to print.
+   <br /><br />
+* <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
+
+* <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
+
+* <a href="saytime.py.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
+
+* <a href="sorting.py"><strong>sorting.py</strong></a> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
+
+* <a href="sqlite-sample.py"><strong>sqlite-sample.py</strong></a> to create and maintain a SQLite database. 
+
+In the <strong>weather</strong> folder:
+
+* <a href="openweather.py"><strong>openweather.py</strong></a> to obtain from API calls and format weather data (as fuzzy tokens). Features 
+   * Lookup Longitude/Latitude by zip code
+   * <strong>wttr-weather.py</strong> issues curl commands for weather data (https://github.com/chubin/wttr.in)
+   * Display on a monitor information about the location of people you communicate with
+   * <a target="_blank" href="https://www.geeksforgeeks.org/python/how-to-extract-weather-data-from-google-in-python/">Use BeautifulSoup</a> to scrape predictions from google.com (which references Weather.com).
+   * Compare actuals vs. predictions of each prediction service.
+   * Compare accuracy of different predictors (weather.com vs. wattr.in vs. Openweather. etc.)
+   <br /><br />
+
+* <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
+
+In the <strong>recommender</strong> folder:
+
+* <a href="it-media.py">it-media.py</a> is a popular way to show off skill at database manipulation, analytics, and machine learning. Related enhancements:
+   * Bulk load into database movie info (such as "m1-100k") 
+   * Reconcile data about the same movie from various sources.
+   * Sorting by several factors: genre, content rating, year, actors, directors, academy awards
+   * Link to rottentomatoes.com and other reviews
+   * Link availability of movie on various streaming platforms (Netflix, Prime, etc.)
+   * Enable entry of user ratings and use that data to influence recommendations.
+   * Link release dates to calendar 
+
+   * Catalog DVD collection by scanning UPC labels.
+   * Play a particular video in a media app after scanning the UPC on the video box.
+   * <strong>surprise.py</strong> provides a GUI created (using tkinter) to select movies and TV shows as an example of machine learning matrix eigenvector SVD (Singular Value Decomposition) & PCA (Principal Component Analysis) feature extraction algorithms from <a target="_blank" href="https://jonathan-hui.medium.com/machine-learning-singular-value-decomposition-svd-principal-component-analysis-pca-1d45e885e491">data science</a>.
+   * <a target="_blank" href="https://www.geeksforgeeks.org/machine-learning/recommendation-system-in-python/">Recommend movies</a> based on what friends watched.
+   <br /><br />
+
+
+<a name="OtherPrograms"></a>
+
+## Other Programs in this repo (alphabetically):
+
+* <a href="argparse-samples.py">argparse-samples.py</a> to specify command line arguments into this program.
+* <a href="bookmarks_export.py">bookmarks_export.py</a> to export bookmarks from Chrome to a HTML file.
+
+* <a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
+* <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
+* <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
+* <a href="endecode-protobuf.py">endecode-protobuf.py</a> encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
+* <a href="fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
+
+* <a href="log-time-csv.py"><strong>log-time-csv.py</strong></a> creates the path to a CSV file based on static naming standards to write a sequential time stamp to a CSV file. Has limits to an infinite loop.
+* <a href="logging.py">logging.py</a> to use the logging module to log messages to a file.
+* <a href="ml-metrics.py">ml-metrics.py</a> to use PyTorch & Scikit to generate metrics for Machine Learning.
+
+* <a href="num2words.py">num2words.py</a> simply converts a number input to its word.
+* <a href="otel-flask.py">otel-flask.py</a> - a simple Flask app with automatic OpenTelemetry instrumentation
+
+* <a href="pengram2nato.py">pengram2nato.py</a> to use the NATO phonetic alphabet spell out a sentence.
+* <a href="perf-ns.py">perf-ns.py</a> obtains timings in nanosecond-level resolution.
+* <a href="plotting.py">plotting.py</a> to create common visualizations using matplotlib.
+* <a href="pytorch-mnist.py">pytorch-mnist.py</a> to use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
+
+* <a href="random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
+* <a href="recursive-cache.py">recursive-cache.py</a> shows faster Fibonnici recursion calls when using functools cache.
+* <a href="rolldice.py">rolldice.py</a> rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
+* <a href="rot13.py">rot13.py</a> is used on UseNet to encode sentences using a cypher that's 13 characters away.
+* <a href="roku-set.py">roku-set.py</a> opens Roku at a given IP address to the YouTube video specified.
+* <a href="roman2int.py">roman2int.py</a> converts Roman numerals to base 10 numbers.
+
+* <a href="sklearn-sample.py">sklearn-sample.py</a> calculates
+* <a href="try-accept.py">try-accept.py</a> to show usage of try/except/else/finally exceptions
+* <a href="unittest_calculator.py">unittest_calculator.py</a> to use Python's Unit Test feature.
+* <a href="variables.py">variables.py</a> to experiment with defining and viewing objects of various data types.
+
+<a href="#OtherPrograms">Other coding samples</a> 
+
+* bomonike/memon to generate a strong passphrase based on random words in English and German.
+* bomonike/google/<strong>gcp-services</strong> has authentication and other functions to access services within the Google Cloud Platform (GCP)
+* bomonike/google/<strong>myutils.py</strong> contains utility functions useful for calling by other programs.
+
+In the <strong>countries</strong> folder:
+
+* <strong>country_info.csv</strong>
+
+* <strong>country_lang_info.xlsx</strong>
+
+* Comparison of countries: <a target="_blank" href="https://media.geeksforgeeks.org/wp-content/uploads/20240926123327/WHR2023.csv">csv from a year of</a> the World Happiness Report and statistics from the CIA Factbook</a>.
+
+<a name="Experiments"></a>
+
+## Experiments being built
+
+* Use OpenCV to recognize hand signals (Sign Language), then take an automatic action or raise an alarm when touching your face (bad hygiene).
+
+In the <strong>predictions</strong> folder is an example
+
+* Use Box charts and descriptive statistics to compare trends in currency exchange rates (of euros, Japanese yen, Chinese runbei, etc.) vs. price of <a target="_blank" href="https://www.geeksforgeeks.org/machine-learning/gold-price-prediction-using-machine-learning/">gold</a>, bitcoin, etc.
+
+
+* <a target="_blank" href="https://learning.oreilly.com/library/view/3d-data-science/9781098161323/">3D Point Cloud Data Science</a>
+
+
+* <a target="_blank" href="https://www.geeksforgeeks.org/python/analyzing-selling-price-of-used-cars-using-python/">Analyze Selling Price of used Cars</a>
+
+* https://codepen.io/freeCodeCamp/pen/dNVazZ Recipe Box app in JavaScript for
+<a target="_blank" href="https://www.freecodecamp.org/learn/coding-interview-prep/take-home-projects/build-a-recipe-box">a Take Home Project</a>.
+
+NOTE: Other pograms are in the https://github.com/bomonike organization:
+* https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
+on how to memorize using PAO (Person Action Object)
 
 
 <a name="Sections"></a>
@@ -70,74 +210,7 @@ The features in each code section:
 * SECTION 16: Main calls to functions defined above:
 
 
-## Featured Projects
-
-These contain various utilities I wrote which have the most <strong>practical usefulness</strong>.
-
-Each contains helpful features implemented as identified during each build.
-
-* <a href="print-inkjet.py">print-inkjet.py</a> keeps print heads clear by sending a pdf containing colored text and images.
-
-* <a href="ls_al.py"><strong>ls_al.py</strong></a> lists files in a directory like the Linux command ls -al.
-
-* <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
-
-* <a href="openweather.py"><strong>openweather.py</strong></a> to obtain from API calls and format weather data (as fuzzy tokens)
-
-* <a href="saytime.py.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
-
-* <a href="sorting.py"><strong>sorting.py</strong></a> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
-
-* <a href="sqlite-sample.py"><strong>sqlite-sample.py</strong></a> to create and maintain a SQLite database and 
-
-* <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
-
-
-<a name="OtherPrograms"></a>
-
-## Other Programs in this repo (alphabetically):
-
-* <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
-* <a href="argparse-samples.py">argparse-samples.py</a> to specify command line arguments into this program.
-* <a href="bookmarks_export.py">bookmarks_export.py</a> to export bookmarks from Chrome to a HTML file.
-
-* <a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
-* <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
-* <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
-* <a href="endecode-protobuf.py">endecode-protobuf.py</a> encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
-* <a href="fido2-titan.py">fido2-titan.py</a> to use the FIDO2/WebAuthn protocol to read FIDO2-compliant OTP+FIDO+CCID keys
-* <a href="it-media.py">it-media.py</a> to create a database of IT movies and sort them by rating, year, or title.
-
-* <a href="log-time-csv.py"><strong>log-time-csv.py</strong></a> creates the path to a CSV file based on static naming standards to write a sequential time stamp to a CSV file. Has limits to an infinite loop.
-* <a href="logging.py">logging.py</a> to use the logging module to log messages to a file.
-* <a href="ml-metrics.py">ml-metrics.py</a> to use PyTorch & Scikit to generate metrics for Machine Learning.
-
-* <a href="num2words.py">num2words.py</a> simply converts a number input to its word.
-* <a href="otel-flask.py">otel-flask.py</a> - a simple Flask app with automatic OpenTelemetry instrumentation
-
-* <a href="pengram2nato.py">pengram2nato.py</a> to use the NATO phonetic alphabet spell out a sentence.
-* <a href="perf-ns.py">perf-ns.py</a> obtains timings in nanosecond-level resolution.
-* <a href="plotting.py">plotting.py</a> to create common visualizations using matplotlib.
-* <a href="pytorch-mnist.py">pytorch-mnist.py</a> to use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
-
-* <a href="random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
-* <a href="recursive-cache.py">recursive-cache.py</a> shows faster Fibonnici recursion calls when using functools cache.
-* <a href="rolldice.py">rolldice.py</a> rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
-* <a href="rot13.py">rot13.py</a> is used on UseNet to encode sentences using a cypher that's 13 characters away.
-* <a href="roku-set.py">roku-set.py</a> opens Roku at a given IP address to the YouTube video specified.
-* <a href="roman2int.py">roman2int.py</a> converts Roman numerals to base 10 numbers.
-
-* <a href="sklearn-sample.py">sklearn-sample.py</a> calculates
-* <a href="try-accept.py">try-accept.py</a> to show usage of try/except/else/finally exceptions
-* <a href="unittest_calculator.py">unittest_calculator.py</a> to use Python's Unit Test feature.
-* <a href="variables.py">variables.py</a> to experiment with defining and viewing objects of various data types.
-
-<a href="#OtherPrograms">Other coding samples</a> 
-
-* bomonike/memon to generate a strong passphrase based on random words in English and German.
-* bomonike/google/<strong>gcp-services</strong> has authentication and other functions to access services within the Google Cloud Platform (GCP)
-* bomonike/google/<strong>myutils.py</strong> contains utility functions useful for calling by other programs.
-
+<a name="CodingPractices"></a>
 
 ## Coding Practices
 
@@ -221,23 +294,13 @@ Below are notes about coding practices, from the top down:
     ```
 
 
+
 ## Ones I would like to create
 
 * Reset all my passwords automatically. This would involve my database in KeePassXC and 1Password, then programmatic control operating Authy and emails to confirm.
 
 * Functions to reference a physical Yubikey containing secrets and cryptographic certificates.
 
-
-## Experiments being built
-
-https://codepen.io/freeCodeCamp/pen/dNVazZ
-Recipe Box app in JavaScript for
-<a target="_blank" href="https://www.freecodecamp.org/learn/coding-interview-prep/take-home-projects/build-a-recipe-box">
-a Take Home Project</a>.
-
-NOTE: Other pograms are in the https://github.com/bomonike organization:
-* https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
-on how to memorize using PAO (Person Action Object)
 
 The STATUS of each program is noted within each file.
 
@@ -247,6 +310,7 @@ chmod +x dijkstras.py
 ./dijkstras.py
 ```
 
+<hr />
 
 ## etc.
 
@@ -281,3 +345,4 @@ Please Master These 10 Python Functions…
 Have a single import per line to reduce merge conflicts.
 See https://github.com/asottile/reorder-python-imports?tab=readme-ov-file#why-this-style
 
+https://www.debuggingbook.org/
