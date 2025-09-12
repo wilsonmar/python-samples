@@ -33,7 +33,7 @@ Skewness (distribution asymmetry):  -0.18 (>0 = tendency for lower values on the
 Kurtosis (extreme tailedness):      -1.29 (-3 = platykurtic = low (skinny) # of outliers)
 """
 
-__commit_text__ = "2025-09-12 v009 + fixed incorrect value issue:rolldice.py"
+__commit_text__ = "2025-09-12 v010 + reduced histogram size,corrected co-eff variance display text:rolldice.py"
 
 import random
 import time     # for timestamp
@@ -81,8 +81,8 @@ def is_number(s) -> bool:
     except ValueError:
         return False
 
-
-def display_detailed_histogram(dice_history, width=40):
+#Reduced width to 10, from 40 so as to make it 1/4
+def display_detailed_histogram(dice_history, width=10):
     """Display a detailed text histogram with percentages."""
     if not dice_history:
         print("No data to display")
@@ -203,13 +203,14 @@ def print_histogram_summary(dice_history):
     # print("\nDistribution of dice values:")
     print("Value  Rolls  Percent   Frequency bar")
     for i in range(len(hist_metrics['counts'])):
-        bin_center = hist_metrics['bin_centers'][i]
+        #bin_center = hist_metrics['bin_centers'][i]
         count = hist_metrics['counts'][i]
         percent = hist_metrics['relative_frequency'][i] * 100
-        bar = "█" * int(percent * 2)  # Scale the bar length
+        # Reduced from 2 to 0.5 to make the graph 1 quater of previous display
+        bar = "█" * int(percent * 0.5)  # Scale the bar length
         #print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
         print(f"{i+1}   {count:4d}    {percent:5.1f}% {bar}")
-        print(hist_metrics)
+        #print(hist_metrics)
     print(f"Total: {hist_metrics['data_size']} rolls")
     print(f"Range:                    {hist_metrics['range']:.2f}    (between smallest and largest)")
     print(f"Mode (most common value): {hist_metrics['mode']}")
@@ -217,7 +218,8 @@ def print_histogram_summary(dice_history):
     print(f"Median:                        {hist_metrics['median']:.2f} ")
     print(f"Standard deviation:            {hist_metrics['std_dev']:.2f} ")
     cov = hist_metrics['mean'] / hist_metrics['std_dev']
-    print(f"Coefficient of Variation:      {cov:.2f} (Average/Std. Dev.)")
+    #https://www.investopedia.com/terms/c/coefficientofvariation.asp
+    print(f"Coefficient of Variation:      {cov:.2f} (Std. Dev./Average)")
 
     # Additional statistics:
     if hist_metrics['variance'] > 0:
