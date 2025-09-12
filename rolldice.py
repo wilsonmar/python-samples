@@ -207,8 +207,9 @@ def print_histogram_summary(dice_history):
         count = hist_metrics['counts'][i]
         percent = hist_metrics['relative_frequency'][i] * 100
         bar = "█" * int(percent * 2)  # Scale the bar length
-        print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
-
+        #print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
+        print(f"{i+1}   {count:4d}    {percent:5.1f}% {bar}")
+        print(hist_metrics)
     print(f"Total: {hist_metrics['data_size']} rolls")
     print(f"Range:                    {hist_metrics['range']:.2f}    (between smallest and largest)")
     print(f"Mode (most common value): {hist_metrics['mode']}")
