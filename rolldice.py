@@ -33,7 +33,7 @@ Skewness (distribution asymmetry):  -0.18 (>0 = tendency for lower values on the
 Kurtosis (extreme tailedness):      -1.29 (-3 = platykurtic = low (skinny) # of outliers)
 """
 
-__commit_text__ = "2025-09-09 v008 + coefficient of var :rolldice.py"
+__commit_text__ = "2025-09-12 v009 + fixed incorrect value issue:rolldice.py"
 
 import random
 import time     # for timestamp
