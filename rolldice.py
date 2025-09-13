@@ -11,29 +11,29 @@
 # Based on Claude
 
 """rolldice.py here.
-
 > uv run rolldice.py
+> h
 Dice Roll Histogram Metrics:
 Value  Rolls  Percent   Frequency bar
- 1     78     17.1% ██████████████████████████████████
- 2     57     12.5% █████████████████████████
- 3     67     14.7% █████████████████████████████
- 3     76     16.7% █████████████████████████████████
- 4     85     18.7% █████████████████████████████████████
- 5     92     20.2% ████████████████████████████████████████
-Total: 455 rolls
-Range:                    5.00
-Mode (most common value): 6
-Mean (Average):                3.68
-Median:                        4.00
-Standard deviation:            1.76
-Coefficient of Variation:      2.09 (Average/Std. Dev.)
-Variance (spread of data):     3.09 (high variance)
-Skewness (distribution asymmetry):  -0.18 (>0 = tendency for lower values on the left)
-Kurtosis (extreme tailedness):      -1.29 (-3 = platykurtic = low (skinny) # of outliers)
+1     88     17.8% ████████
+2     80     16.2% ████████
+3     75     15.2% ███████
+4     87     17.6% ████████
+5     89     18.0% ████████
+6     76     15.4% ███████
+Total: 495 rolls
+Range:                    5.00    (between smallest and largest)
+Mode (most common value): 5
+Mean (Average):                3.48 
+Median:                        4.00 
+Standard deviation:            1.71 
+Coefficient of Variation:      0.49 (Std. Dev./Average)
+Variance (spread of data):     2.93 (high variance)
+Skewness (distribution asymmetry):  -0.03 (>0 = tendency for lower values on the left)
+Kurtosis (extreme tailedness):      -1.28 (-3 = platykurtic = low (skinny) # of outliers)
 """
 
-__commit_text__ = "2025-09-12 v010 + reduced histogram size,corrected co-eff variance display text:rolldice.py"
+__commit_text__ = "2025-09-12 v011 + fix CoV calc :rolldice.py"
 
 import random
 import time     # for timestamp
@@ -47,7 +47,7 @@ except Exception as e:
     #print("    sys.base_prefix = ", sys.base_prefix)
     #print(f"Please setup your virtual environment:\n  python3 -m venv venv && source venv/bin/activate")
     print("Please setup your virtual environment:\n  uv venv && source .venv/bin/activate")
-    print("  uv pip install numpy matplotlib scipy")
+    print("  uv pip install --upgrade numpy matplotlib scipy")
     exit(9)
 
 
@@ -217,7 +217,7 @@ def print_histogram_summary(dice_history):
     print(f"Mean (Average):                {hist_metrics['mean']:.2f} ")
     print(f"Median:                        {hist_metrics['median']:.2f} ")
     print(f"Standard deviation:            {hist_metrics['std_dev']:.2f} ")
-    cov = hist_metrics['mean'] / hist_metrics['std_dev']
+    cov = hist_metrics['std_dev'] / hist_metrics['mean']
     #https://www.investopedia.com/terms/c/coefficientofvariation.asp
     print(f"Coefficient of Variation:      {cov:.2f} (Std. Dev./Average)")
 
