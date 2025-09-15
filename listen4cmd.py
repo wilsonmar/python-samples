@@ -15,6 +15,9 @@ Based on https://medium.com/codrift/7-python-automation-projects-you-can-build-i
 
 Usage in CLI:
     brew install portaudio
+    git clone https://github.com/wilsonmar/python-samples --depth 1
+    cd python-samples
+
     uv init --no-readme.  # creates pyproject.toml
     uv venv .venv --python python3.12   # for Tensorflow
     source .venv/bin/activate
@@ -32,8 +35,8 @@ Usage in CLI:
     uv run listen4cmd.py
     deactivate
 """
-__last_change__ = "25-09-15 v003 + warp fixes with audio :listen4cmd.py"
-__status__ = "price, lights commands not working."
+__last_change__ = "25-09-15 v005 + verify true :listen4cmd.py"
+__status__ = "price, speed test, lights commands not working."
 
 
 from datetime import datetime, timezone
@@ -51,7 +54,7 @@ import time
 # Supports real-time microphone input (with PyAudio)
 # Supports offline file transcription (WAV, MP3, etc.)
 # See https://realpython.com/python-speech-recognition/ SR 3.8.1 using Python 3.9
-try:
+try:   # external libraries from pypi.com:
     import discoverhue   # uv add discoverhue.  # for obsoleted philips hue.
     #from dotenv import load_dotenv, find_dotenv  # uv add python-dotenv
     #import emoji         # uv add emoji  # https://emojidb.org/quote-emojis
@@ -73,6 +76,7 @@ except Exception as e:
     exit(9)
 
 
+# TODO: Run-time Parameters:
 SHOW_VERBOSE = False
 SHOW_DEBUG = False
 SHOW_SECRETS = False
@@ -83,24 +87,24 @@ def menu():
     """Recognize these words to return information."""
     print("    time, local, london")
     print("    lights on/off")
-    print("  Lookup: joke, prices (currency), quote, speed test, weather")
-    print("  Apps: claude, discord, docker, messages, obs, slack, teams")
+    print("    Lookup: joke, prices (currency), quote, speed test, weather")
+    print("    Apps: calculator, claude, discord, docker, messages, obs, slack, teams")
 
 
 def listen_command() -> str:
     """Listen and recognize as text."""
-    r = sr.Recognizer()        
+    r = sr.Recognizer()              # listens with speech-to-text.   
     # f = sr.AudioFile(fileout)
-    with sr.Microphone() as source:
+    with sr.Microphone() as source:  # speaks  with text-to-speech.
         print("Listening...")   # default wait for 5 seconds.
         try:
             audio = r.listen(source)
             command_str = r.recognize_google(audio).lower()
                 # _google comes with a dev. API key good for 50 queries per day.
                 # Not as precise:
-                # r.recognize_sphinx(audio).lower()    # from CMU Spinx, offline!  uv add pocketsphinx
-                # r.recognize_bing()      # from Microsoft, online  uv add ???
+                # r.recognize_sphinx(audio).lower()    # from CMU Sphinx, offline!  uv add pocketsphinx
                 # r.recognize_google()    # from Google Web Speech API, uv add google-cloud-speech
+                # r.recognize_bing()      # from Microsoft, online  uv add ???
                 # r.recognize_ibm()       # from IBM Speech to Text, online  uv add ibm-watson
                 # r.recognize_houndify()  # from SoundHound, online  uv add ???
                 # r.recognize_wit()       # from wit.ai, online  uv add wit
@@ -229,8 +233,8 @@ def ninja_api(topic) -> str:
     params = ""  # {"category": "success"}
     
     try:
-        # WARNING: Added verify=False to bypass TLS CA certificate bundle issue. Not recommended for production.
-        response = requests.get(url, headers=headers, params=params, verify=False)
+        # verify=True to not bypass TLS CA certificate bundle issue - to make production-worthy.
+        response = requests.get(url, headers=headers, params=params, verify=True)
         response.raise_for_status()  # Raise an exception for bad status codes
         data = response.json()
         return data
@@ -515,6 +519,14 @@ if __name__ == "__main__":
         elif 'messages' in command_str:
             result = run(["open", "-a", "Messages"], tee=True, text=True, capture_output=True)
             print("    Opening Messages...")
+
+        elif 'calculator' in command_str and 'plus' in command_str:
+            result = run(["open", "-a", "Calculator Plus.app"], tee=True, text=True, capture_output=True)
+            print("    Opening Calculator Plus...")
+            # PROTIP: compound actions need to precede single commands.
+        elif 'calculator' in command_str:
+            result = run(["open", "-a", "Calculator.app"], tee=True, text=True, capture_output=True)
+            print("    Opening Calculator...")
 
         elif 'claude' in command_str:
             result = run(["open", "../../Applications/Claude.app"], tee=True, text=True, capture_output=True)
