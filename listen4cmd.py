@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""listen4cmd.py here.
+r"""Listen from command line.
 
 https://github.com/wilsonmar/python-samples/blob/main/listen4cmd.py
 
@@ -13,7 +13,7 @@ This references files in the audio folder (rimshot-joke-drum.wav, jeopardy-theme
 Based on https://medium.com/codrift/7-python-automation-projects-you-can-build-in-less-than-2-hours-each-e00f6c98fb96
 # Based on https://github.com/rlaneyjr/myutils/blob/master/saytime.py 
 
-Usage in CLI:
+Usage in CLI (Mac os):
     brew install portaudio
     git clone https://github.com/wilsonmar/python-samples --depth 1
     cd python-samples
@@ -34,8 +34,15 @@ Usage in CLI:
 
     uv run listen4cmd.py
     deactivate
+    
+Usage in CLI (windows 10 os)
+    .venv/Scripts/activate
+    pip install -r .\requirements.txt
+    pip install discoverhue pyttsx3 simpleaudio speedtest 
+    python listen4cmd.py
+    deactivate
 """
-__last_change__ = "25-09-15 v005 + verify true :listen4cmd.py"
+__last_change__ = "25-09-16 v006 + CLI steps for windows :listen4cmd.py"
 __status__ = "price, speed test, lights commands not working."
 
 
