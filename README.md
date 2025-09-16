@@ -1,10 +1,10 @@
 ---
 layout: post
-lastchange: "25-09-11 v021 + dunder-list.py :README.md"
+lastchange: "25-09-16 v022 + diagrams-graphwiz.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
-The objective of this repo is to provide examples of professional use of the Python language.
+The objective of this repo is to provide examples of practical use of production-quality Python language.
 
 There are plenty of other sites and repos offering code to play games or demonstrate a coding trick.
 
@@ -26,7 +26,9 @@ chmod +x dundars-list.py
 ./dundars-list.py
 ```
 
-* <a href="./dundars-list.py">dundars-list.py</a> lists Python programs and each of their __last_change__ text.
+* <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the __last_change__ and __status__ text in each python program.
+
+* <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generates diagram files from text, using graphwiz tool library.
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
 
@@ -151,6 +153,8 @@ In the <strong>predictions</strong> folder is an example
 NOTE: Other pograms are in the https://github.com/bomonike organization:
 * https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
 on how to memorize using PAO (Person Action Object)
+
+* palindromes.py - I personally don't understand the intellectual curiosity for words and phrases that spell the same forward and backward. Examples: TENET, 747, KAYAK, TACO CAT, RACECAR, NEVER ODD OR EVEN, STEP ON NO PETS, UFO TOFU
 
 
 <a name="Sections"></a>
