@@ -233,9 +233,6 @@ def print_histogram_summary(dice_history):
     plt.title(f"In {hist_metrics['data_size']} rolls of dice!")
     plt.ylabel('y = Probability of events %')
     plt.xlabel("x= Possible Events ")
-    column_name=[result,event,times]
-    dataframe = pd.DataFrame(column_name)
-    print(dataframe)
     x_values=result
     y_values = times
     plt.grid(axis='y', linestyle='--', alpha=0.7)
