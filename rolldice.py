@@ -34,7 +34,7 @@ Skewness (distribution asymmetry):  -0.03 (>0 = tendency for lower values on the
 Kurtosis (extreme tailedness):      -1.28 (-3 = platykurtic = low (skinny) # of outliers)
 """
 
-__commit_text__ = "2025-09-17 v012 + line graph for probability :rolldice.py"
+__commit_text__ = "2025-09-18 v013 + line graph for outcome vs variance :rolldice.py"
 
 import random
 import time     # for timestamp
@@ -183,6 +183,26 @@ def calculate_histogram_metrics(data, bins=6):
         'counts': counts
     }
     
+    # Create the seaborn line plot
+    plt.figure(figsize=(10, 6))
+    #plt.xticks([1,2,3,4,5,6])
+    plt.xticks(metrics['bin_centers'], labels=[1, 2, 3, 4, 5, 6])
+    sns.lineplot(x=metrics['bin_centers'], y=metrics['counts'])
+
+    # Add vertical lines for mean, median, and standard deviation
+    plt.axvline(metrics['mean'], color='red', linestyle='--', label=f"Mean: {metrics['mean']:.2f}")
+    plt.axvline(metrics['median'], color='green', linestyle='--', label=f"Median: {metrics['median']:.2f}")
+    #plt.axvline(metrics['mean'] + metrics['std_dev'], color='purple', linestyle=':', label=f"Mean + 1 Std Dev: {metrics['mean'] + metrics['std_dev']:.2f}")
+    plt.axvline(metrics['variance'], color='purple', linestyle=':', label=f"variance: {metrics['variance']:.2f}")
+
+    # Set labels and title
+    plt.xlabel('Value')
+    plt.ylabel('Number of Events')
+    plt.title(f"Distribution of Events with Mean, Median, and Variance spread for {metrics['total_count']} rolls")
+    plt.legend()
+    plt.grid(True)
+    #plt.savefig('events_distribution_plot.png')
+    plt.show()
     return metrics
 
 def print_histogram_summary(dice_history):
