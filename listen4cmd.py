@@ -28,7 +28,7 @@ Usage in CLI:
     pip install -r requirements.txt
 
     uv add pyaudio, requests, google-cloud-speech, speedtest-cli
-    uv add discoverhue
+    uv add discoverhue, pyperclip
     uv add azure-cognitiveservices-speech.  # azure package is deprecated.
     uv add python_hue_v2, BridgeFinder
     uv add SpeechRecognition, pocketsphinx, apiai, assemblyai, subprocess-tee
@@ -37,7 +37,7 @@ Usage in CLI:
     uv run listen4cmd.py
     deactivate
 """
-__last_change__ = "25-09-18 v010 + speedtest assessment :listen4cmd.py"
+__last_change__ = "25-09-18 v010 + tuple last resort, speedtest assessment :listen4cmd.py"
 __status__ = "pause, start, price, speed test, lights commands not working."
 # See listen4cmd_scraps.py in separate repo.
 
@@ -68,6 +68,7 @@ try:   # external libraries from pypi.com:
     import pyaudio  # noqa  # uv add PyAudio library to use external/Bluetooth microphone input real-time.
     from pygame import mixer   # uv add pygame
     from python_hue_v2 import Hue, BridgeFinder
+    import pyperclip   # uv add pyperclip  
     import pyttsx3     # uv add pyttsx  # for offline text to speech # adds pyobjc-framework-* modules
     import simpleaudio as sa          # uv add simpleaudio   # play .wav sound
     import speedtest                  # uv add speedtest-cli
@@ -89,9 +90,50 @@ except Exception as e:
 SHOW_VERBOSE = False
 SHOW_DEBUG = False
 SHOW_SECRETS = False
+SHOW_SUMMARY = False
 
 SECS_BETWEEN_TRIES = 5
 global_play_menu = "Press End/Pause/Resume/End"
+
+actions_tuple = {  # as ordered key-value:
+    "acronyms": ["website0", "wilsonmar.github.io/acronyms" ],
+    "amazon": ["website", "amazon.com" ],
+    "asian": ["website", "yami.com" ],
+    "aws": ["website", "aws.amazon.com" ],
+    "azure": ["website0", "portal.azure.com" ],
+    "blog": ["website0", "wilsonmar.github.io/posts" ],
+    "bomonike": ["website0", "bomonike.github.io/README" ],
+    "calculator": ["sys_app", "Calculator.app" ],
+    "calendar": ["website0", "calendar.google.com" ],
+    "camtasia": ["sys_app", "camtasia 2023.app" ],
+    "claude": ["user_app", "Claude.app" ],
+    "clock": ["sys_app", "Clock.app" ],
+    "contacts": ["website0", "contacts.google.com" ],
+    "cursor": ["user_app", "Causor.app" ],
+    "discord": ["sys_app", "Discord.app" ],
+    "docker": ["user_app", "Docker.app" ],
+    "facebook": ["website", "facebook.com" ],
+    "github": ["website", "github.com" ],
+    "gmail": ["website", "gmail.com" ],
+    "google": ["website", "google.com" ],
+    "imdb": ["website", "imdb.com" ],
+    "instagram": ["website", "instagram.com" ],
+    "just watch": ["website", "justwatch.com" ],
+    "linkedin": ["website", "linkedin.com" ],
+    "messages": ["sys_app", "Messages.app" ],
+    "obs": ["user_app", "OBS.app" ],
+    "perplexity": ["website", "perplexity.ai" ],
+    "search": ["website", "startpage.com" ],
+    "slack": ["user_app", "slack.app" ],
+    "surf": ["user_app", "windsurf.app" ],
+    "voice": ["website0", "voice.google.com" ],
+    "youtube": ["website", "youtube.com" ],
+    "visual": ["user_app", "Visual Studio Code.app" ],
+    "warp": ["user_app", "warp.app" ],
+    "xcode": ["sys_app", "XCode.app" ],
+}
+
+# Firefox with no cookies: fidelity, capital one, wells fargo, proton mail, etc.
 
 
 def menu():
@@ -343,6 +385,17 @@ def load_env_variable(variable_name, env_file='~/python-samples.env') -> str:
     return None
 
 
+def clipboard_from_string(text_in: str):
+    """Copy text to the operating systen clipboard."""
+    # alternative: import pyperclip.  # it's cross-platform
+    pyperclip.copy(text_in)
+    # if is_mocOS:
+        # subprocess_tee of pbcopy CLI:
+        #process = subprocess.Popen(
+        #    'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
+        #process.communicate(text.encode('utf-8'))
+
+
 def ninja_api(topic) -> str:
     """Return after call for a (singular) topic of choice."""
     if topic == "quote":
@@ -459,7 +512,7 @@ def do_speedtest() -> str | None:
         else:
             assessment = " middling"
     # In July 2025, the average U.S. household gets about 285 Mbps download and 48 Mbps upload.
-    # Ookla’s Speedtest.net makes US 7th in the world by https://tradingeconomics.com/united-states/rural-population-percent-of-total-population-wb-data.html#:~:text=Rural%20population%20(%25%20of%20total,compiled%20from%20officially%20recognized%20sources.
+    # Ookla’s Speedtest.net puts US 7th in the world by https://tradingeconomics.com/united-states/rural-population-percent-of-total-population-wb-data.html#:~:text=Rural%20population%20(%25%20of%20total,compiled%20from%20officially%20recognized%20sources.
     # T-Mobile is the fastest mobile provider in the 1st half of 2024 at 206 Mbps.
     # Where did the US Broadband Equity, Access and Deployment Program (BEAD) that provided $42.45 billion in state broadband grants?
     # A 100 Mbps plan allows one to four users to be online at the same time streaming or working from home.
@@ -633,7 +686,6 @@ if __name__ == "__main__":
                 exit()
 
             elif 'speed' in command_str:
-                # from playsound import playsound
                 results = do_speedtest()
 
             elif 'bible' in command_str:
@@ -678,32 +730,6 @@ if __name__ == "__main__":
                 result = run(["open", "-a", "Calculator Plus.app"], tee=True, text=True, capture_output=True)
                 print("    Opening Calculator Plus...")
                 # PROTIP: compound actions need to precede single commands.
-            elif 'calculator' in command_str:
-                result = run(["open", "-a", "Calculator.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Calculator...")
-            elif 'camtasia' in command_str:
-                result = run(["open", "-a", "Camtasia 2023.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Camtasia...")
-            elif 'clock' in command_str:
-                result = run(["open", "-a", "Clock.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Clock...")
-
-            elif 'claude' in command_str:
-                result = run(["open", "../../Applications/Claude.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Claude...")
-            elif 'cursor' in command_str:
-                result = run(["open", "../../Applications/Cursor.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Cursor...")
-            elif 'docker' in command_str:    # say "dock er"
-                result = run(["open", "../../Applications/Docker.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Docker...")
-            elif 'slack' in command_str:
-                result = run(["open", "../../Applications/Slack.app"], tee=True, text=True, capture_output=True)
-                print("    Opening Slack...")
-            elif 'obs' in command_str:   # pronounce each letter.
-                result = run(["open", "../../Applications/OBS.app"], tee=True, text=True, capture_output=True)
-                print("    Opening OBS...")
-                # NOTE: Apps in "/Applications" not accessible from / due to security permissions.
 
             elif 'prices' in command_str or 'rates' in command_str:
                 #FIXME: OSError: Could not find a suitable TLS CA certificate bundle, invalid path: /path/to/my.crt
@@ -736,11 +762,6 @@ if __name__ == "__main__":
                 else:
                     print("No quotes available or invalid API response")
             
-            elif 'facebook' in command_str:
-                #import webbrowser
-                url = "https://www.facebook.com"
-                webbrowser.open(url)
-
             elif 'joke' in command_str:
                 # https://api-ninjas.com/api/jokes
                 # import emoji         # uv add emoji
@@ -800,9 +821,38 @@ if __name__ == "__main__":
                     # Execute the AppleScript command as CLI call:
                     run(['osascript', '-e', applescript])
 
-            else:
-                # TODO: Send unrecognized sentences to ChatGPT.
-                print("    ?")  # Command not recognized!
+            #elif: 'start' 'calendar' to create a new calendar entry starting at current time.
+
+            # End of targeted actions.
+            else:  # lookups from actions tuple = { "keyword": ["function", "parm"] } :
+                tar = command_str  # target element in tuple, such as "github"  
+                func, parm = actions_tuple.get(tar, (None, None))
+                if SHOW_SUMMARY:
+                    print("STATS: len(actions_tuple) entries in actions_tuple!")
+                if func:  # found:
+                    if func == "website0":
+                        url = f"https://{parm}/"
+                        print(f"    Opening website to {parm}...")
+                        webbrowser.open(url)
+                    elif func == "website":
+                        url = f"https://www.{parm}/"
+                        print(f"    Opening website to {parm}...")
+                        webbrowser.open(url)
+                    elif func == "user_app":
+                            url = f"../../Applications/{parm}"
+                            print(f"    Opening {parm}...")
+                            result = run(["open", url], tee=True, text=True, capture_output=True)
+                    elif func == "sys_app":
+                        url = f"{parm}"
+                        print(f"    Opening {parm}...")
+                        result = run(["open", "-a", parm], tee=True, text=True, capture_output=True)
+                    else:  # action not found:
+                        print(f"FATAL: action {func} needs to be added in actions_tuple!")
+                        exit(9)
+                else:  # action not found:
+                    clipboard_from_string(command_str)
+                    # TODO: Send unrecognized sentences to ChatGPT?
+                    print("    ? clipped: command+V")  # Command not recognized!
         
         # loop again
     except KeyboardInterrupt:
