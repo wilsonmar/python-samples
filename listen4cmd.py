@@ -37,7 +37,7 @@ Usage in CLI:
     uv run listen4cmd.py
     deactivate
 """
-__last_change__ = "25-09-18 v009 + speedtest assessment, mp3_play_pygame :listen4cmd.py"
+__last_change__ = "25-09-18 v010 + speedtest assessment :listen4cmd.py"
 __status__ = "pause, start, price, speed test, lights commands not working."
 # See listen4cmd_scraps.py in separate repo.
 
@@ -445,16 +445,24 @@ def do_speedtest() -> str | None:
 
     # PROTIP: Use Regex to recognize and extract number from within string:
     # import re
-    numbers = re.findall(r'\d+', download_speed)
-    if numbers:
-        number = int(numbers[0])  # Use first found number
-        if number < 25:
+    download_numbers = re.findall(r'\d+', download_speed)
+    upload_numbers = re.findall(r'\d+', upload_speed)
+    if download_numbers:
+        download_number = int(download_numbers[0])  # Use first found number
+        upload_number = int(upload_numbers[0])  # Use first found number
+        if download_number >= 300:
+            assessment = " (fibre)"
+        if download_number >= 100 and upload_number > 20:
+            assessment = " (broadband)"
+        if download_number < 25:
             assessment = " slow!"
-        if number < 100:
-            assessment = " good"
         else:
-            assessment = " whatever"
-
+            assessment = " middling"
+    # In July 2025, the average U.S. household gets about 285 Mbps download and 48 Mbps upload.
+    # Ookla’s Speedtest.net makes US 7th in the world by https://tradingeconomics.com/united-states/rural-population-percent-of-total-population-wb-data.html#:~:text=Rural%20population%20(%25%20of%20total,compiled%20from%20officially%20recognized%20sources.
+    # T-Mobile is the fastest mobile provider in the 1st half of 2024 at 206 Mbps.
+    # Where did the US Broadband Equity, Access and Deployment Program (BEAD) that provided $42.45 billion in state broadband grants?
+    # A 100 Mbps plan allows one to four users to be online at the same time streaming or working from home.
     response=f"    Download Speed:{assessment} {human_readable_speed(download_speed)}, Upload Speed: {human_readable_speed(upload_speed)}, Ping: {ping} ms"
     # speech_to_text(results)
     print(f"    {response}")
