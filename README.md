@@ -161,29 +161,34 @@ In programs that make use of Cloud AI LLMs, (such as listen4cmd.py and mondrian.
 capture timings and costs for each request. Here is a sample table for recognizing the word "docker":
 
 <table border="1" cellpadding="4" cellspacing="0">
-<tr><th> LLM version </td><td> Input </td><td> Output </td><td> MiliSecs.</td><td> Tokens </td><td> Co$t cents </td></tr>
-<tr align="right" valign="top"><td align="left"> Google </td><td align="left"> docker </td><td align="right"> 23 </td><td align="right"> - </td><td> - </td></tr>
-<tr align="right" valign="top"><td align="left"> AWS </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 28 </td><td> $0.00680 </td></tr>
-<tr align="right" valign="top"><td align="left"> Azure </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 39 </td><td> $0.00431 </td></tr>
-<tr align="right" valign="top"><td align="left"> IBM </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 29 </td><td> $0.00267 </td></tr>
-<tr align="right" valign="top"><td align="left"> Mistral </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
-<tr align="right" valign="top"><td align="left"> Cohere </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 13 </td><td> $0.00255 </td></tr>
-<tr align="right" valign="top"><td align="left"> OpenAI </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 23 </td><td> $0.00490 </td></tr>
-<tr align="right" valign="top"><td align="left"> Qwen 3 </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 63 </td><td> $0.00230 </td></tr>
-<tr align="right" valign="top"><td align="left"> Sphinx </td><td align="left"> - </td><td align="right"> - </td><td align="right"> - </td><td> - </td></tr>
-<tr align="right" valign="top"><td align="left"> Wit.ai </td><td align="left"> = </td><td align="right"> 42 </td><td align="right"> 61 </td><td> $0.00320 </td></tr>
+<tr><th> LLM </td><td> Output </td><td> MiliSecs.</td><td> Cost USD </td></tr>
+<tr align="right" valign="top"><td align="left"> Anthropic </td><td align="left"> == </td><td align="right"> 33 </td><td> $0.00420 </td></tr>
+<tr align="right" valign="top"><td align="left"> AWS </td><td align="left"> == </td><td align="right"> 28 </td><td> $0.00680 </td></tr>
+<tr align="right" valign="top"><td align="left"> Azure </td><td align="left"> == </td><td align="right"> 39 </td><td> $0.00431 </td></tr>
+<tr align="right" valign="top"><td align="left"> DeepSeek </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Google </td><td align="left"> docker </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> IBM </td><td align="left"> - </td><td align="right"> 29 </td><td> $0.00267 </td></tr>
+<tr align="right" valign="top"><td align="left"> Mistral </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Cohere </td><td align="left"> == </td><td align="right"> 13 </td><td> $0.00255 </td></tr>
+<tr align="right" valign="top"><td align="left"> OpenAI </td><td align="left"> == </td><td align="right"> 23 </td><td> $0.00490 </td></tr>
+<tr align="right" valign="top"><td align="left"> Qwen 3 </td><td align="left"> == </td><td align="right"> 63 </td><td> $0.00230 </td></tr>
+<tr align="right" valign="top"><td align="left"> Sphinx </td><td align="right"> - </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> Wit.ai </td><td align="left"> == </td><td align="right"> 61 </td><td> $0.00320 </td></tr>
 </table>
 
+<tt>==</tt> above means the word was recognized correctly.<br />
+<tt>- </tt> above means the word was NOT recognized.<br />
+
 * Google is free but is limited to 50 requests per day.
-* Mistral is from France.
-* Qwen tests used Alibaba's servers in Singapore.
+* Azure 
+* Mistral is based in France.
+* Qwen tests used by Alibaba in China with servers in Singapore.
 * Sphinx is the only local LLM, from CMU. But it didn't recognize many words correctly.
 <br /><br />
+Cost USD is calculated from tokens charged times price.
 
-                # r.recognize_sphinx(audio).lower()    # from CMU Sphinx, offline!  uv add pocketsphinx
-                # r.recognize_ibm()       # from IBM Speech to Text, online  uv add ibm-watson
-                # r.recognize_houndify()  # from SoundHound, online  uv add ???
-                # r.recognize_wit()       # from wit.ai, online  uv add wit
+Another table contains sums from all runs, from which analytics charts are drawn.
+
 
 <a name="Sections"></a>
 
