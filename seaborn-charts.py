@@ -69,8 +69,8 @@ ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=N
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 #Customize the Legend
-ax.set_title('Cost of LLM / Dollar', fontsize=16)
-plt.xlabel('Millisecs response time')
+ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=16)
+plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #plt.legend(title='Note') # Adds a legend for the size
