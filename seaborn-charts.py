@@ -1,11 +1,25 @@
-"""Create chart for the data."""
+#!/usr/bin/env python3
 
+"""seaborn-charts.py here.
 
-__last_change__ = "25-09-20 v002 + grey dotted line,time stamp,Accuracy verbiage added :seaborn-charts.py"
+Create chart for the data.
+
+https://github.com/wilsonmar/python-samples/blob/main/seaborn-charts.py
+
+Before running this:
+    chmod +x seaborn-charts.py
+
+# TODO:
+[ ] Remove millisecs legend
+Sort Accuracy legend, green on top
+Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
+Bargain! & Not worth it! overlay? text
+
+"""
+__last_change__ = "25-09-20 v003 + from pip to uv :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
-
 
 try:
     import pandas as pd
@@ -30,7 +44,7 @@ sns.set_theme(style='darkgrid')
 # Get the colors from a Seaborn palette
 palette = sns.color_palette("viridis", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
 
-# Map the 'Accuracy' column to the colors
+# Map the 'z' column to the colors
 color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
 edge_colors = df['Accuracy'].map(color_map).values
 
@@ -48,8 +62,8 @@ plt.text(
     fontsize=8,
     color='grey'
 )
-#change edge color and size of marker by changing s values
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents', markers=True, ls='-', color='cornflowerblue', hue='Accuracy', legend='auto', edgecolor='black', palette=palette, ax=plt.gca())
+#change edge color and size of marker by chaging s values
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs')
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 #Add plot titles and labels for clarity
