@@ -30,7 +30,7 @@ sns.set_theme(style='darkgrid')
 # Get the colors from a Seaborn palette
 palette = sns.color_palette("viridis", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
 
-# Map the 'z' column to the colors
+# Map the 'Accuracy' column to the colors
 color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
 edge_colors = df['Accuracy'].map(color_map).values
 
@@ -48,15 +48,15 @@ plt.text(
     fontsize=8,
     color='grey'
 )
-#change edge color and size of marker by chaging s values
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs')
+#change edge color and size of marker by changing s values
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents', markers=True, ls='-', color='cornflowerblue', hue='Accuracy', legend='auto', edgecolor='black', palette=palette, ax=plt.gca())
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 #Customize the Legend
-ax.set_title('Cost of LLM / Dollar', fontsize=16)
-plt.xlabel('Millisecs response time')
+ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=16)
+plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #plt.legend(title='Note') # Adds a legend for the size
