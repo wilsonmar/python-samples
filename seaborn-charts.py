@@ -1,11 +1,25 @@
-"""Create chart for the data."""
+#!/usr/bin/env python3
 
+"""seaborn-charts.py here.
 
-__last_change__ = "25-09-20 v002 + grey dotted line,time stamp,Accuracy verbiage added :seaborn-charts.py"
+Create chart for the data.
+
+https://github.com/wilsonmar/python-samples/blob/main/seaborn-charts.py
+
+Before running this:
+    chmod +x seaborn-charts.py
+
+# TODO:
+[ ] Remove millisecs legend
+Sort Accuracy legend, green on top
+Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
+Bargain! & Not worth it! overlay? text
+
+"""
+__last_change__ = "25-09-20 v003 + from pip to uv :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
-
 
 try:
     import pandas as pd
