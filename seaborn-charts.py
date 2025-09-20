@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v003 + from pip to uv :seaborn-charts.py"
+__last_change__ = "25-09-20 v004 + removed millisec from legend,Title and overlayfixed :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -42,7 +42,7 @@ plt.figure(figsize=(10, 6))
 sns.set_theme(style='darkgrid')
 
 # Get the colors from a Seaborn palette
-palette = sns.color_palette("viridis", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
+palette = sns.color_palette("RdYlGn", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
 
 # Map the 'z' column to the colors
 color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
@@ -62,8 +62,30 @@ plt.text(
     fontsize=8,
     color='grey'
 )
+plt.text(
+    0.90,  # x-position (0.0 to 1.0)
+    0.90,  # y-position (0.0 to 1.0)
+    'Not Worth It!',
+    horizontalalignment='right',
+    verticalalignment='bottom',
+    transform=plt.gca().transAxes,
+    fontsize=12,
+    color='red'
+)
+plt.text(
+    0.20,  # x-position (0.0 to 1.0)
+    0.20,  # y-position (0.0 to 1.0)
+    'Bargain!',
+    horizontalalignment='right',
+    verticalalignment='bottom',
+    transform=plt.gca().transAxes,
+    fontsize=12,
+    color='green'
+)
 #change edge color and size of marker by chaging s values
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs')
+df.sort_values('Accuracy', ascending=True, inplace=True)
+#ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn')
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 #Add plot titles and labels for clarity
@@ -73,8 +95,18 @@ ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=16)
 plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
-#plt.legend(title='Note') # Adds a legend for the size
-
+plt.legend(title='Accuracy') # Adds a legend for the size
+# Dynamically label each point with the LLM name
+for index, row in df.iterrows():
+    # Place text to the right of each point
+    plt.annotate(
+        text=row['LLM'],           # Use the LLM name as the label
+        xy=(row['MilliSecs'], row['USD cents']),
+        xytext=(10, 0),              # Offset the text by 10 points to the right
+        textcoords='offset points',
+        ha='left',                   # Align the text to the left
+        #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
+    )
 #Display the plot
 plt.tight_layout() # Adjusts plot to fit figure
 plt.show()
