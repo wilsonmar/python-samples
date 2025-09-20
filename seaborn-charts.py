@@ -1,9 +1,11 @@
 """Create chart for the data."""
 
+
 __last_change__ = "25-09-20 v002 + grey dotted line,time stamp,Accuracy verbiage added :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
+
 
 try:
     import pandas as pd
@@ -49,6 +51,7 @@ plt.text(
 #change edge color and size of marker by chaging s values
 ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs')
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
+
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 #Customize the Legend
