@@ -1,14 +1,16 @@
-LLM,Output,MilliSecs, USD cents 
-Anthropic,95%,33, 42.00 
-AWS,92%,28, 68.00 
-Azure,90%,39, 43.10 
-DeepSeek,87%,43, 53.20 
-Google,95%,28, 53.20 
-IBM,78%,29, 26.70 
-Mistral,45%,43, 53.20 
-Cohere,67%,13, 25.50 
-OpenAI,83%,23, 49.00 
-Qwen 3,63%,63, 23.00 
-SoundHound,68%,62, 15.00 
-Sphinx,63%,62, 15.00 
-Wit.ai,57%,61, 32.00 
+
+﻿LLM,Accuracy,MilliSecs,USD cents
+Wit.ai,64%,33,42
+IBM,68%,28,68
+Azure,75%,39,43.1
+Google,95%,28,0
+Anthropic,90%,29,26.7
+AWS,70%,43,53.2
+Cohere,67%,13,25.5
+SoundHound,83%,23,49
+DeepSeek,63%,63,23
+Qwen 3,68%,62,15
+Sphinx,65%,62,0
+OpenAI,72%,61,32
+,,,
+
