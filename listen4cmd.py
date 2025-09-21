@@ -36,10 +36,10 @@ Usage in CLI (Mac os):
     deactivate
     
 Usage in CLI (windows 10 os)
-    .venv/Scripts/activate
-    pip install -r .\requirements.txt
-    pip install discoverhue pyttsx3 simpleaudio speedtest 
-    python listen4cmd.py
+    .\.venv/Scripts/activate
+    uv pip install -r .\requirements.txt
+    uv pip install discoverhue pyttsx3 simpleaudio speedtest 
+    uv run listen4cmd.py
     deactivate
 """
 __last_change__ = "25-09-16 v006 + CLI steps for windows :listen4cmd.py"
