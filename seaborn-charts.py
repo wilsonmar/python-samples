@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v005 + regression line with text :seaborn-charts,legend sort from green.py"
+__last_change__ = "25-09-20 v006 + F and p statistics added, % in Accuracy removed from csv :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -25,7 +25,7 @@ try:
     import pandas as pd
     import seaborn as sns
     import matplotlib.pyplot as plt
-    
+    import statsmodels.multivariate.manova as manova    
     
 except Exception as e:
     print(f"Python module import failed: {e}")
@@ -34,21 +34,15 @@ except Exception as e:
 
 #Read data from a CSV file into a pandas DataFrame
 df = pd.read_csv('python-samples-llms.csv')
-
 # Change figure size
 # This must be done BEFORE creating the plot. Control your chart size.
 plt.figure(figsize=(10, 6))
-#fig, ax = plt.subplots()
-#Create a Seaborn lineplot
 # Ensure 'x_column' and 'y_column' exist in your CSV file
 sns.set_theme(style='darkgrid')
-
 # Get the colors from a Seaborn palette
-palette = sns.color_palette("RdYlGn", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
-
-# Map the 'z' column to the colors
-color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
-edge_colors = df['Accuracy'].map(color_map).values
+#palette = sns.color_palette("RdYlGn_r", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
+#color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
+#edge_colors = df['Accuracy'].map(color_map).values
 
 #Get the current UTC time
 current_utc_time = datetime.now(timezone.utc)
@@ -84,31 +78,24 @@ plt.text(
     fontsize=18,
     color='#006400'
 )
-# Create the scatter plot with regression line
 
 #change edge color and size of marker by changing s values
 df.sort_values("Accuracy", ascending=False, inplace=True)
 #ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn_r')
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
-# Add text using ax.text()
-ax.text(
-    0.25,  # X-coordinate (5% from the left)
-    0.50,  # Y-coordinate (95% from the bottom)
-    "Regression Line",
-    transform=ax.transAxes, # Use axes coordinates
-    fontsize=12,
-    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
-)
+
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
-#Customize the Legend
+
 ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=16)
 plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
+#Customize the Legend
 plt.legend(title='Accuracy') # Adds a legend for the size
+
 # Dynamically label each point with the LLM name
 for index, row in df.iterrows():
     # Place text to the right of each point
@@ -121,6 +108,22 @@ for index, row in df.iterrows():
         #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
     )
 
+# Calculate MNOVA values
+dfs=df[['Accuracy','USD cents']]# Dependent variables
+Accuracy_Group=df[['MilliSecs']]# Independent variables
+manova_result = manova.MANOVA.from_formula('dfs ~ Accuracy_Group', data=df)
+results=manova_result.mv_test()
+f_value = results.results['Accuracy_Group']['stat']['F Value'][0]# Get the F-value from Wilken's Lambda test
+p_value = results.results['Accuracy_Group']['stat']['Pr > F'][0]  # Get the p-value from Wilken's Lambda test
+# Add text using ax.text()
+ax.text(
+    0.25,  # X-coordinate (5% from the left)
+    0.50,  # Y-coordinate (95% from the bottom)
+    f"F={f_value:.2f} p={p_value:.2f}",#f"F:{f_value:.2f} p={p_value:.3f}",  # Text to display
+    transform=ax.transAxes, # Use axes coordinates
+    fontsize=12,
+    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+)
 #Display the plot
 plt.tight_layout() # Adjusts plot to fit figure
 plt.show()
