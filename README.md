@@ -1,32 +1,30 @@
 ---
 layout: post
-lastchange: "25-09-11 v021 + dunder-list.py :README.md"
+lastchange: "25-09-19 v023 + Cloud AI table :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
-The objective of this repo is to provide examples of professional use of the Python language.
+This repo aims to contain practical examples of production-quality Python language for use in vibe coding utilities. 
 
-There are plenty of other sites and repos offering code to play games or demonstrate a coding trick.
+Here we aim for code that exhibit the security and scalability features needed in a (hostile) production environment where debugging needs to occur quickly.
 
-Not here. 
-
-Here we aim to provide code that exhibit the security and technical features needed in a (hostile) production environment where debugging needs to occur quickly.
+Programs here make use of uv (from astral.sh) instead of pip, pip-tools, pipx, poetry, pyenv, twine, virtualenv, and requirements.txt. We have uv create pyprojects.toml and uv.lock with every run to obtain the latest set of dependencies.
 
 <a name="Featured"></a>
 
 ## Featured Projects
 
-These contain various utilities I wrote which have the most <strong>practical usefulness</strong>.
+Code which I think have the most <strong>practical usefulness</strong>:
 
-Each contains helpful features implemented as identified:
+* <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the <tt>__last_change__</tt> and <tt>__status__</tt> text in each python program.
 
-PROTIP: List the <tt>__last_change__</tt> of all python (.py) files in this repo by running:
-```
-chmod +x dundars-list.py
-./dundars-list.py
-```
-
-* <a href="./dundars-list.py">dundars-list.py</a> lists Python programs and each of their __last_change__ text.
+* <a href="git-commit.sh">git-commit.sh</a> is copied to this repo's .git/hooks folder to run
+   * <tt>safety</tt> to identify libraries (versions) marked as vulnerable
+   * <tt>ruff</tt> is catch code formatting issues 
+   * <a target="_blank" href="https://bandit.readthedocs.io/en/latest/start.html#usage">>bandit</a> to identify secure coding issues
+   * GitGuardian, GitLeaks, TruffleHog, Legit, etc. to identify what looks like secrets stored in the repo.
+   <br /><br />
+* <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generates diagram files from text, using graphwiz tool library.
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
 
@@ -151,6 +149,45 @@ In the <strong>predictions</strong> folder is an example
 NOTE: Other pograms are in the https://github.com/bomonike organization:
 * https://github.com/bomonike/memon calculate super strong word phrases and remember them via LLM gen'd songs. See https://www.youtube.com/watch?v=KAjkicwrD4I
 on how to memorize using PAO (Person Action Object)
+
+* palindromes.py - I personally don't understand the intellectual curiosity for words and phrases that spell the same forward and backward. Examples: TENET, 747, KAYAK, TACO CAT, RACECAR, NEVER ODD OR EVEN, STEP ON NO PETS, UFO TOFU
+
+
+<a name="CloudAI"></a>
+
+## Cloud AI comparisons
+
+In programs that make use of Cloud AI LLMs, (such as listen4cmd.py and mondrian.py) 
+capture timings and costs for each request. Here is a sample table for recognizing the word "docker":
+
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th> LLM </td><td> Output </td><td> MiliSecs.</td><td> Cost USD </td></tr>
+<tr align="right" valign="top"><td align="left"> Anthropic </td><td align="left"> == </td><td align="right"> 33 </td><td> $0.00420 </td></tr>
+<tr align="right" valign="top"><td align="left"> AWS </td><td align="left"> == </td><td align="right"> 28 </td><td> $0.00680 </td></tr>
+<tr align="right" valign="top"><td align="left"> Azure </td><td align="left"> == </td><td align="right"> 39 </td><td> $0.00431 </td></tr>
+<tr align="right" valign="top"><td align="left"> DeepSeek </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Google </td><td align="left"> docker </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> IBM </td><td align="left"> - </td><td align="right"> 29 </td><td> $0.00267 </td></tr>
+<tr align="right" valign="top"><td align="left"> Mistral </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Cohere </td><td align="left"> == </td><td align="right"> 13 </td><td> $0.00255 </td></tr>
+<tr align="right" valign="top"><td align="left"> OpenAI </td><td align="left"> == </td><td align="right"> 23 </td><td> $0.00490 </td></tr>
+<tr align="right" valign="top"><td align="left"> Qwen 3 </td><td align="left"> == </td><td align="right"> 63 </td><td> $0.00230 </td></tr>
+<tr align="right" valign="top"><td align="left"> Sphinx </td><td align="right"> - </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> Wit.ai </td><td align="left"> == </td><td align="right"> 61 </td><td> $0.00320 </td></tr>
+</table>
+
+<tt>==</tt> above means the word was recognized correctly.<br />
+<tt>- </tt> above means the word was NOT recognized.<br />
+
+* Google is free but is limited to 50 requests per day.
+* Azure 
+* Mistral is based in France.
+* Qwen tests used by Alibaba in China with servers in Singapore.
+* Sphinx is the only local LLM, from CMU. But it didn't recognize many words correctly.
+<br /><br />
+Cost USD is calculated from tokens charged times price.
+
+Another table contains sums from all runs, from which analytics charts are drawn.
 
 
 <a name="Sections"></a>

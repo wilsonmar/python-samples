@@ -11,6 +11,7 @@
 # Based on Claude
 
 """rolldice.py here.
+
 > uv run rolldice.py
 > h
 Dice Roll Histogram Metrics:
@@ -33,7 +34,7 @@ Skewness (distribution asymmetry):  -0.03 (>0 = tendency for lower values on the
 Kurtosis (extreme tailedness):      -1.28 (-3 = platykurtic = low (skinny) # of outliers)
 """
 
-__commit_text__ = "2025-09-12 v011 + fix CoV calc :rolldice.py"
+__commit_text__ = "2025-09-18 v013 + line graph for outcome vs variance :rolldice.py"
 
 import random
 import time     # for timestamp
@@ -41,6 +42,9 @@ import time     # for timestamp
 try:
     import numpy as np
     from scipy import stats
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pandas as pd
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
@@ -179,6 +183,26 @@ def calculate_histogram_metrics(data, bins=6):
         'counts': counts
     }
     
+    # Create the seaborn line plot
+    plt.figure(figsize=(10, 6))
+    #plt.xticks([1,2,3,4,5,6])
+    plt.xticks(metrics['bin_centers'], labels=[1, 2, 3, 4, 5, 6])
+    sns.lineplot(x=metrics['bin_centers'], y=metrics['counts'])
+
+    # Add vertical lines for mean, median, and standard deviation
+    plt.axvline(metrics['mean'], color='red', linestyle='--', label=f"Mean: {metrics['mean']:.2f}")
+    plt.axvline(metrics['median'], color='green', linestyle='--', label=f"Median: {metrics['median']:.2f}")
+    #plt.axvline(metrics['mean'] + metrics['std_dev'], color='purple', linestyle=':', label=f"Mean + 1 Std Dev: {metrics['mean'] + metrics['std_dev']:.2f}")
+    plt.axvline(metrics['variance'], color='purple', linestyle=':', label=f"variance: {metrics['variance']:.2f}")
+
+    # Set labels and title
+    plt.xlabel('Value')
+    plt.ylabel('Number of Events')
+    plt.title(f"Distribution of Events with Mean, Median, and Variance spread for {metrics['total_count']} rolls")
+    plt.legend()
+    plt.grid(True)
+    #plt.savefig('events_distribution_plot.png')
+    plt.show()
     return metrics
 
 def print_histogram_summary(dice_history):
@@ -190,7 +214,9 @@ def print_histogram_summary(dice_history):
     if not dice_history:
         print("No dice roll data to display")
         return
-        
+    result=[]
+    event=[]
+    times=[]
     # Extract the 'value' field from each roll in the history
     roll_values = [entry['value'] for entry in dice_history]
     
@@ -210,7 +236,10 @@ def print_histogram_summary(dice_history):
         bar = "█" * int(percent * 0.5)  # Scale the bar length
         #print(f"{int(bin_center):2d}   {count:4d}    {percent:5.1f}% {bar}")
         print(f"{i+1}   {count:4d}    {percent:5.1f}% {bar}")
-        #print(hist_metrics)
+        result.append(i+1)
+        event.append(count)
+        times.append(percent)
+        #print(hist_metrics)     
     print(f"Total: {hist_metrics['data_size']} rolls")
     print(f"Range:                    {hist_metrics['range']:.2f}    (between smallest and largest)")
     print(f"Mode (most common value): {hist_metrics['mode']}")
@@ -220,7 +249,17 @@ def print_histogram_summary(dice_history):
     cov = hist_metrics['std_dev'] / hist_metrics['mean']
     #https://www.investopedia.com/terms/c/coefficientofvariation.asp
     print(f"Coefficient of Variation:      {cov:.2f} (Std. Dev./Average)")
-
+    sns.set_theme(style='darkgrid')
+    plt.title(f"In {hist_metrics['data_size']} rolls of dice!")
+    plt.ylabel('y = Probability of events %')
+    plt.xlabel("x= Possible Events ")
+    x_values=result
+    y_values = times
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    sns.lineplot(x=x_values,y=y_values,marker='o',linestyle='-',color='cornflowerblue')
+    plt.show()
+    
+    
     # Additional statistics:
     if hist_metrics['variance'] > 0:
         variance_text = "(high variance)"
@@ -247,6 +286,8 @@ def print_histogram_summary(dice_history):
     print(f"Kurtosis (extreme tailedness):      {hist_metrics['kurtosis']:.2f} {kurtosis_text}")
 
 
+
+
 if __name__ == "__main__":
 
     print("UTF-8 characters are too tiny to read:")
@@ -254,8 +295,8 @@ if __name__ == "__main__":
         print(f"{num}:{emoji} ", end="")
     print("")
 
-    print("\nPress Enter to roll, or type 'q' (press contorl+C) to exit. Press")
-    print("h for histogram, u for unicode, n for number, or a ")
+    print("\nPress Enter to roll, or type 'q' (press contorl+C) to exit. Press\n")
+    print("h for histogram,\n u for unicode, \n n for number, or a ")
     print("number for repeat count:")
     while True:  # infinite loop
         user_input = input()
