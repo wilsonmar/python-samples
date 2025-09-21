@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v004 + removed millisec from legend,Title and overlayfixed :seaborn-charts.py"
+__last_change__ = "25-09-20 v005 + regression line with text :seaborn-charts,legend sort from green.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -25,6 +25,8 @@ try:
     import pandas as pd
     import seaborn as sns
     import matplotlib.pyplot as plt
+    
+    
 except Exception as e:
     print(f"Python module import failed: {e}")
     print("Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
@@ -63,14 +65,14 @@ plt.text(
     color='grey'
 )
 plt.text(
-    0.90,  # x-position (0.0 to 1.0)
-    0.90,  # y-position (0.0 to 1.0)
-    'Not Worth It!',
+    0.80,  # x-position (0.0 to 1.0)
+    0.80,  # y-position (0.0 to 1.0)
+    "Not Worth It!",
     horizontalalignment='right',
     verticalalignment='bottom',
     transform=plt.gca().transAxes,
-    fontsize=12,
-    color='red'
+    fontsize=18,
+    color='#F08080'
 )
 plt.text(
     0.20,  # x-position (0.0 to 1.0)
@@ -79,15 +81,26 @@ plt.text(
     horizontalalignment='right',
     verticalalignment='bottom',
     transform=plt.gca().transAxes,
-    fontsize=12,
-    color='green'
+    fontsize=18,
+    color='#006400'
 )
-#change edge color and size of marker by chaging s values
-df.sort_values('Accuracy', ascending=True, inplace=True)
+# Create the scatter plot with regression line
+
+#change edge color and size of marker by changing s values
+df.sort_values("Accuracy", ascending=False, inplace=True)
 #ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn')
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn_r')
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
+# Add text using ax.text()
+ax.text(
+    0.25,  # X-coordinate (5% from the left)
+    0.50,  # Y-coordinate (95% from the bottom)
+    "Regression Line",
+    transform=ax.transAxes, # Use axes coordinates
+    fontsize=12,
+    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+)
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 #Customize the Legend
@@ -107,6 +120,7 @@ for index, row in df.iterrows():
         ha='left',                   # Align the text to the left
         #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
     )
+
 #Display the plot
 plt.tight_layout() # Adjusts plot to fit figure
 plt.show()
