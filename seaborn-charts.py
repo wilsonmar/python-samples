@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v006 + F and p statistics added, % in Accuracy removed from csv :seaborn-charts.py"
+__last_change__ = "25-09-21 v007 + chg Cohere pos. add CoE :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone

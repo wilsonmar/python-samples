@@ -1,13 +1,13 @@
-LLM,Accuracy,MilliSecs,USD cents
-Wit.ai,64,33,42
-IBM,68,28,68
-Azure,75,39,43.1
-Google,95,28,0
-Anthropic,90,29,26.7
-AWS,70,43,53.2
-Cohere,67,13,25.5
-SoundHound,83,23,49
-DeepSeek,63,63,23
-Qwen 3,68,62,15
-Sphinx,65,62,0
-OpenAI,72,61,32
+﻿LLM,Accuracy,MilliSecs,USD cents,CoE
+Wit.ai,64,33,42,1.3
+IBM,68,28,68,1.5
+Azure,75,39,43.1,1.7
+Google,95,28,0,0.5
+Anthropic,90,29,26.7,0.8
+AWS,70,43,53.2,1.2
+Cohere,67,45,18,1.8
+SoundHound,83,23,49,1
+DeepSeek,63,63,23,2.1
+Qwen 3,68,62,15,2.3
+Sphinx,65,62,0,2.5
+OpenAI,72,61,32,2.1
