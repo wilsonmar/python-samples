@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v006 + F and p statistics added, % in Accuracy removed from csv :seaborn-charts.py"
+__last_change__ = "25-09-20 v007 + renamed csv with py filename,Added iloc[] to access positional value :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -33,7 +33,7 @@ except Exception as e:
     exit(9)
 
 #Read data from a CSV file into a pandas DataFrame
-df = pd.read_csv('python-samples-llms.csv')
+df = pd.read_csv('seaborn-charts.csv')
 # Change figure size
 # This must be done BEFORE creating the plot. Control your chart size.
 plt.figure(figsize=(10, 6))
@@ -113,8 +113,8 @@ dfs=df[['Accuracy','USD cents']]# Dependent variables
 Accuracy_Group=df[['MilliSecs']]# Independent variables
 manova_result = manova.MANOVA.from_formula('dfs ~ Accuracy_Group', data=df)
 results=manova_result.mv_test()
-f_value = results.results['Accuracy_Group']['stat']['F Value'][0]# Get the F-value from Wilken's Lambda test
-p_value = results.results['Accuracy_Group']['stat']['Pr > F'][0]  # Get the p-value from Wilken's Lambda test
+f_value = results.results['Accuracy_Group']['stat']['F Value'].iloc[0]# Get the F-value from Wilken's Lambda test
+p_value = results.results['Accuracy_Group']['stat']['Pr > F'].iloc[0]  # Get the p-value from Wilken's Lambda test
 # Add text using ax.text()
 ax.text(
     0.25,  # X-coordinate (5% from the left)
