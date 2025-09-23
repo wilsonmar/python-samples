@@ -28,8 +28,8 @@ Code which I think have the most <strong>practical usefulness</strong>:
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
 
-* <a href="mock-flask.py">mock-flask.py</a> is a Flask server app that purposely returns errors to client responses from <br />
-* <a href="mock-client.py">mock-client.py</a> using the tenacity library to handle errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
+* <a href="retry-flask.py">retry-flask.py</a> is a Flask server app that purposely returns errors to client responses from <br />
+* <a href="retry-client.py">retry-client.py</a> using the tenacity library to handle errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
 
 * <a href="gpu-sample.py">gpu-sample.py</a> recognizes what GPU is available (CUDA or Apple MPS) and runs sample PyTorch <strong>microbenchmarks</strong> of timings and memory used. Enhancements:
 
