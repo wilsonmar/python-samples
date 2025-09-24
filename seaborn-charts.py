@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-24 v009 +  2nd chart with accuracy% in x  :seaborn-charts.py"
+__last_change__ = "25-09-24 v009  +  2nd chart with accuracy% in x  :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
