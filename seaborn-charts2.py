@@ -10,10 +10,13 @@ Before running this:
     chmod +x seaborn-charts.py
 
 # TODO:
-[ ] Remove millisecs legend
+[ ] Remove millisecs legend- Done
 Sort Accuracy legend, green on top
-Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
-Bargain! & Not worth it! overlay? text
+Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot - Done
+Bargain! & Not worth it! overlay? text - Done
+[ ] Add MNOVA results to chart - Done
+[ ] Add trendline - Done
+2nd chart with size by cost, color by accuracy- Done
 
 """
 __last_change__ = "25-09-24 v009  +  2nd chart with accuracy% in x  :seaborn-charts.py"
