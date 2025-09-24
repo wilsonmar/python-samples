@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-09-19 v023 + Cloud AI table :README.md"
+lastchange: "25-09-23 v054 + flask-sampler.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -27,6 +27,9 @@ Code which I think have the most <strong>practical usefulness</strong>:
 * <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generates diagram files from text, using graphwiz tool library.
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
+
+* <a href="retry-flask.py">retry-flask.py</a> is a Flask server app that purposely returns errors to client responses from <br />
+* <a href="retry-client.py">retry-client.py</a> using the tenacity library to handle errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
 
 * <a href="gpu-sample.py">gpu-sample.py</a> recognizes what GPU is available (CUDA or Apple MPS) and runs sample PyTorch <strong>microbenchmarks</strong> of timings and memory used. Enhancements:
 
@@ -162,18 +165,18 @@ capture timings and costs for each request. Here is a sample table for recognizi
 
 <table border="1" cellpadding="4" cellspacing="0">
 <tr><th> LLM </td><td> Output </td><td> MiliSecs.</td><td> Cost USD </td></tr>
-<tr align="right" valign="top"><td align="left"> Anthropic </td><td align="left"> == </td><td align="right"> 33 </td><td> $0.00420 </td></tr>
-<tr align="right" valign="top"><td align="left"> AWS </td><td align="left"> == </td><td align="right"> 28 </td><td> $0.00680 </td></tr>
-<tr align="right" valign="top"><td align="left"> Azure </td><td align="left"> == </td><td align="right"> 39 </td><td> $0.00431 </td></tr>
-<tr align="right" valign="top"><td align="left"> DeepSeek </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
-<tr align="right" valign="top"><td align="left"> Google </td><td align="left"> docker </td><td align="right"> - </td><td> - </td></tr>
-<tr align="right" valign="top"><td align="left"> IBM </td><td align="left"> - </td><td align="right"> 29 </td><td> $0.00267 </td></tr>
-<tr align="right" valign="top"><td align="left"> Mistral </td><td align="left"> rocker </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
-<tr align="right" valign="top"><td align="left"> Cohere </td><td align="left"> == </td><td align="right"> 13 </td><td> $0.00255 </td></tr>
-<tr align="right" valign="top"><td align="left"> OpenAI </td><td align="left"> == </td><td align="right"> 23 </td><td> $0.00490 </td></tr>
-<tr align="right" valign="top"><td align="left"> Qwen 3 </td><td align="left"> == </td><td align="right"> 63 </td><td> $0.00230 </td></tr>
-<tr align="right" valign="top"><td align="left"> Sphinx </td><td align="right"> - </td><td align="right"> - </td><td> - </td></tr>
-<tr align="right" valign="top"><td align="left"> Wit.ai </td><td align="left"> == </td><td align="right"> 61 </td><td> $0.00320 </td></tr>
+<tr align="right" valign="top"><td align="left"> Anthropic </td><td align="left"> 91% </td><td align="right"> 33 </td><td> $0.00420 </td></tr>
+<tr align="right" valign="top"><td align="left"> AWS </td><td align="left"> 89% </td><td align="right"> 28 </td><td> $0.00680 </td></tr>
+<tr align="right" valign="top"><td align="left"> Azure </td><td align="left"> 78% </td><td align="right"> 39 </td><td> $0.00431 </td></tr>
+<tr align="right" valign="top"><td align="left"> DeepSeek </td><td align="left"> 63% </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Google </td><td align="left"> 95% </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> IBM </td><td align="left"> 87% </td><td align="right"> 29 </td><td> $0.00267 </td></tr>
+<tr align="right" valign="top"><td align="left"> Mistral </td><td align="left"> 77%r </td><td align="right"> 43 </td><td> $0.00532 </td></tr>
+<tr align="right" valign="top"><td align="left"> Cohere </td><td align="left"> 82% </td><td align="right"> 13 </td><td> $0.00255 </td></tr>
+<tr align="right" valign="top"><td align="left"> OpenAI </td><td align="left"> 88% </td><td align="right"> 23 </td><td> $0.00490 </td></tr>
+<tr align="right" valign="top"><td align="left"> Qwen 3 </td><td align="left"> 72% </td><td align="right"> 63 </td><td> $0.00230 </td></tr>
+<tr align="right" valign="top"><td align="left"> Sphinx </td><td align="right"> 55% </td><td align="right"> - </td><td> - </td></tr>
+<tr align="right" valign="top"><td align="left"> Wit.ai </td><td align="left"> 63% </td><td align="right"> 61 </td><td> $0.00320 </td></tr>
 </table>
 
 <tt>==</tt> above means the word was recognized correctly.<br />
