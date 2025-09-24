@@ -16,7 +16,7 @@ Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot
 Bargain! & Not worth it! overlay? text
 
 """
-__last_change__ = "25-09-20 v007 + renamed csv with py filename,Added iloc[] to access positional value :seaborn-charts.py"
+__last_change__ = "24-09-20 v008 + 2nd chart with accuracy% in x  :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -78,12 +78,13 @@ plt.text(
     fontsize=18,
     color='#006400'
 )
+# Create a first chart
 
 #change edge color and size of marker by changing s values
 df.sort_values("Accuracy", ascending=False, inplace=True)
 #ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',size='Accuracy',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
-ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', ax=ax, scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,color='cornflowerblue',legend='auto',hue='Accuracy',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
+ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 
 #Add plot titles and labels for clarity
@@ -94,8 +95,13 @@ plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #Customize the Legend
-plt.legend(title='Accuracy') # Adds a legend for the size
-
+#ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
+# Place the legend outside the plot area
+plt.legend(
+    bbox_to_anchor=(1.05, 1),
+    loc="upper left",
+    borderaxespad=0.
+)
 # Dynamically label each point with the LLM name
 for index, row in df.iterrows():
     # Place text to the right of each point
@@ -109,6 +115,8 @@ for index, row in df.iterrows():
     )
 
 # Calculate MNOVA values
+#https://in.mathworks.com/discovery/manova.html for context 
+#https://online.stat.psu.edu/stat505/book/export/html/762 and https://www.statsmodels.org/dev/_modules/statsmodels/multivariate/manova.html
 dfs=df[['Accuracy','USD cents']]# Dependent variables
 Accuracy_Group=df[['MilliSecs']]# Independent variables
 manova_result = manova.MANOVA.from_formula('dfs ~ Accuracy_Group', data=df)
@@ -123,6 +131,59 @@ ax.text(
     transform=ax.transAxes, # Use axes coordinates
     fontsize=12,
     bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+)
+#Display the plot
+plt.tight_layout() # Adjusts plot to fit figure
+plt.show()
+
+# Create a second chart
+plt.figure(figsize=(10, 6))
+# Ensure 'x_column' and 'y_column' exist in your CSV file
+sns.set_theme(style='darkgrid')
+df.sort_values("Accuracy", ascending=False, inplace=True)
+#ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
+ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
+ax=sns.regplot(data=df, x='Accuracy', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
+
+#Add plot titles and labels for clarity
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+ax.set_title('LLM Eval: Cost vs Accuracy Scatter Plot', fontsize=16)
+plt.xlabel('Accuracy %')
+plt.ylabel('USD cents cost')
+sns.despine(trim=True, offset=5)
+#Customize the Legend
+ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
+#ax.legend(bbox_to_anchor=(1, 1),
+#          loc='upper right', borderaxespad=0., title='Accuracy', fontsize='small', title_fontsize='medium')
+# Dynamically label each point with the LLM name
+for index, row in df.iterrows():
+    # Place text to the right of each point
+    plt.annotate(
+        text=row['LLM'],           # Use the LLM name as the label
+        xy=(row['Accuracy'], row['USD cents']),
+        xytext=(10, 0),              # Offset the text by 10 points to the right
+        textcoords='offset points',
+        ha='left',                   # Align the text to the left
+        #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
+    )
+ax.text(
+    0.25,  # X-coordinate (5% from the left)
+    0.50,  # Y-coordinate (95% from the bottom)
+    f"F={f_value:.2f} p={p_value:.2f}",#f"F:{f_value:.2f} p={p_value:.3f}",  # Text to display
+    transform=ax.transAxes, # Use axes coordinates
+    fontsize=12,
+    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+)
+plt.text(
+    0.95,  # x-position (0.0 to 1.0)
+    0.95,  # y-position (0.0 to 1.0)
+    formatted_time,
+    horizontalalignment='right',
+    verticalalignment='bottom',
+    transform=plt.gca().transAxes,
+    fontsize=8,
+    color='grey'
 )
 #Display the plot
 plt.tight_layout() # Adjusts plot to fit figure
