@@ -17,9 +17,12 @@ Bargain! & Not worth it! overlay? text - Done
 [ ] Add MNOVA results to chart - Done
 [ ] Add trendline - Done
 2nd chart with size by cost, color by accuracy- Done
+Can we make the comments "Not Worth It!" and "Bargain!" in italics?- Done
+Can we make the font larger for all chars? - Done
+Can the legend be on the right on both plots? -Done
 
 """
-__last_change__ = "25-09-24 v009  +  2nd chart with accuracy% in x  :seaborn-charts.py"
+__last_change__ = "25-09-25 v010  +  comments incorporated  :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -66,9 +69,10 @@ plt.text(
     0.80,  # y-position (0.0 to 1.0)
     "Not Worth It!",
     horizontalalignment='right',
+    fontstyle='italic',
     verticalalignment='bottom',
     transform=plt.gca().transAxes,
-    fontsize=18,
+    fontsize=22,
     color='#F08080'
 )
 plt.text(
@@ -77,8 +81,9 @@ plt.text(
     'Bargain!',
     horizontalalignment='right',
     verticalalignment='bottom',
+    fontstyle='italic',
     transform=plt.gca().transAxes,
-    fontsize=18,
+    fontsize=22,
     color='#006400'
 )
 # Create a first chart
@@ -93,7 +98,7 @@ ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', scatter=False, ci=None, co
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 
-ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=16)
+ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=22)
 plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
@@ -114,6 +119,7 @@ for index, row in df.iterrows():
         xytext=(10, 0),              # Offset the text by 10 points to the right
         textcoords='offset points',
         ha='left',                   # Align the text to the left
+         fontsize=12
         #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
     )
 
@@ -151,14 +157,21 @@ ax=sns.regplot(data=df, x='Accuracy', y='USD cents', scatter=False, ci=None, col
 #Add plot titles and labels for clarity
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 
-ax.set_title('LLM Eval: Cost vs Accuracy Scatter Plot', fontsize=16)
+ax.set_title('LLM Eval: Cost vs Accuracy Scatter Plot', fontsize=22)
 plt.xlabel('Accuracy %')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #Customize the Legend
-ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
+#ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
 #ax.legend(bbox_to_anchor=(1, 1),
 #          loc='upper right', borderaxespad=0., title='Accuracy', fontsize='small', title_fontsize='medium')
+# Place the legend outside the plot area
+plt.legend(
+    bbox_to_anchor=(1.05, 1),
+    loc="upper left",
+    borderaxespad=0.,
+    title='Accuracy'
+)
 # Dynamically label each point with the LLM name
 for index, row in df.iterrows():
     # Place text to the right of each point
@@ -168,6 +181,7 @@ for index, row in df.iterrows():
         xytext=(10, 0),              # Offset the text by 10 points to the right
         textcoords='offset points',
         ha='left',                   # Align the text to the left
+        fontsize=12
         #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
     )
 ax.text(
