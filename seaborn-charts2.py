@@ -17,9 +17,12 @@ Bargain! & Not worth it! overlay? text - Done
 [ ] Add MNOVA results to chart - Done
 [ ] Add trendline - Done
 2nd chart with size by cost, color by accuracy- Done
+Can we make the comments "Not Worth It!" and "Bargain!" in italics?- Done
+Can we make the font larger for all chars? - Done
+Can the legend be on the right on both plots? -Done
 
 """
-__last_change__ = "25-09-25 v010  +  2nd chart with accuracy% in x  :seaborn-charts.py"
+__last_change__ = "25-09-25 v010  +  comments incorporated  :seaborn-charts.py"
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
