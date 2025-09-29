@@ -30,7 +30,7 @@ Can we make the font larger for all chars? - Done
 Can the legend be on the right on both plots? -Done
 
 """
-__last_change__ = "25-09-25 v010  +  comments incorporated  :seaborn-charts.py"
+__last_change__ = "25-09-29 v011  +  2nd chart legend hyphen fixed  :seaborn-charts.py"
 
 
 # Internal imports (no pip/uv add needed):
@@ -95,7 +95,7 @@ plt.text(
 
 #change edge color and size of marker by changing s values
 df.sort_values("Accuracy", ascending=False, inplace=True)
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,color='cornflowerblue',legend='auto',hue='Accuracy',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
+ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,color='cornflowerblue',hue='Accuracy',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 
@@ -153,7 +153,7 @@ plt.figure(figsize=(10, 6))
 # Ensure 'x_column' and 'y_column' exist in your CSV file
 sns.set_theme(style='darkgrid')
 df.sort_values("Accuracy", ascending=False, inplace=True)
-ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,ls='-',legend='auto',color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
+ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
 ax=sns.regplot(data=df, x='Accuracy', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 #Add plot titles and labels for clarity
