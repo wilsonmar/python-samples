@@ -8,6 +8,14 @@ https://github.com/wilsonmar/python-samples/blob/main/seaborn-charts.py
 
 Before running this:
     chmod +x seaborn-charts.py
+    
+In Window machine command prompt:
+    python seaborn-charts.py
+In Mac/Linux command line:
+    ./seaborn-charts.py
+Requires:
+    pip install pandas seaborn matplotlib statsmodels
+    
 
 # TODO:
 [ ] Remove millisecs legend- Done
@@ -23,6 +31,7 @@ Can the legend be on the right on both plots? -Done
 
 """
 __last_change__ = "25-09-25 v010  +  comments incorporated  :seaborn-charts.py"
+
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
@@ -45,10 +54,6 @@ df = pd.read_csv('seaborn-charts.csv')
 plt.figure(figsize=(10, 6))
 # Ensure 'x_column' and 'y_column' exist in your CSV file
 sns.set_theme(style='darkgrid')
-# Get the colors from a Seaborn palette
-#palette = sns.color_palette("RdYlGn_r", as_cmap=False, n_colors=len(df['Accuracy'].unique()))
-#color_map = {category: color for category, color in zip(df['Accuracy'].unique(), palette)}
-#edge_colors = df['Accuracy'].map(color_map).values
 
 #Get the current UTC time
 current_utc_time = datetime.now(timezone.utc)
@@ -90,7 +95,6 @@ plt.text(
 
 #change edge color and size of marker by changing s values
 df.sort_values("Accuracy", ascending=False, inplace=True)
-#ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
 ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,color='cornflowerblue',legend='auto',hue='Accuracy',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
 ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
@@ -103,13 +107,12 @@ plt.xlabel('Milliseconds response time')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #Customize the Legend
-#ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
 # Place the legend outside the plot area
 plt.legend(
     bbox_to_anchor=(1.05, 1),
     loc="upper left",
     borderaxespad=0.
-)
+    )
 # Dynamically label each point with the LLM name
 for index, row in df.iterrows():
     # Place text to the right of each point
@@ -150,8 +153,7 @@ plt.figure(figsize=(10, 6))
 # Ensure 'x_column' and 'y_column' exist in your CSV file
 sns.set_theme(style='darkgrid')
 df.sort_values("Accuracy", ascending=False, inplace=True)
-#ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='Accuracy',legend='auto',edgecolor='black',sizes=(50,200),size='MilliSecs',palette='RdYlGn')
-ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,ls='-',color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
+ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,ls='-',legend='auto',color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
 ax=sns.regplot(data=df, x='Accuracy', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
 
 #Add plot titles and labels for clarity
@@ -162,9 +164,6 @@ plt.xlabel('Accuracy %')
 plt.ylabel('USD cents cost')
 sns.despine(trim=True, offset=5)
 #Customize the Legend
-#ax.legend(title='Accuracy', loc='best') # Adds a legend for the size
-#ax.legend(bbox_to_anchor=(1, 1),
-#          loc='upper right', borderaxespad=0., title='Accuracy', fontsize='small', title_fontsize='medium')
 # Place the legend outside the plot area
 plt.legend(
     bbox_to_anchor=(1.05, 1),
