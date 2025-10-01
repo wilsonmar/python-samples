@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 Wilson Mar
 
-"""secrets-utils.py.
+"""secrets-utils.py here.
 
 This program presents a GUI website on a macOS and Linux machine to encrypt text and files, then share them  privately with automatic decryption. 
 
@@ -15,7 +15,7 @@ Gmail does not provide a way for senders to send and recipients to read encrypte
 This program provides a convenient and way to generate passwords. Third-party password generators such as
 Bitwarden Send or Onetime Secret allow sending encrypted secrets, but any public website has dubious trustability.
 
-Here's how h bgthis program works:
+Here's how this program works:
 
 1. Start the program by specifying parms to supply the cleartext or the filepath to a file.
 
@@ -71,16 +71,21 @@ USAGE: To run this program, on a Terminal:
     uv run secrets-utils.py -v -vv -ct "My secret"
 """
 
-__last_change__ = "25-09-04 v007 + random funcs :secrets-utils.py"
+__last_change__ = "25-09-28 v009 + .enc from .env :secrets-utils.py"
+__status__ = "encrypting to .enc not yet tested."
 
 # Built-in libraries:
 import argparse
+import base64
 #import csv
 from datetime import datetime, timezone
 import hashlib
+import math
 import os
+from pathlib import Path
 # import pytz
 import random
+import re      # regex
 import sys
 import time
 import uuid
@@ -90,7 +95,14 @@ import uuid
 try:
     from argon2 import PasswordHasher     # uv pip install argon2-cffi
     from cryptography.fernet import Fernet
+
+    from fido2.hid import CtapHidDevice
+    #from fido2.client import Fido2Client
+    #from fido2.server import Fido2Server
+    # from fido2.webauthn import PublicKeyCredentialRpEntity, PublicKeyCredentialUserEntity
+    #from fido2 import cbor
     import gnupg
+    #import inspect
     import psutil
     import secrets    # uv pip install secrets   # for random number (token, key) generation.
 except Exception as e:
@@ -98,16 +110,16 @@ except Exception as e:
     # uv run log-time-csv.py
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
-    print("Please activate your virtual environment:\n  uv env env\n  source .venv/bin/activate")
+    print("Please activate your virtual environment:\n  uv venv .venv\n  source .venv/bin/activate")
     exit(9)
 
 
 # Global static variables:
-SHOW_VERBOSE = False
-SHOW_DEBUG = False
-SHOW_SUMMARY = False
+SHOW_VERBOSE = True
+SHOW_DEBUG = True
+SHOW_SUMMARY = True
 cleartext = "Hello World!"
-
+create_enc_file = True
 
 
 # Program Timings:
@@ -196,6 +208,46 @@ def pgm_memory_used() -> (float, str):
     mem=process.memory_info().rss / (1024 ** 2)  # in z
     return mem, process_info
 
+
+def pgm_summary(std_strt_datetimestamp, loops_count):
+    """Print summary count of files processed and the time to do them."""
+    # For wall time of standard imports:
+    pgm_stop_datetimestamp = datetime.now()
+    pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
+
+    if SHOW_SUMMARY:
+        pgm_stop_mem_used, process_data = pgm_memory_used()
+        pgm_stop_mem_diff = pgm_stop_mem_used - pgm_strt_mem_used
+        print(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run in {process_data}.")
+
+        pgm_stop_disk_diff = pgm_strt_disk_free - pgm_diskspace_free()
+        print(f"{pgm_stop_disk_diff:.6f} GB disk space consumed during run.")
+
+        print(f"SUMMARY: Ended while attempting loop {loops_count} in {pgm_elapsed_wall_time} seconds.")
+    else:
+        print(f"SUMMARY: Ended while attempting loop {loops_count}.")
+
+
+## URL
+
+
+def filepath_audit(filepath) -> str:
+    """Convert $HOME and tilde in first character of path to user's home folder.
+    
+    Used by load_env_file() below.
+    """
+    if filepath.startswith("~/"):
+        adjusted_filepath = os.path.expanduser("~") + filepath.replace(filepath[0], "", 2)
+    elif filepath.startswith("$HOME/"):
+        adjusted_filepath = os.path.expanduser("~") + filepath.removeprefix("$HOME/")  # Python 3.9+
+    else:
+        adjusted_filepath = filepath
+
+    if SHOW_DEBUG:
+        print(f"filepath_audit({filepath}) = {adjusted_filepath} ")
+    return adjusted_filepath
+
+
 ## Folders & Files Disk Space Utilities:
 
 def pgm_diskspace_free() -> float:
@@ -274,6 +326,8 @@ def format_bytes(bytes_value, show_mib=True, show_mb=True) -> str:
 # TODO: zip
 # TODO: unzip
 
+
+
 ### Random Numbers:
 
 def random_num(byte_size, algorithm="random") -> int:
@@ -350,6 +404,24 @@ def gen_uuid_seq() -> str:
     #import uuid  #built-in
     return str(uuid.uuid1())
 
+
+def shannon_entropy(data):
+    """Count frequency of each byte value (0-255) for entropy of 0 to 8."""
+    byte_counts = [0] * 256
+    for byte in data:
+        byte_counts[byte] += 1
+    data_len = len(data)
+    
+    entropy = 0.0
+    for count in byte_counts:
+        if count == 0:
+            continue
+        p = count / data_len
+        entropy -= p * math.log(p, 2)  # log base 2 for entropy in bits
+    return entropy
+    # How about dividing 4.782 / 8 for like 59.1%?
+
+
 ### Hashing
 
 def hash_txt(cleartext,hash_type="Argon2id") -> str:
@@ -395,9 +467,55 @@ def hash_txt(cleartext,hash_type="Argon2id") -> str:
     return hashed
 
 
-### Encryption
+### Encryption/Decryption
 
 # https://www.howtogeek.com/734838/how-to-use-encrypted-passwords-in-bash-scripts/
+
+
+def fido2_secret() -> str:
+    """Read and return FIDO2 key ID number for use as a key for symmetric encryption."""
+    try: 
+        # TECHNIQUE: List all CTAP HID devices
+        print("VERBOSE: fido2_secret(): list FIDO2 devices:")
+        devices = list(CtapHidDevice.list_devices())
+        if not devices:
+            # print(f"DOTHIS: Please insert a FIDO Key {devices}.")
+            # TODO: Retry twice to look for key insertion:
+            print("FATAL: fido2_secret() found no FIDO2 devices.")
+            return None
+        else:
+            # Get the first device
+            device = devices[0]
+            # Extract a numeric identifier from the device
+            # The device object has attributes like product_string, manufacturer_string, etc.
+            # For now, let's use the hash of the device string representation as a numeric key
+            device_str = str(device)
+            # Extract the numeric part from the device string if it exists
+            #import re
+            numbers = re.findall(r'\d+', device_str)
+            if numbers:
+                number = int(numbers[0])  # Use the first number found
+                print(f"SECRET: fido2_secret(): device number={number}")
+                # Generate key_bytes from this number
+                key_source_str = str(number) + "5922447320"
+                raw_key = hashlib.sha256(key_source_str.encode('utf-8')).digest()
+                key_bytes = base64.urlsafe_b64encode(raw_key)
+                print(f"INFO: fido2_secret(): Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
+                return key_bytes
+            else:
+                number = abs(hash(device_str)) % (10**8)  # Keep it to 8 digits max
+                # print(f"SECRET: device hash number={number}")
+                # TECHNIQUE: Use the FIDO2 key ID plus a seed to make at least 32 bytes required.
+                key_source_str = str(number) + "5922447320" # "5922447320197353942422"
+                # TECHNIQUE: Make key into "bytes" which means base64 url-safe encoded:
+                raw_key = hashlib.sha256(key_source_str.encode('utf-8')).digest()
+                key_bytes = base64.urlsafe_b64encode(raw_key)
+                print(f"INFO: fido2_secret(): Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
+                return key_bytes
+    except Exception as e:
+        print(f"fido2_secret(): Error: {e}")
+        return None
+
 
 def passkey(platform_id) -> str:
     """Enable Flask app to use Passkeys by known platforms to manage registration and login.
@@ -435,17 +553,17 @@ def passkey(platform_id) -> str:
     # The best implementations of passkeys don’t even need a username.
     return passkey
 
+
 def encrypt_file_gnupg(public_key_file, input_file, output_file):
     """Encrypt a file using a (GNU Privacy Guard) public key."""
     # import gnupg
     gpg = gnupg.GPG()
-    
-    # Import the public key
+    # Import the public key:
     with open(public_key_file, 'r') as key_file:
         key_data = key_file.read()
         import_result = gpg.import_keys(key_data)
-    
-    # Encrypt the input file using the imported public key
+
+    # Encrypt the input file using the imported public key:
     with open(input_file, 'rb') as f:
         status = gpg.encrypt_file_gnupg(
             f,
@@ -453,11 +571,11 @@ def encrypt_file_gnupg(public_key_file, input_file, output_file):
             output=output_file,
             always_trust=True
         )
-    
     if status.ok:
-        print(f"File encrypted successfully to {output_file}")
+        print(f"encrypt_file_gnupg(): encrypted file {output_file}")
     else:
-        print("Encryption failed:", status.status)
+        print("encrypt_file_gnupg(): failed:", status.status)
+
 
 def get_encrypt_key_obj(password=None) -> str:
     """Create symmetric key_obj using the Fernet library."""
@@ -467,6 +585,7 @@ def get_encrypt_key_obj(password=None) -> str:
     with open('key.key', 'wb') as key_file:
         key_file.write(key_obj)
     return key_obj
+
 
 def encrypt_str(cleartext_str, key_obj) -> str:
     """Encrypt string with URL-safe 44-byte base64 AES-256 symmetric key using the Fernet library.
@@ -492,29 +611,157 @@ def decrypt_str(encrypted_text, key_obj) -> str:
     return decrypted_text
 
 
-
-#### Summary
-
-def pgm_summary(std_strt_datetimestamp, loops_count):
-    """Print summary count of files processed and the time to do them."""
-    # For wall time of standard imports:
-    pgm_stop_datetimestamp = datetime.now()
-    pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
-
-    if SHOW_SUMMARY:
-        pgm_stop_mem_used, process_data = pgm_memory_used()
-        pgm_stop_mem_diff = pgm_stop_mem_used - pgm_strt_mem_used
-        print(f"{pgm_stop_mem_diff:.6f} MB memory consumed during run in {process_data}.")
-
-        pgm_stop_disk_diff = pgm_strt_disk_free - pgm_diskspace_free()
-        print(f"{pgm_stop_disk_diff:.6f} GB disk space consumed during run.")
-
-        print(f"SUMMARY: Ended while attempting loop {loops_count} in {pgm_elapsed_wall_time} seconds.")
+def symmetrically_encrypt_file(filepath, key) -> str:
+    """Encrypt file using a symmetric (two-way) key."""
+    if key:
+        print(f"VERBOSE: symmetrically_encrypt_file(): Fernet key (base64 encoded): {key} has {len(key)} bytes!")
     else:
-        print(f"SUMMARY: Ended while attempting loop {loops_count}.")
+        print("VERBOSE: symmetrically_encrypt_file(): Fernet key is None.")
+    try:
+        #from cryptography.fernet import Fernet, InvalidToken
+        fernet = Fernet(key)
+        with open(filepath, "rb") as file:
+            encrypted_data = file.read()
+        encrypted_data = fernet.encrypt(file_data)
+
+        # TECHNIQUE: Add ".enc" to end of file name containing encrypted data:
+        enc_filepath = filepath + ".enc"
+        print(f"symmetrically_encrypt_file() {enc_filepath} created.")
+        with open(enc_filepath, "wb") as file:
+            file.write(encrypted_data)
+        return enc_filepath
+    #except InvalidToken as e:
+    #    # TECHNIQUE: Specific line of failure:
+    #    error_line = sys.exc_info()[2].tb_lineno
+    #    print("symmetrically_encrypt_file() at line {error_line} failed:", e)
+    #    return None
+    except Exception as e:
+        print("symmetrically_encrypt_file() failed:", e)
+        return None
+
+
+def symmetrically_decrypt_file(filepath, key):
+    """Decrypt file using a symmetric (two-way) key."""
+    print(f"INFO: Fernet key (base64 encoded): {key} has {len(key)} bytes!")
+    #from cryptography.fernet import Fernet
+    fernet = Fernet(key)
+    with open(filepath, "rb") as file:
+        encrypted_data = file.read()
+    try:
+        decrypted_data = fernet.decrypt(encrypted_data)
+        # fall thru.
+    except Exception as e:
+        print("symmetrically_decrypt_file() failed:", e)
+        return None
+
+    enc_filepath = filepath + ".enc"
+    with open(filepath, "wb") as file:
+        file.write(decrypted_data)
+        print(f"VERBOSE: symmetrically_decrypt_file(): created file {enc_filepath}")
+
+    # TODO: Remove .env from Trash:
+
+    return enc_filepath
+
+
+#def symmetrically_encrypt_file_with_fido2(filepath) -> str:
+#    """Encrypt file using FIDO2 KeyID as a symmetric (two-way) key."""
+
+#def symmetrically_decrypt_file_with_fido2(filepath) -> str:
+#    """Encrypt file using FIDO2 KeyID as a symmetric (two-way) key."""
+
+# TODO: def add/update entry in .env file encrypted/decrypted using FIDO2
+
+def load_env_file(variable_name, env_file='~/python-samples.env') -> str:
+    """Retrieve a variable from a .env file in Python (without the external dotenv package).
+    
+    USAGE: my_variable = load_env_file('MY_VARIABLE')
+    Instead of like: api_key = os.getenv("API_KEY")
+    Instead of settings = Dynaconf(settings_files=['settings.toml']); print(settings.database_url)
+    TODO: If env_file name ends with .enc, decrypt.
+    TODO: If env_file name ends with .env, encrypt it as new name ending with .enc.
+    TODO: Encrypt using a key in Titan USB serial number. Rename with .enc for encrypted.
+    TODO: Add a parm to retrieve variable from cloud store (Pulumi/Akeyless/AWS Secret Manager, etc.)
+    FIDO is $60. https://onlykey.io is $49.99.
+    """
+    home_path_env = filepath_audit(env_file)
+    # if ".enc" is file name, it's encrypted, so unencrypt it with and delete it after:
+    fido2_secret_key = fido2_secret()
+    if not fido2_secret_key:
+        print("ERROR: Without a FIDO2 key, only looking at unencrypted .env file.")
+        # FIXME: Still dying.
+
+    if home_path_env[-4:] == ".env":    # it's NOT an encrypted file:
+        print(f"load_env_file(): file {home_path_env} being referenced.")
+        # fall through to read vars in .env file.
+
+    elif home_path_env[-4:] == ".enc":    # it's an encrypted file, so decrypt to .env
+        print(f"load_env_file(): home_path_env={home_path_env}")
+ 
+        # fido2_secret renames ".env" from home_path_env (so it doesn't end up in Trash after):
+        # TECHNIQUE: Remove ".enc" from end of file path:
+        home_path_env = home_path_env[:-4]
+        if not home_path_env.endswith(".env"):
+            print("FATAL: load_env_file(): file {home_path_env} extension not .env!")
+            return None
+    
+        # TODO: TECHNIQUE: key = b'your_fernet_key_here'  # Fernet key must be bytes
+        home_path_env = symmetrically_decrypt_file(home_path_env, fido2_secret_key) # write in place.
+        print("VERBOSE: load_env_file(): file {home_path_env} created temporarily.")
+
+    else:  # home_path_env[-4:] != ".enc" 
+        print("FATAL: load_env_file(): file {home_path_env} extension not recognized!")
+        return None
+    
+    # from pathlib import Path
+    env_path = Path(home_path_env)
+    if SHOW_DEBUG:
+        print(f"DEBUG: load_env_file(): env_path={env_path}")
+    if env_path.is_file() and env_path.exists():
+        if SHOW_DEBUG:
+            print("DEBUG: load_env_file(): .env file is accessible")
+    else:
+        print(f"ERROR: load_env_file(): .env file {env_path} is not accessible")
+        return None
+
+    if create_enc_file:
+        home_path_enc = str(env_path) + ".enc"
+        home_path_enc = symmetrically_encrypt_file(env_path, fido2_secret_key)
+        print(f"load_env_file(): encrypting file {home_path_enc}...")
+
+    try:
+        with open(env_path) as file:
+            # TODO: Handle possible FileNotFoundError: [Errno 2] No such file or directory: 'Users/johndoe/python-samples.env'
+            for line in file:
+                # Strip whitespace and ignore comments or empty lines:
+                line = line.strip()
+                if line.startswith('#') or not line:
+                    continue
+                
+                # Split the line into key and value:
+                key_value = line.split('=', 1)
+                if len(key_value) != 2:
+                    continue
+                
+                key, value = key_value
+                if key.strip() == variable_name:
+                    result = value.strip().strip('\"').strip('\'')
+                    return result
+
+    except Exception as e:
+        print(f"load_env_file(): {e}")
+        return None
+
+    return None
 
 
 if __name__ == '__main__':
+
+    pulumi_region = load_env_file("PULUMI_REGION")
+    if pulumi_region:
+        print(f"INFO: pulumi_region={pulumi_region}")
+    exit()
+
 
     local_timestamp = gen_local_timestamp()
     if SHOW_DEBUG:
@@ -543,7 +790,13 @@ if __name__ == '__main__':
     random_num(19,"urandom")  # (number of digits, algorithm)
     random_num(19,"randbelow")  # (number of digits, algorithm)
     random_num(19,"randbits")  # (number of digits, algorithm)
-    exit()
+
+
+    with open(filepath, "rb") as file:
+        file_data = file.read()
+    entropy_value = shannon_entropy(file_data)
+    print(f"Entropy of file '{filepath}': {entropy_value:.4f} bits per byte")
+    # https://cocomelonc.github.io/malware/2022/11/05/malware-analysis-6.html This function reads the file in binary mode, counts the frequency of each byte, then calculates the entropy by summing the probabilities times their log base 2, yielding an entropy value in bits per byte. Higher entropy indicates more randomness (e.g., encrypted or compressed files). Typical entropy values range from 0 (all bytes the same) to 8 (completely random).x  
 
     print("\nUUID:")
     uuid_rand = gen_uuid_rand()
