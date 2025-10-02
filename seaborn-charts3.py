@@ -2,39 +2,15 @@
 
 """seaborn-charts.py here.
 
-Create chart for the data.
-
-https://github.com/wilsonmar/python-samples/blob/main/seaborn-charts.py
-
-Before running this:
-    chmod +x seaborn-charts.py
-    
-In Window machine command prompt:
-    python seaborn-charts.py
-In Mac/Linux command line:
-    ./seaborn-charts.py
-Requires:
-    pip install pandas seaborn matplotlib statsmodels
-    
-
-# TODO:
-[ ] Remove millisecs legend- Done
-Sort Accuracy legend, green on top
-Title to LLM Eval: Cost vs Accuracy vs Speed Scatter Plot - Done
-Bargain! & Not worth it! overlay? text - Done
-[ ] Add MNOVA results to chart - Done
-[ ] Add trendline - Done
-2nd chart with size by cost, color by accuracy- Done
-Can we make the comments "Not Worth It!" and "Bargain!" in italics?- Done
-Can we make the font larger for all chars? - Done
-Can the legend be on the right on both plots? -Done
-
+Create chart for the data side-by-side using plt.subplots().
 """
-__last_change__ = "25-10-01 v012  +  2nd chart legend hyphen fixed  :seaborn-charts.py"
+
+__last_change__ = "25-10-02 v013 + Side-by-Side Plotting"
 
 
 # Internal imports (no pip/uv add needed):
 from datetime import datetime, timezone
+import sys
 
 try:
     import pandas as pd
@@ -45,162 +21,149 @@ try:
 except Exception as e:
     print(f"Python module import failed: {e}")
     print("Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
-    exit(9)
+    sys.exit(9)
 
-#Read data from a CSV file into a pandas DataFrame
-df = pd.read_csv('seaborn-charts.csv')
-# Change figure size
-# This must be done BEFORE creating the plot. Control your chart size.
-plt.figure(figsize=(10, 6))
-# Ensure 'x_column' and 'y_column' exist in your CSV file
-sns.set_theme(style='darkgrid')
+# --- Configuration & Helpers ---
 
-#Get the current UTC time
-current_utc_time = datetime.now(timezone.utc)
-formatted_time = current_utc_time.strftime('%Y-%m-%d %H:%M:%S UTC')
-# The 'transform=plt.gca().transAxes' places the text relative to the axes
-plt.text(
-    0.95,  # x-position (0.0 to 1.0)
-    0.95,  # y-position (0.0 to 1.0)
-    formatted_time,
-    horizontalalignment='right',
-    verticalalignment='bottom',
-    transform=plt.gca().transAxes,
-    fontsize=8,
-    color='grey'
-)
-plt.text(
-    0.80,  # x-position (0.0 to 1.0)
-    0.80,  # y-position (0.0 to 1.0)
-    "Not Worth It!",
-    horizontalalignment='right',
-    fontstyle='italic',
-    verticalalignment='bottom',
-    transform=plt.gca().transAxes,
-    fontsize=22,
-    color='#F08080'
-)
-plt.text(
-    0.20,  # x-position (0.0 to 1.0)
-    0.20,  # y-position (0.0 to 1.0)
-    'Bargain!',
-    horizontalalignment='right',
-    verticalalignment='bottom',
-    fontstyle='italic',
-    transform=plt.gca().transAxes,
-    fontsize=22,
-    color='#006400'
-)
-# Create a first chart
+# Adjust figure size for side-by-side display (e.g., width doubled)
+FIGURE_SIZE = (18, 7)
+FONT_SIZE = {
+    'title': 14,
+    'label': 12,
+    'annotate': 10,
+    'overlay': 18,
+    'datestamp': 8,
+    'manova': 10,
+}
+POINT_SIZES = (50, 200)
 
-#change edge color and size of marker by changing s values
-df.sort_values("Accuracy", ascending=False, inplace=True)
-ax=sns.scatterplot(data=df, x='MilliSecs', y='USD cents',markers=True,color='cornflowerblue',hue='Accuracy',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
-ax=sns.regplot(data=df, x='MilliSecs', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
+def add_annotations(ax, df, formatted_time, f_value, p_value, is_first_plot):
+    """Add standard annotations (text, MNOVA, LLM names, trendline) to a given axis."""
+    # Define columns based on plot type
+    x_col = 'MilliSecs' if is_first_plot else 'Accuracy'
+    y_col = 'USD cents'
 
-
-#Add plot titles and labels for clarity
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-
-ax.set_title('LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', fontsize=22)
-plt.xlabel('Milliseconds response time')
-plt.ylabel('USD cents cost')
-sns.despine(trim=True, offset=5)
-#Customize the Legend
-# Place the legend outside the plot area
-plt.legend(
-    bbox_to_anchor=(1.05, 1),
-    loc="upper left",
-    borderaxespad=0.
+    # Datestamp
+    ax.text(
+        0.80, .90, formatted_time,
+        horizontalalignment='right', verticalalignment='bottom',
+        transform=ax.transAxes, fontsize=FONT_SIZE['datestamp'], color='grey'
     )
-# Dynamically label each point with the LLM name
-for index, row in df.iterrows():
-    # Place text to the right of each point
-    plt.annotate(
-        text=row['LLM'],           # Use the LLM name as the label
-        xy=(row['MilliSecs'], row['USD cents']),
-        xytext=(10, 0),              # Offset the text by 10 points to the right
-        textcoords='offset points',
-        ha='left',                   # Align the text to the left
-         fontsize=12
-        #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
+    
+    # Overlay Text (Not Worth It!)
+    ax.text(
+        0.80, 0.80, "Not Worth It!",
+        horizontalalignment='right', fontstyle='italic', verticalalignment='bottom',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#F08080'
+    )
+    
+    # Overlay Text (Bargain!)
+    ax.text(
+        0.20, 0.20, 'Bargain!',
+        horizontalalignment='right', verticalalignment='bottom', fontstyle='italic',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#006400'
+    )
+    
+    # MNOVA Results (Shown only on the first plot)
+    if is_first_plot:
+        ax.text(
+            0.05, 0.95, f"F={f_value:.2f} p={p_value:.2f}",
+            transform=ax.transAxes, fontsize=FONT_SIZE['manova'], verticalalignment='top',
+            bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+        )
+        
+    # Trendline (Regression Plot)
+    sns.regplot(data=df, x=x_col, y=y_col, scatter=False, ci=None, 
+                color='grey', line_kws={'linestyle': '--'}, ax=ax)
+
+    # Dynamically label each point with the LLM name
+    for _, row in df.iterrows():
+        ax.annotate(
+            text=row['LLM'],
+            xy=(row[x_col], row[y_col]),
+            xytext=(7, 0), # Reduced offset for subplots
+            textcoords='offset points',
+            ha='left',
+            fontsize=FONT_SIZE['annotate']
+        )
+        
+def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
+    """Create one of the two charts on a specified axis (ax)."""
+    # Setup plot-specific titles and labels
+    if is_first_plot:
+        x_col, hue_col, title, x_label, legend_title = (
+            'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', 
+            'Milliseconds response time', 'Accuracy'
+        )
+    else:
+        # Second Plot (Accuracy vs Cost, colored by MilliSecs)
+        x_col, hue_col, title, x_label, legend_title = (
+            'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy Scatter Plot', 
+            'Accuracy %', 'Speed (MilliSecs)'
+        )
+
+    # Main Scatter Plot
+    # Sorting ensures consistent point and legend order
+    df.sort_values("Accuracy", ascending=False, inplace=True)
+    sns.scatterplot(
+        data=df, x=x_col, y='USD cents', markers=True, 
+        hue=hue_col, edgecolor='black', size='CoV', 
+        sizes=POINT_SIZES, palette='RdYlGn', ax=ax
     )
 
-# Calculate MNOVA values
-#https://in.mathworks.com/discovery/manova.html for context 
-#https://online.stat.psu.edu/stat505/book/export/html/762 and https://www.statsmodels.org/dev/_modules/statsmodels/multivariate/manova.html
-dfs=df[['Accuracy','USD cents']]# Dependent variables
-Accuracy_Group=df[['MilliSecs']]# Independent variables
-manova_result = manova.MANOVA.from_formula('dfs ~ Accuracy_Group', data=df)
-results=manova_result.mv_test()
-f_value = results.results['Accuracy_Group']['stat']['F Value'].iloc[0]# Get the F-value from Wilken's Lambda test
-p_value = results.results['Accuracy_Group']['stat']['Pr > F'].iloc[0]  # Get the p-value from Wilken's Lambda test
-# Add text using ax.text()
-ax.text(
-    0.25,  # X-coordinate (5% from the left)
-    0.50,  # Y-coordinate (95% from the bottom)
-    f"F={f_value:.2f} p={p_value:.2f}",#f"F:{f_value:.2f} p={p_value:.3f}",  # Text to display
-    transform=ax.transAxes, # Use axes coordinates
-    fontsize=12,
-    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
-)
-#Display the plot
-plt.tight_layout() # Adjusts plot to fit figure
-plt.show()
+    # Set Titles and Labels
+    ax.set_title(title, fontsize=FONT_SIZE['title'])
+    ax.set_xlabel(x_label)
+    ax.set_ylabel('USD cents cost')
+    
+    # Styling and Legend
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    sns.despine(ax=ax, trim=True, offset=5)
 
-# Create a second chart
-plt.figure(figsize=(10, 6))
-# Ensure 'x_column' and 'y_column' exist in your CSV file
-sns.set_theme(style='darkgrid')
-df.sort_values("Accuracy", ascending=False, inplace=True)
-ax=sns.scatterplot(data=df, x='Accuracy', y='USD cents',markers=True,color='cornflowerblue',hue='CoV',edgecolor='black',size='CoV',sizes=(50,200),palette='RdYlGn') # RdYlGn_r reverses the order
-ax=sns.regplot(data=df, x='Accuracy', y='USD cents', scatter=False, ci=None, color='grey',line_kws={'linestyle': '--'})
-
-#Add plot titles and labels for clarity
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-
-ax.set_title('LLM Eval: Cost vs Accuracy Scatter Plot', fontsize=22)
-plt.xlabel('Accuracy %')
-plt.ylabel('USD cents cost')
-sns.despine(trim=True, offset=5)
-#Customize the Legend
-# Place the legend outside the plot area
-plt.legend(
-    bbox_to_anchor=(1.05, 1),
-    loc="upper left",
-    borderaxespad=0.,
-    title='Accuracy'
-)
-# Dynamically label each point with the LLM name
-for index, row in df.iterrows():
-    # Place text to the right of each point
-    plt.annotate(
-        text=row['LLM'],           # Use the LLM name as the label
-        xy=(row['Accuracy'], row['USD cents']),
-        xytext=(10, 0),              # Offset the text by 10 points to the right
-        textcoords='offset points',
-        ha='left',                   # Align the text to the left
-        fontsize=12
-        #arrowprops=dict(arrowstyle='', color='gray') # Optional arrow
+    # Customize the Legend (outside the plot area)
+    ax.legend(
+        bbox_to_anchor=(1.05, 1), loc="upper left", borderaxespad=0., title=legend_title
     )
-ax.text(
-    0.25,  # X-coordinate (5% from the left)
-    0.50,  # Y-coordinate (95% from the bottom)
-    f"F={f_value:.2f} p={p_value:.2f}",#f"F:{f_value:.2f} p={p_value:.3f}",  # Text to display
-    transform=ax.transAxes, # Use axes coordinates
-    fontsize=12,
-    bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
-)
-plt.text(
-    0.95,  # x-position (0.0 to 1.0)
-    0.95,  # y-position (0.0 to 1.0)
-    formatted_time,
-    horizontalalignment='right',
-    verticalalignment='bottom',
-    transform=plt.gca().transAxes,
-    fontsize=8,
-    color='grey'
-)
-#Display the plot
-plt.tight_layout() # Adjusts plot to fit figure
-plt.show()
+    
+    # Add all other annotations
+    add_annotations(ax, df, formatted_time, f_value, p_value, is_first_plot)
+
+    # **NEW: REVERSE X-AXIS FOR THE SECOND PLOT**
+    if not is_first_plot:
+        ax.invert_xaxis()
+
+
+# --- Main Execution ---
+
+if __name__ == '__main__':
+    
+    # Data Loading
+    try:
+        df = pd.read_csv('seaborn-charts.csv')
+    except FileNotFoundError:
+        print("Error: 'seaborn-charts.csv' not found. Please ensure the file exists.")
+        sys.exit(1)
+        
+    # Pre-calculations
+    formatted_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+    
+    # Calculate MNOVA values
+    dfs = df[['Accuracy','USD cents']]
+    manova_result = manova.MANOVA.from_formula('dfs ~ MilliSecs', data=df)
+    results = manova_result.mv_test()
+    f_value = results.results['MilliSecs']['stat']['F Value'].iloc[0]
+    p_value = results.results['MilliSecs']['stat']['Pr > F'].iloc[0] 
+
+    # **CORE CHANGE: Create Figure and Axes for Side-by-Side Plots**
+    # 1 row, 2 columns. axes[0] for the first plot, axes[1] for the second.
+    fig, axes = plt.subplots(1, 2, figsize=FIGURE_SIZE)
+    sns.set_theme(style='darkgrid')
+
+    # Plot Generation
+    # Use .copy() to prevent modifying the DataFrame in a way that affects the other plot
+    plot_chart(axes[0], df.copy(), formatted_time, f_value, p_value, is_first_plot=True)
+    plot_chart(axes[1], df.copy(), formatted_time, f_value, p_value, is_first_plot=False)
+
+    # Final Display
+    plt.tight_layout(rect=[0, 0, 1, 1]) # Adjusts plots to fit figure, accounting for legends
+    plt.show()
