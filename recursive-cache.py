@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-""" recursive-cache.py at https://github.com/wilsonmar/python-samples/blob/main/recursive-cache.py
-STATUS: WORKING.
-git commit +m"v003 + base case :recursive-cache.py"
+
+"""recursive-cache.py here.
+
+At https://github.com/wilsonmar/python-samples/blob/main/recursive-cache.py
 
 This program runs recursively a Fibonacci sequence (see https://en.wikipedia.org/wiki/Fibonacci_sequence#Binet's_formula), 
 where each number is the sum of the two preceding ones.
@@ -27,11 +28,25 @@ See https://www.reddit.com/r/algorithms/comments/o8zsxv/complexity_of_recursive_
 https://www.perplexity.ai/search/write-python-code-to-display-f-Kj0kEkvUQJa5TzGKZxKIHw
 
 """
+__last_change__ = "25-10-03 v004 + uv headings, summary :recursive-cache.py"
 
 # Default Python library:
-# flake8: E401 multiple imports on one line
-from functools import wraps, cache, lru_cache
-import time, sys
+from datetime import datetime
+import time
+import sys
+#import functools
+
+# External libraries defined in requirements.txt:
+try:
+    # flake8: E401 multiple imports on one line
+    from functools import wraps, cache, lru_cache
+except Exception as e:
+    print(f"Python module import failed: {e}")
+    # uv run log-time-csv.py
+    #print("    sys.prefix      = ", sys.prefix)
+    #print("    sys.base_prefix = ", sys.base_prefix)
+    print("Please activate your virtual environment:\n  uv env env\n  source .venv/bin/activate")
+    exit(9)
 
 
 # Globals:
@@ -40,18 +55,28 @@ SHOW_EACH_ITERATION = False
 runtime_total = 0
 runtime = 0
 
+# Program Timings:
+# For wall time measurements:
+pgm_strt_datetimestamp = datetime.now()
+print(f"*** {pgm_strt_datetimestamp} starting...")
 
 class RuntimeTracker:
+    """Track runtime."""
+
     def __init__(self):
+        """Initialize."""
         self.total_runtime = 0
 
     def zero_total_runtime(self):
+        """Zero out to init Total Runtime."""
         self.total_runtime = 0
 
     def add_runtime(self, runtime):
+        """Add Total Runtime."""
         self.total_runtime += runtime
 
     def get_total_runtime(self):
+        """Get Total Runtime."""
         return self.total_runtime
 
 
@@ -59,6 +84,7 @@ tracker = RuntimeTracker()
 
 
 def speed_decorator(func):
+    """Decorate @warps."""
     @wraps(func)  # function after the @speed_decorator decorator:
     def wrapper(*args, **kwargs):
         # Record start time:
@@ -83,6 +109,7 @@ def speed_decorator(func):
 
 @speed_decorator
 def fib(n):
+    """Define Fibonacci infinite logic."""
     try:
         if n <= 1:
             # Base case: factorial of 0 is 1
@@ -97,6 +124,7 @@ def fib(n):
 @cache   # from functools
 @speed_decorator
 def fib_cache(n):
+    """Decorate for Speed."""
     if n <= 1:
         return n
     if SHOW_EACH_ITERATION:
@@ -107,6 +135,7 @@ def fib_cache(n):
 @lru_cache(maxsize=5)   # from functools
 @speed_decorator
 def fib_lru_cache(n):
+    """Decorae for LRU Cache."""
     if n <= 1:
         return n
     if SHOW_EACH_ITERATION:
@@ -115,7 +144,7 @@ def fib_lru_cache(n):
 
 
 def main():
-    # Run the decorated functions:
+    """Run the decorated functions."""
     print(f"*** INFO: {RUN_ITERATIONS} recursions without caching:", end="")
     result1 = fib(RUN_ITERATIONS)
     print(f" cum. runtime: {tracker.get_total_runtime():.6f} seconds. {result1}")
@@ -134,4 +163,18 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
+
+    pgm_stop_datetimestamp = datetime.now()
+    pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
+    print(f"*** {pgm_stop_datetimestamp} ended after {pgm_elapsed_wall_time} seconds.")
+ 
+
+"""
+*** 2025-10-03 14:59:22.375392 starting...
+*** INFO: 32 recursions without caching: cum. runtime: 30.465680 seconds. 2178309
+*** INFO: 32 recursions with functools @cache: cum. runtime: 0.000442 seconds. 2178309
+*** INFO: 32 recursions with functools @lru_cache(maxsize=5): cum. runtime: 0.000178 seconds. 2178309
+*** 2025-10-03 14:59:23.757435 ended after 0:00:01.382043 seconds.
+"""
