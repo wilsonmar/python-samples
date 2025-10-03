@@ -18,7 +18,7 @@ Create chart for the data side-by-side using plt.subplots().
 
 """
 
-__last_change__ = "25-10-02 v013 + Side-by-Side Plotting :seaborn-charts3.py"
+__last_change__ = "25-10-03 v014 + add stats, uv libs :seaborn-charts3.py"
 
 
 # Internal imports (no pip/uv add needed):
