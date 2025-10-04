@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "pandas",
+#   "seaborn",
+#   "matplotlib",
+#   "statsmodels",
+# ]
+# ///
+# See https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
 
-"""seaborn-charts.py here.
+"""seaborn-charts3.py here.
+
+At https://github.com/wilsonmar/python-samples/blob/main/seaborn-charts3.py
 
 Create chart for the data side-by-side using plt.subplots().
+
 """
 
-__last_change__ = "25-10-02 v013 + Side-by-Side Plotting"
+__last_change__ = "25-10-03 v014 + add stats, uv libs :seaborn-charts3.py"
 
 
 # Internal imports (no pip/uv add needed):
@@ -22,6 +35,19 @@ except Exception as e:
     print(f"Python module import failed: {e}")
     print("Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
     sys.exit(9)
+
+# For wall time measurements:
+pgm_strt_datetimestamp = datetime.now()
+
+
+def pgm_summary(std_strt_datetimestamp):
+    """Print summary count of files processed and the time to do them."""
+    # For wall time of standard imports:
+    pgm_stop_datetimestamp = datetime.now()
+    pgm_elapsed_wall_time = pgm_stop_datetimestamp - pgm_strt_datetimestamp
+    print(f"SUMMARY: {pgm_elapsed_wall_time} seconds.")
+
+
 
 # --- Configuration & Helpers ---
 
@@ -144,6 +170,8 @@ if __name__ == '__main__':
         print("Error: 'seaborn-charts.csv' not found. Please ensure the file exists.")
         sys.exit(1)
         
+    print("seaborn-charts3.py generating scatter plots...")
+
     # Pre-calculations
     formatted_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
     
@@ -167,3 +195,5 @@ if __name__ == '__main__':
     # Final Display
     plt.tight_layout(rect=[0, 0, 1, 1]) # Adjusts plots to fit figure, accounting for legends
     plt.show()
+
+    pgm_summary(pgm_strt_datetimestamp)
