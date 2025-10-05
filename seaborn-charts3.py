@@ -18,7 +18,7 @@ Create chart for the data side-by-side using plt.subplots().
 
 """
 
-__last_change__ = "25-10-03 v014 + add stats, uv libs :seaborn-charts3.py"
+__last_change__ = "25-10-05 v015 + 2nd fig plot x - axis reveted :seaborn-charts3.py"
 
 
 # Internal imports (no pip/uv add needed):
@@ -52,7 +52,7 @@ def pgm_summary(std_strt_datetimestamp):
 # --- Configuration & Helpers ---
 
 # Adjust figure size for side-by-side display (e.g., width doubled)
-FIGURE_SIZE = (18, 7)
+FIGURE_SIZE = (12, 7) # Width, Height in inches
 FONT_SIZE = {
     'title': 14,
     'label': 12,
@@ -69,33 +69,30 @@ def add_annotations(ax, df, formatted_time, f_value, p_value, is_first_plot):
     x_col = 'MilliSecs' if is_first_plot else 'Accuracy'
     y_col = 'USD cents'
 
-    # Datestamp
-    ax.text(
-        0.80, .90, formatted_time,
-        horizontalalignment='right', verticalalignment='bottom',
-        transform=ax.transAxes, fontsize=FONT_SIZE['datestamp'], color='grey'
-    )
     
-    # Overlay Text (Not Worth It!)
-    ax.text(
-        0.80, 0.80, "Not Worth It!",
-        horizontalalignment='right', fontstyle='italic', verticalalignment='bottom',
-        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#F08080'
-    )
     
-    # Overlay Text (Bargain!)
-    ax.text(
-        0.20, 0.20, 'Bargain!',
-        horizontalalignment='right', verticalalignment='bottom', fontstyle='italic',
-        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#006400'
-    )
+    
     
     # MNOVA Results (Shown only on the first plot)
     if is_first_plot:
         ax.text(
-            0.05, 0.95, f"F={f_value:.2f} p={p_value:.2f}",
+            0.25, 0.50, f"F={f_value:.2f} p={p_value:.2f}",
             transform=ax.transAxes, fontsize=FONT_SIZE['manova'], verticalalignment='top',
             bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
+        )
+        # Overlay Text (Not Worth It!)
+        ax.text(
+        0.90, 0.90, "Not Worth It!",
+        horizontalalignment='right', fontstyle='italic', verticalalignment='bottom',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#F08080'
+        )
+        
+    
+    # Overlay Text (Bargain!)
+        ax.text(
+        0.20, 0.20, 'Bargain!',
+        horizontalalignment='right', verticalalignment='bottom', fontstyle='italic',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#006400'
         )
         
     # Trendline (Regression Plot)
@@ -118,13 +115,13 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     # Setup plot-specific titles and labels
     if is_first_plot:
         x_col, hue_col, title, x_label, legend_title = (
-            'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Accuracy vs Speed Scatter Plot', 
+            'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Accuracy vs Speed - Scatter Plot', 
             'Milliseconds response time', 'Accuracy'
         )
     else:
         # Second Plot (Accuracy vs Cost, colored by MilliSecs)
         x_col, hue_col, title, x_label, legend_title = (
-            'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy Scatter Plot', 
+            'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy - Scatter Plot', 
             'Accuracy %', 'Speed (MilliSecs)'
         )
 
@@ -142,6 +139,7 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     ax.set_xlabel(x_label)
     ax.set_ylabel('USD cents cost')
     
+    
     # Styling and Legend
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     sns.despine(ax=ax, trim=True, offset=5)
@@ -154,9 +152,28 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     # Add all other annotations
     add_annotations(ax, df, formatted_time, f_value, p_value, is_first_plot)
 
-    # **NEW: REVERSE X-AXIS FOR THE SECOND PLOT**
+    # **Position overlay for second sub plot**
     if not is_first_plot:
-        ax.invert_xaxis()
+    #    ax.invert_xaxis()  # **NEW: REVERSE X-AXIS FOR THE SECOND PLOT**
+         # Overlay Text (Not Worth It!)
+        ax.text(
+        0.30, 0.80, "Not Worth It!",
+        horizontalalignment='right', fontstyle='italic', verticalalignment='bottom',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#F08080'
+    )
+    
+    # Overlay Text (Bargain!)
+        ax.text(
+        0.80, 0.10, 'Bargain!',
+        horizontalalignment='right', verticalalignment='bottom', fontstyle='italic',
+        transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#006400'
+    )
+        # Datestamp
+        ax.text(
+        1.3, 0, formatted_time,
+        horizontalalignment='right', verticalalignment='bottom',
+        transform=ax.transAxes, fontsize=FONT_SIZE['datestamp'], color='grey'
+        )
 
 
 # --- Main Execution ---
