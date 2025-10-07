@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-09-23 v054 + flask-sampler.py :README.md"
+lastchange: "25-10-07 v056 + dash-streaming.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -42,9 +42,11 @@ Code which I think have the most <strong>practical usefulness</strong>:
 
 * <a href="mondrian-gen.py"><strong>mondrian-gen.py</strong></a> to generate a png art in the style of Mondrian. References macOS Keychain to keep OpenAI API key.
 
-* <a href="saytime.py.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
+* <a href="saytime.py"><strong>saytime.py</strong></a> to use the macos say CLI command to voice the time or other text.
 
 * <a href="sorting.py"><strong>sorting.py</strong></a> to run different sorting algorithms to compare performance as n rises, on a matplotlib visualization.
+
+* <a href="dash-streaming.py"><strong>dash-streaming.py</strong></a> to use Plotly Dash library to animate a stream of real-time updates (random values) within a Flask app.
 
 * <a href="sqlite-sample.py"><strong>sqlite-sample.py</strong></a> to create and maintain a SQLite database. 
 
@@ -125,10 +127,13 @@ In the <strong>recommender</strong> folder:
 In the <strong>countries</strong> folder:
 
 * <strong>country_info.csv</strong>
-
 * <strong>country_lang_info.xlsx</strong>
-
 * Comparison of countries: <a target="_blank" href="https://media.geeksforgeeks.org/wp-content/uploads/20240926123327/WHR2023.csv">csv from a year of</a> the World Happiness Report and statistics from the CIA Factbook</a>.
+* Future program to use GeoAI: 
+   * Rasterio works with raster data such as satellite images and elevation models
+   * GeoPandas extends GeoPandas
+   * Folium creates interactive maps
+   * Prestereo, Shapeley)
 
 <a name="Experiments"></a>
 
@@ -154,6 +159,8 @@ NOTE: Other pograms are in the https://github.com/bomonike organization:
 on how to memorize using PAO (Person Action Object)
 
 * palindromes.py - I personally don't understand the intellectual curiosity for words and phrases that spell the same forward and backward. Examples: TENET, 747, KAYAK, TACO CAT, RACECAR, NEVER ODD OR EVEN, STEP ON NO PETS, UFO TOFU
+
+* A dashboard like https://towardsdatascience.com/build-a-data-dashboard-using-html-css-javascript/
 
 
 <a name="CloudAI"></a>
