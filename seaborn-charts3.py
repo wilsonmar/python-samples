@@ -18,7 +18,7 @@ Create chart for the data side-by-side using plt.subplots().
 
 """
 
-__last_change__ = "25-10-05 v015 + 2nd fig plot x - axis reveted :seaborn-charts3.py"
+__last_change__ = "25-10-07 v016 + comments A through L except H fixed :seaborn-charts3.py"
 
 
 # Internal imports (no pip/uv add needed):
@@ -54,12 +54,12 @@ def pgm_summary(std_strt_datetimestamp):
 # Adjust figure size for side-by-side display (e.g., width doubled)
 FIGURE_SIZE = (12, 7) # Width, Height in inches
 FONT_SIZE = {
-    'title': 14,
-    'label': 12,
-    'annotate': 10,
+    'title': 16,
+    'label': 14,
+    'annotate': 12,
     'overlay': 18,
-    'datestamp': 8,
-    'manova': 10,
+    'datestamp': 10,
+    'manova': 14,
 }
 POINT_SIZES = (50, 200)
 
@@ -115,13 +115,13 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     # Setup plot-specific titles and labels
     if is_first_plot:
         x_col, hue_col, title, x_label, legend_title = (
-            'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Accuracy vs Speed - Scatter Plot', 
+            'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Speed Scatter Plot', 
             'Milliseconds response time', 'Accuracy'
         )
     else:
         # Second Plot (Accuracy vs Cost, colored by MilliSecs)
         x_col, hue_col, title, x_label, legend_title = (
-            'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy - Scatter Plot', 
+            'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy Scatter Plot', 
             'Accuracy %', 'Speed (MilliSecs)'
         )
 
@@ -139,14 +139,28 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     ax.set_xlabel(x_label)
     ax.set_ylabel('USD cents cost')
     
+    # x-axis limits starts from 0 to max value + buffer
+    if is_first_plot:
+        # For MilliSecs (Speed vs Cost plot)
+        # Set the lower limit to 0, and the upper limit to the max value plus a buffer.
+        max_x = df['MilliSecs'].max()
+        ax.set_xlim(0, max_x * 1.05) # Start at 0, add a 5% buffer at the end
+        
+    #else: #to control the x axis range for the second plot
+        # For Accuracy (Accuracy vs Cost plot)
+        # Set the lower limit to 0 (since Accuracy can range from 0 to 100).
+        #max_acc = df['Accuracy'].max()
+        # Ensure the upper limit is at least 100, or the max data point + a buffer
+        #upper_limit = max(100, max_acc * 1.05)
+        #ax.set_xlim(0, upper_limit) # Start at 0, go up to max or 100
     
     # Styling and Legend
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     sns.despine(ax=ax, trim=True, offset=5)
 
-    # Customize the Legend (outside the plot area)
+    # Customize the Legend (outside the plot area). Replace legend_title with None if no title is desired.
     ax.legend(
-        bbox_to_anchor=(1.05, 1), loc="upper left", borderaxespad=0., title=legend_title
+        bbox_to_anchor=(1.05, 1), loc="upper left", borderaxespad=0., title=None#legend_title
     )
     
     # Add all other annotations
@@ -154,25 +168,31 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
 
     # **Position overlay for second sub plot**
     if not is_first_plot:
-    #    ax.invert_xaxis()  # **NEW: REVERSE X-AXIS FOR THE SECOND PLOT**
-         # Overlay Text (Not Worth It!)
+        ax.invert_xaxis()  # **NEW: REVERSE X-AXIS FOR THE SECOND PLOT**
+        #Overlay Text (Not Worth It!)
         ax.text(
-        0.30, 0.80, "Not Worth It!",
+        0.90, 0.90, "Not Worth It!",
         horizontalalignment='right', fontstyle='italic', verticalalignment='bottom',
         transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#F08080'
-    )
+        )
     
     # Overlay Text (Bargain!)
         ax.text(
-        0.80, 0.10, 'Bargain!',
+        0.20, 0.20, 'Bargain!',
         horizontalalignment='right', verticalalignment='bottom', fontstyle='italic',
         transform=ax.transAxes, fontsize=FONT_SIZE['overlay'], color='#006400'
-    )
+        )
         # Datestamp
         ax.text(
-        1.3, 0, formatted_time,
+        # Modify (1.3, -0.08) to place relative to the second subplot's axis (axes[1]).
+        1.3, -.08, formatted_time,
         horizontalalignment='right', verticalalignment='bottom',
         transform=ax.transAxes, fontsize=FONT_SIZE['datestamp'], color='grey'
+        )
+        ax.text(
+            0.25, 0.50, f"F={f_value:.2f} p={p_value:.2f}",
+            transform=ax.transAxes, fontsize=FONT_SIZE['manova'], verticalalignment='top',
+            bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
         )
 
 
