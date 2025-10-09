@@ -18,7 +18,7 @@ Create chart for the data side-by-side using plt.subplots().
 
 """
 
-__last_change__ = "25-10-07 v016 + comments A through L except H fixed :seaborn-charts3.py"
+__last_change__ = "25-10-09 v017 + comments H (Milliseconds (Speed)) added :seaborn-charts3.py"
 
 
 # Internal imports (no pip/uv add needed):
@@ -114,15 +114,15 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
     """Create one of the two charts on a specified axis (ax)."""
     # Setup plot-specific titles and labels
     if is_first_plot:
-        x_col, hue_col, title, x_label, legend_title = (
+        x_col, hue_col, title, x_label =(
             'MilliSecs', 'Accuracy', '4D-LLM Eval: Cost vs Speed Scatter Plot', 
-            'Milliseconds response time', 'Accuracy'
+            'Milliseconds (Speed)'
         )
     else:
         # Second Plot (Accuracy vs Cost, colored by MilliSecs)
-        x_col, hue_col, title, x_label, legend_title = (
+        x_col, hue_col, title, x_label = (
             'Accuracy', 'MilliSecs', '4D-LLM Eval: Cost vs Accuracy Scatter Plot', 
-            'Accuracy %', 'Speed (MilliSecs)'
+            'Accuracy %'
         )
 
     # Main Scatter Plot
@@ -134,10 +134,7 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
         sizes=POINT_SIZES, palette='RdYlGn', ax=ax
     )
 
-    # Set Titles and Labels
-    ax.set_title(title, fontsize=FONT_SIZE['title'])
-    ax.set_xlabel(x_label)
-    ax.set_ylabel('USD cents cost')
+    
     
     # x-axis limits starts from 0 to max value + buffer
     if is_first_plot:
@@ -194,6 +191,10 @@ def plot_chart(ax, df, formatted_time, f_value, p_value, is_first_plot):
             transform=ax.transAxes, fontsize=FONT_SIZE['manova'], verticalalignment='top',
             bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='none', alpha=0.7)
         )
+    # Set Titles and Labels
+    ax.set_title(title, fontsize=FONT_SIZE['title'])
+    ax.set_xlabel(x_label)
+    ax.set_ylabel('USD cents cost')
 
 
 # --- Main Execution ---
