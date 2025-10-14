@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# Copyright (c) 2025 Wilson Mar
+# https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "argon2-cffi",
+#   "cryptography",
+#   "fido2",
+#   "gnupg",
+#   "psutil",
+#   "python-dotenv",
+#   "pyopenssl",
+# ]
+# ///
 
 """secrets-utils.py here.
 
@@ -65,13 +76,19 @@ manually provide the filepath to his/her private key created with the public key
 
 16. Use two-factor auth, such as setup of Passkey, Yubikey, or One-Time Password (Authy app installed on mobile app).
  
-USAGE: To run this program, on a Terminal:
+USAGE: To run this program, on a macOS Terminal:
     brew install gnupg   # to /opt/homebrew/bin/gpg
+    brew install openssl
+    brew install argon2  # for the c_argon2 library needed for Python's argon2-cffi package.
+
+    chmod +x secrets-utils.py
+    uv venv .venv
+    source .venv/bin/activate
     ruff check secrets-utils.py
     uv run secrets-utils.py -v -vv -ct "My secret"
 """
 
-__last_change__ = "25-09-28 v009 + .enc from .env :secrets-utils.py"
+__last_change__ = "25-10-14 v015 + ARGON2ID hash :secrets-utils.py"
 __status__ = "encrypting to .enc not yet tested."
 
 # Built-in libraries:
@@ -81,7 +98,7 @@ import base64
 from datetime import datetime, timezone
 import hashlib
 import math
-import os
+#import os
 from pathlib import Path
 # import pytz
 import random
@@ -92,19 +109,25 @@ import uuid
 
 # External libraries:
 # fido2-titan.py
+import os
+
 try:
     from argon2 import PasswordHasher     # uv pip install argon2-cffi
     from cryptography.fernet import Fernet
-
+    from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
     from fido2.hid import CtapHidDevice
     #from fido2.client import Fido2Client
     #from fido2.server import Fido2Server
     # from fido2.webauthn import PublicKeyCredentialRpEntity, PublicKeyCredentialUserEntity
     #from fido2 import cbor
+    #import getpass
+    from io import StringIO
+    from dotenv import dotenv_values
     import gnupg
     #import inspect
     import psutil
-    import secrets    # uv pip install secrets   # for random number (token, key) generation.
+    #import OpenSSL
+    import secrets    # uv pip install secrets # for random number (token, key) gen # "secrets-utils",
 except Exception as e:
     print(f"Python module import failed: {e}")
     # uv run log-time-csv.py
@@ -115,10 +138,12 @@ except Exception as e:
 
 
 # Global static variables:
+SHOW_SECRETS = True
 SHOW_VERBOSE = True
 SHOW_DEBUG = True
 SHOW_SUMMARY = True
 cleartext = "Hello World!"
+enc_file_created = True
 create_enc_file = True
 
 
@@ -326,6 +351,20 @@ def format_bytes(bytes_value, show_mib=True, show_mb=True) -> str:
 # TODO: zip
 # TODO: unzip
 
+def pgm_fda_test() -> bool:
+    """Return True if this program has FDA (Full Disk Access) on macOS.
+    
+    Although there is no official macOS API or direct Python method to programmatically detect if an app has Full Disk Access (FDA), Apple recommends a trial approach: read a known protected file that requires FDA, such as /Library/Preferences/com.apple.TimeMachine.plist. If access to this file fails, it indicates the app does not have Full Disk Access.
+    """
+    try:
+        # macOS only:
+        with open("/Library/Preferences/com.apple.TimeMachine.plist", "rb") as f:
+            f.read(1)  # Try reading some bytes
+        print("VERBOSE: pgm_fda_test() can!")
+        return True
+    except PermissionError:
+        print("VERBOSE: pgm_fda_test() does NOT have macOS Full Disk Access!")
+        return False
 
 
 ### Random Numbers:
@@ -424,97 +463,37 @@ def shannon_entropy(data):
 
 ### Hashing
 
-def hash_txt(cleartext,hash_type="Argon2id") -> str:
-    """Return a fixed-lenth integer hash based on the string contents.
-    
-    So databases never store the actual password, only the hash to verify the password.
-    See https://www.geeksforgeeks.org/python/how-to-hash-passwords-in-python/
-    """
-    #import hashlib    
-    # PROTIP: Avoid using these for storing in databases.
-    hashed = ""
-    hash_type = hash_type.upper()
-    if hash_type == "MD5":      # 32 char.
-        hashed = hashlib.md5("hello world".encode()).hexdigest()
-
-    elif hash_type == "SHA256":   # 64 char.
-        hashed = hashlib.sha256("hello world".encode()).hexdigest()
-
-    elif hash_type == "SHA512":   # 128 char.
-        hashed = hashlib.sha512("hello world".encode()).hexdigest()
-
-    # Below are hash algorithms that resist brute-force attacks:
+def hash_txt(cleartext, hash_type):
+    """Hashes the cleartext using the specified hash_type."""
     # These automatically use a random salt.
-    elif hash_type == "ARGON2ID":   # 97 char.
+    if hash_type.upper() == "ARGON2ID":   # 97 char.
+        # Hash algorithms that resist brute-force attacks:
         # "Argon2" uses argon2-cffi - the top choice, winner of the Password Hashing Competition.
         #from argon2 import PasswordHasher.   # pip install argon2-cffi
         # Defaults to Argon2id which combines Argon2d and Argon2i
         # Many options. See https://cryptobook.nakov.com/mac-and-key-derivation/argon2
         # v=, m=memory, t=iterations,p=parallelism threads
+
+        # from argon2 import PasswordHasher
         # Create a password hasher instance: 
         ph = PasswordHasher()
         hashed = ph.hash(cleartext)
         # TODO: "script" when Argon2 is not available.
-    else:  # Default case.
-        print(f"hash_type {hash_type} not recognized in hash_text()!")
-        exit(9)
-        
-    # Alternatives:
-    # bcrypt
-    # "PBKDF2" uses hashlib.pbkdf2_hmac (with SHA-256 supported by NIST).
-
-    # CAUTION: Do not expose secrets in console.
-    return hashed
+        return hashed
+    elif hash_type == "SHA256":
+        return hashlib.sha256(cleartext.encode()).hexdigest()
+    elif hash_type == "SHA512":
+        return hashlib.sha512(cleartext.encode()).hexdigest()
+    elif hash_type == "MD5":
+        return hashlib.md5(cleartext.encode()).hexdigest()
+    else:
+        print(f"FATAL: Unsupported hash_type: {hash_type}")
+        return None
 
 
 ### Encryption/Decryption
 
 # https://www.howtogeek.com/734838/how-to-use-encrypted-passwords-in-bash-scripts/
-
-
-def fido2_secret() -> str:
-    """Read and return FIDO2 key ID number for use as a key for symmetric encryption."""
-    try: 
-        # TECHNIQUE: List all CTAP HID devices
-        print("VERBOSE: fido2_secret(): list FIDO2 devices:")
-        devices = list(CtapHidDevice.list_devices())
-        if not devices:
-            # print(f"DOTHIS: Please insert a FIDO Key {devices}.")
-            # TODO: Retry twice to look for key insertion:
-            print("FATAL: fido2_secret() found no FIDO2 devices.")
-            return None
-        else:
-            # Get the first device
-            device = devices[0]
-            # Extract a numeric identifier from the device
-            # The device object has attributes like product_string, manufacturer_string, etc.
-            # For now, let's use the hash of the device string representation as a numeric key
-            device_str = str(device)
-            # Extract the numeric part from the device string if it exists
-            #import re
-            numbers = re.findall(r'\d+', device_str)
-            if numbers:
-                number = int(numbers[0])  # Use the first number found
-                print(f"SECRET: fido2_secret(): device number={number}")
-                # Generate key_bytes from this number
-                key_source_str = str(number) + "5922447320"
-                raw_key = hashlib.sha256(key_source_str.encode('utf-8')).digest()
-                key_bytes = base64.urlsafe_b64encode(raw_key)
-                print(f"INFO: fido2_secret(): Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
-                return key_bytes
-            else:
-                number = abs(hash(device_str)) % (10**8)  # Keep it to 8 digits max
-                # print(f"SECRET: device hash number={number}")
-                # TECHNIQUE: Use the FIDO2 key ID plus a seed to make at least 32 bytes required.
-                key_source_str = str(number) + "5922447320" # "5922447320197353942422"
-                # TECHNIQUE: Make key into "bytes" which means base64 url-safe encoded:
-                raw_key = hashlib.sha256(key_source_str.encode('utf-8')).digest()
-                key_bytes = base64.urlsafe_b64encode(raw_key)
-                print(f"INFO: fido2_secret(): Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
-                return key_bytes
-    except Exception as e:
-        print(f"fido2_secret(): Error: {e}")
-        return None
 
 
 def passkey(platform_id) -> str:
@@ -552,6 +531,83 @@ def passkey(platform_id) -> str:
     passkey = ""
     # The best implementations of passkeys don’t even need a username.
     return passkey
+
+
+def fido2_secret(use_salt=False) -> str:
+    """Read and return FIDO2 key ID number for use as a key for symmetric encryption."""
+    try: 
+        # TECHNIQUE: List all CTAP HID devices
+        # print("VERBOSE: fido2_secret(): list FIDO2 devices:")
+        devices = list(CtapHidDevice.list_devices())
+        if not devices:
+            # print(f"DOTHIS: Please insert a FIDO Key {devices}.")
+            # TODO: Retry twice to look for key insertion:
+            print("WARNING: fido2_secret() found no FIDO2 devices. Using fallback key generation.")
+            fallback_key = generate_fallback_key()
+            return fallback_key
+        else:
+            # Get the first device
+            device = devices[0]
+            # Extract a numeric identifier from the device
+            # The device object has attributes like product_string, manufacturer_string, etc.
+            # For now, let's use the hash of the device string representation as a numeric key
+            device_str = str(device)
+            # Extract the numeric part from the device string if it exists
+            #import re
+            numbers = re.findall(r'\d+', device_str)
+            if numbers:
+                number = int(numbers[0])  # Use the first number found
+                print(f"SECRET: fido2_salted_secret(): number={str(number)} from FIDO2 devices.")
+            else:
+                # number = abs(hash(device_str)) % (10**8)  # Keep it to 8 digits max
+                print(f"FATAL: fido2_salted_secret(): No numbers identified from \"{str(numbers)}\" ")
+                # Fallback not generated here because the fallback is to use unencrypted file below.
+
+        if not use_salt:    # use_salt = False
+            # Generate a 32-byte key from the number (e.g., using SHA256)
+            # and then base64 url-safe encode it for Fernet.
+            # nounced32 = str(number) + "1123456789012345678"
+            nounced32 = Fernet.generate_key()
+            print(f"DEBUG: fido2_salted_secret(): nounced32 is {len(nounced32)} bytes! \"{nounced32}\" ")
+            #raw_key = key.decode()  # This is a valid key string to store/use
+            #print(f"DEBUG: fido2_salted_secret(): raw_key is {len(raw_key)} bytes! \"{str(raw_key)}\" ")
+            #raw_key = hashlib.sha256(str(number).encode()).digest()
+            raw_key = str(nounced32).encode()
+            #print(f"DEBUG: fido2_salted_secret(): raw_key is {len(raw_key)} bytes! {str(raw_key)}")
+            
+            #FIXME:
+            #key_bytes = base64.urlsafe_b64encode(raw_key)
+            key_bytes = raw_key
+            #print(f"DEBUG: fido2_secret(): Unsalted Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
+            return key_bytes
+        else:
+            nounced = str(number)
+            print(f"DEBUG: fido2_salted_secret(): {len(nounced)} bytes!")
+
+            # Based on https://thepythoncode.com/article/encrypt-decrypt-files-symmetric-python
+            # import secrets
+            salt = secrets.token_bytes(16)  # Generate new salt of size 16:
+            print(f"DEBUG: fido2_salted_secret(): salt={salt}")
+
+            # generate key from the salt and the password:
+            # import Scrypt to salt password:
+            kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
+            # length: The desired length of the key (32 in this case).
+            # n: CPU/Memory cost parameter, must be larger than 1 and be a power of 2.
+            # r: Block size parameter.
+            # p: Parallelization parameter.
+            # kdf=<cryptography.hazmat.primitives.kdf.scrypt.Scrypt object at 0x105533190>
+            # TECHNIQUE: Derive a key:
+            derived_key = kdf.derive(nounced.encode())
+            print(f"SECRET: fido2_salted_secret(): kdf={str(kdf)}")
+            # encode it using Base 64 and return it
+            key_bytes = base64.urlsafe_b64encode(derived_key)
+            print(f"INFO: fido2_secret(): Salted Fernet key (base64 encoded) has {len(key_bytes)} bytes!")
+            return key_bytes
+        
+    except Exception as e:
+        print(f"ERROR: fido2_secret(): {e}")
+        return None
 
 
 def encrypt_file_gnupg(public_key_file, input_file, output_file):
@@ -603,6 +659,7 @@ def encrypt_str(cleartext_str, key_obj) -> str:
     # Fernet supports key rotation using MultiFernet to manage multiple keys and rotate secrets easily.
     return encrypted_text
 
+
 def decrypt_str(encrypted_text, key_obj) -> str:
     """Decrypt text encrypted with symmetric AES-256 password using the Fernet library."""
     #from cryptography.fernet import Fernet
@@ -611,157 +668,179 @@ def decrypt_str(encrypted_text, key_obj) -> str:
     return decrypted_text
 
 
-def symmetrically_encrypt_file(filepath, key) -> str:
+def symmetrically_encrypt_file(filepath, key_str):
     """Encrypt file using a symmetric (two-way) key."""
-    if key:
-        print(f"VERBOSE: symmetrically_encrypt_file(): Fernet key (base64 encoded): {key} has {len(key)} bytes!")
+    if not key_str:
+        fido2_secret_key = fido2_secret()
+        if not fido2_secret_key:
+            print("WARNING: symmetrically_encrypt_file(): FIDO2 key not available!")
+            return None
     else:
-        print("VERBOSE: symmetrically_encrypt_file(): Fernet key is None.")
+        #key = fido2_secret_key.encode()
+        key = fido2_secret_key
+        print(f"VERBOSE: symmetrically_encrypt_file(): base64 encoded Fernet key has {len(key_str)} bytes!")
+
     try:
         #from cryptography.fernet import Fernet, InvalidToken
+        #from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
         fernet = Fernet(key)
-        with open(filepath, "rb") as file:
-            encrypted_data = file.read()
+        # Convert to string if filepath is a Path object:
+        filepath_str = str(filepath) if hasattr(filepath, 'is_file') else filepath
+        # Fernet requires read of file before encryption:
+        with open(filepath_str, "rb") as file:
+            file_data = file.read()
         encrypted_data = fernet.encrypt(file_data)
-
-        # TECHNIQUE: Add ".enc" to end of file name containing encrypted data:
-        enc_filepath = filepath + ".enc"
-        print(f"symmetrically_encrypt_file() {enc_filepath} created.")
-        with open(enc_filepath, "wb") as file:
+        with open(filepath_str, "wb") as file:
             file.write(encrypted_data)
-        return enc_filepath
-    #except InvalidToken as e:
-    #    # TECHNIQUE: Specific line of failure:
-    #    error_line = sys.exc_info()[2].tb_lineno
-    #    print("symmetrically_encrypt_file() at line {error_line} failed:", e)
-    #    return None
+        print(f"VERBOSE: symmetrically_encrypt_file(): contains {len(encrypted_data)} encrypted bytes!")
+        return encrypted_data
+
     except Exception as e:
-        print("symmetrically_encrypt_file() failed:", e)
+        print(f"ERROR: symmetrically_encrypt_file(): failed: {e}")
         return None
 
 
-def symmetrically_decrypt_file(filepath, key):
+def symmetrically_decrypt_file(filepath, key_str) -> str:
     """Decrypt file using a symmetric (two-way) key."""
-    print(f"INFO: Fernet key (base64 encoded): {key} has {len(key)} bytes!")
+    print(f"VERBOSE: Fernet key (base64 encoded): has {len(str(key_str))} bytes!")
     #from cryptography.fernet import Fernet
+    # instead of key = Fernet.generate_key()
+    # key = str(key_str).encode()  # key = b'your_str_here' (normally 86 bytes?)
+    key = key_str
     fernet = Fernet(key)
-    with open(filepath, "rb") as file:
+
+    # Convert to string if filepath is a Path object
+    filepath_str = str(filepath) if hasattr(filepath, 'is_file') else filepath
+    with open(filepath_str, "rb") as file:
         encrypted_data = file.read()
     try:
         decrypted_data = fernet.decrypt(encrypted_data)
-        # fall thru.
+        return decrypted_data
+
     except Exception as e:
-        print("symmetrically_decrypt_file() failed:", e)
+        print(f"ERROR: symmetrically_decrypt_file() failed: {e}")
         return None
 
-    enc_filepath = filepath + ".enc"
-    with open(filepath, "wb") as file:
-        file.write(decrypted_data)
-        print(f"VERBOSE: symmetrically_decrypt_file(): created file {enc_filepath}")
-
-    # TODO: Remove .env from Trash:
-
-    return enc_filepath
-
-
-#def symmetrically_encrypt_file_with_fido2(filepath) -> str:
-#    """Encrypt file using FIDO2 KeyID as a symmetric (two-way) key."""
-
-#def symmetrically_decrypt_file_with_fido2(filepath) -> str:
-#    """Encrypt file using FIDO2 KeyID as a symmetric (two-way) key."""
 
 # TODO: def add/update entry in .env file encrypted/decrypted using FIDO2
 
-def load_env_file(variable_name, env_file='~/python-samples.env') -> str:
-    """Retrieve a variable from a .env file in Python (without the external dotenv package).
+def generate_fallback_key() -> bytes:
+    """Generate a fallback encryption key when FIDO2 is not available.
     
-    USAGE: my_variable = load_env_file('MY_VARIABLE')
-    Instead of like: api_key = os.getenv("API_KEY")
-    Instead of settings = Dynaconf(settings_files=['settings.toml']); print(settings.database_url)
-    TODO: If env_file name ends with .enc, decrypt.
-    TODO: If env_file name ends with .env, encrypt it as new name ending with .enc.
+    Uses a combination of system information to create a reproducible key.
+    Note: This is less secure than FIDO2 but allows the program to function.
+    """
+    import platform
+    import getpass
+    
+    # Combine system info to create a seed
+    system_info = (
+        platform.node() +  # hostname
+        platform.system() +  # OS name
+        getpass.getuser() +  # username
+        "fallback_seed_2024"
+    )
+    
+    # Create a 32-byte key from the system info
+    raw_key = hashlib.sha256(system_info.encode('utf-8')).digest()
+    key_bytes = base64.urlsafe_b64encode(raw_key)
+    
+    print(f"INFO: Generated fallback key (base64 encoded) with {len(key_bytes)} bytes.")
+    return key_bytes
+
+
+# def add_env_file(variable_name) -> bool:
+
+
+def load_env_file(variable_name, filepath='~/python-samples.env.enc', decrypted_env_data=None) -> str:
+    """Retrieve a variable from an .enc (encrypted .env file) decrypted into memory.
+    
+    USAGE: my_variable = load_env_file('VARIABLE_NAME','.enc_file_path')
+    Instead of like: api_key = os.getenv("API_KEY") using
+        settings = Dynaconf(settings_files=['settings.toml']); print(settings.database_url)
     TODO: Encrypt using a key in Titan USB serial number. Rename with .enc for encrypted.
     TODO: Add a parm to retrieve variable from cloud store (Pulumi/Akeyless/AWS Secret Manager, etc.)
-    FIDO is $60. https://onlykey.io is $49.99.
+    Titan is $35. FIDO is $60. https://onlykey.io is $49.99.
+    enc_file_created = True
     """
-    home_path_env = filepath_audit(env_file)
-    # if ".enc" is file name, it's encrypted, so unencrypt it with and delete it after:
-    fido2_secret_key = fido2_secret()
-    if not fido2_secret_key:
-        print("ERROR: Without a FIDO2 key, only looking at unencrypted .env file.")
-        # FIXME: Still dying.
+    home_env_filepath = filepath_audit(filepath)
 
-    if home_path_env[-4:] == ".env":    # it's NOT an encrypted file:
-        print(f"load_env_file(): file {home_path_env} being referenced.")
-        # fall through to read vars in .env file.
-
-    elif home_path_env[-4:] == ".enc":    # it's an encrypted file, so decrypt to .env
-        print(f"load_env_file(): home_path_env={home_path_env}")
- 
-        # fido2_secret renames ".env" from home_path_env (so it doesn't end up in Trash after):
-        # TECHNIQUE: Remove ".enc" from end of file path:
-        home_path_env = home_path_env[:-4]
-        if not home_path_env.endswith(".env"):
-            print("FATAL: load_env_file(): file {home_path_env} extension not .env!")
-            return None
-    
-        # TODO: TECHNIQUE: key = b'your_fernet_key_here'  # Fernet key must be bytes
-        home_path_env = symmetrically_decrypt_file(home_path_env, fido2_secret_key) # write in place.
-        print("VERBOSE: load_env_file(): file {home_path_env} created temporarily.")
-
-    else:  # home_path_env[-4:] != ".enc" 
-        print("FATAL: load_env_file(): file {home_path_env} extension not recognized!")
+    if home_env_filepath[-4:] == ".env":    # it's NOT an encrypted file:
+        # Just use the .env file directly
+        pass
+              
+    elif home_env_filepath[-4:] == ".enc":    # it's an encrypted file, so try to decrypt
+        # Check if we have FIDO2 devices available (not just fallback key)
+        devices = list(CtapHidDevice.list_devices())
+        if not devices:
+            # No FIDO2 devices available, fall back to unencrypted .env file
+            home_env_filepath = filepath_audit('~/python-samples.env')
+            print(f"WARNING: No FIDO2 devices found. Falling back to unencrypted .env file: {home_env_filepath}")
+        else:
+            # We have FIDO2 devices, try to decrypt the .enc file
+            fido2_secret_key = fido2_secret()
+            print("DEBUG: load_env_file(): attempting to decrypt with FIDO2 key...")
+            try:
+                decrypted_env_data = symmetrically_decrypt_file(home_env_filepath, fido2_secret_key)
+                if decrypted_env_data:
+                    # Successfully decrypted, parse in memory
+                    stream = StringIO(decrypted_env_data.decode('utf-8'))
+                    config = dotenv_values(stream=stream)
+                    if variable_name in config:
+                        result = config[variable_name].strip('\"').strip('\'')
+                        return result
+                    else:
+                        print(f"Variable '{variable_name}' not found in encrypted .env file")
+                        return None
+                else:
+                    print("Failed to decrypt .env file, falling back to unencrypted version")
+                    home_env_filepath = filepath_audit('~/python-samples.env')
+            except Exception as e:
+                print(f"Error decrypting .env file: {e}, falling back to unencrypted version")
+                home_env_filepath = filepath_audit('~/python-samples.env')
+        
+    else:
+        print(f"FATAL: load_env_file(): file {home_env_filepath} extension not recognized!")
         return None
     
-    # from pathlib import Path
-    env_path = Path(home_path_env)
-    if SHOW_DEBUG:
-        print(f"DEBUG: load_env_file(): env_path={env_path}")
+    # At this point, home_env_filepath should point to the unencrypted .env file
+    print(f"VERBOSE: Lookup variable \"{variable_name}\" from file {home_env_filepath}...")
+    env_path = Path(home_env_filepath)
+    
     if env_path.is_file() and env_path.exists():
         if SHOW_DEBUG:
-            print("DEBUG: load_env_file(): .env file is accessible")
+            print(f"DEBUG: load_env_file(): file {env_path} is accessible")
+        
+        try:
+            with open(env_path) as file:
+                for line in file:
+                    # Strip whitespace and ignore comments or empty lines:
+                    line = line.strip()
+                    if line.startswith('#') or not line:
+                        continue
+                    
+                    # Split the line into key and value:
+                    key_value = line.split('=', 1)
+                    if len(key_value) != 2:
+                        continue
+                    
+                    key, value = key_value
+                    if key.strip() == variable_name:
+                        result = value.strip().strip('\"').strip('\'')
+                        return result
+            print(f"Variable '{variable_name}' not found in .env file")
+            return None
+        except Exception as e:
+            print(f"ERROR: load_env_file(): {e}")
+            return None
     else:
         print(f"ERROR: load_env_file(): .env file {env_path} is not accessible")
         return None
 
-    if create_enc_file:
-        home_path_enc = str(env_path) + ".enc"
-        home_path_enc = symmetrically_encrypt_file(env_path, fido2_secret_key)
-        print(f"load_env_file(): encrypting file {home_path_enc}...")
-
-    try:
-        with open(env_path) as file:
-            # TODO: Handle possible FileNotFoundError: [Errno 2] No such file or directory: 'Users/johndoe/python-samples.env'
-            for line in file:
-                # Strip whitespace and ignore comments or empty lines:
-                line = line.strip()
-                if line.startswith('#') or not line:
-                    continue
-                
-                # Split the line into key and value:
-                key_value = line.split('=', 1)
-                if len(key_value) != 2:
-                    continue
-                
-                key, value = key_value
-                if key.strip() == variable_name:
-                    result = value.strip().strip('\"').strip('\'')
-                    return result
-
-    except Exception as e:
-        print(f"load_env_file(): {e}")
-        return None
-
-    return None
-
 
 if __name__ == '__main__':
 
-    pulumi_region = load_env_file("PULUMI_REGION")
-    if pulumi_region:
-        print(f"INFO: pulumi_region={pulumi_region}")
-    exit()
-
+    print(f"__last_change__ {__last_change__}")
 
     local_timestamp = gen_local_timestamp()
     if SHOW_DEBUG:
@@ -772,6 +851,13 @@ if __name__ == '__main__':
         print(f"DEBUG: pgm_diskspace_free()={pgm_strt_disk_free:.2f} GB")
         # list_disk_space_by_device()
 
+    #pulumi_region = load_env_file("PULUMI_REGION",'~/python-samples.env.enc')
+    pulumi_region = load_env_file("PULUMI_REGION")
+    if pulumi_region:
+        print(f"INFO: pulumi_region={pulumi_region}")
+
+    pgm_has_fda = pgm_fda_test()
+    # Manually set 
 
     filepath="~/github-wilsonmar/python-samples/"
     dir_size = dir_raw_size(filepath)
@@ -783,7 +869,6 @@ if __name__ == '__main__':
     file_size = file_raw_size(filepath)
     print(f"INFO: {format_bytes(file_size)} in {filepath}")
         # INFO: 9.86MiB=10.34MB in data/movies.json
-
 
     print("\nRandom Numbers:")
     random_num(19,"random")  # (number of digits, algorithm)
@@ -806,21 +891,22 @@ if __name__ == '__main__':
 
 
     print("\nHashing:")
-    hash_type = "MD5"
-    hash = hash_txt(cleartext, hash_type)
-    print(f"{hash_type}    => {len(hash)} char.  {hash}")
 
     hash_type = "SHA256"
     hash = hash_txt(cleartext, hash_type)
     print(f"{hash_type} => {len(hash)} char.  {hash}")
 
+    hash_type = "ARGON2ID"
+    hash = hash_txt(cleartext, hash_type)
+    print(f"{hash_type} => {len(hash)} char. {hash}")
+
     hash_type = "SHA512"
     hash = hash_txt(cleartext, hash_type)
     print(f"{hash_type} => {len(hash)} char. {hash}")
 
-    hash_type = "Argon2id"
+    hash_type = "MD5"
     hash = hash_txt(cleartext, hash_type)
-    print(f"{hash_type} => {len(hash)} char. {hash}")
+    print(f"{hash_type}    => {len(hash)} char.  {hash}")
 
 
     print("\nEnryption/Decryption check (text not shown to maintain privacy):")
