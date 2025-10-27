@@ -1,30 +1,34 @@
 ---
 layout: post
-lastchange: "25-10-07 v056 + dash-streaming.py :README.md"
+lastchange: "25-10-27 v058 + sunset-speed.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
-This repo aims to contain practical examples of production-quality Python language for use in vibe coding utilities. 
+This README describes practical examples of production-quality Python-language code which
+exhibit the security and scalability features needed in a (hostile) production environment where debugging needs to occur quickly.
 
-Here we aim for code that exhibit the security and scalability features needed in a (hostile) production environment where debugging needs to occur quickly.
+Programs here make use of uv (from astral.sh) instead of pip, pip-tools, pipx, poetry, pyenv, twine, virtualenv, etc. 
+To catch dependency issues, we recommend that the latest set of dependencies is assembled daily by 
+creating <tt>requirements.txt</tt>, <tt>pyprojects.toml</tt>, and <tt>uv.lock</tt> with every run.
 
-Programs here make use of uv (from astral.sh) instead of pip, pip-tools, pipx, poetry, pyenv, twine, virtualenv, and requirements.txt. We have uv create pyprojects.toml and uv.lock with every run to obtain the latest set of dependencies.
+We also recommend that libraries download historical versions of each library downloaded so that in case of issues, forensics and fall-back can be performed even though public versions become corrupted.
 
 <a name="Featured"></a>
 
 ## Featured Projects
 
-Code which I think have the most <strong>practical usefulness</strong>:
+Code which we think have the most <strong>practical usefulness</strong>:
 
 * <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the <tt>__last_change__</tt> and <tt>__status__</tt> text in each python program.
 
 * <a href="git-commit.sh">git-commit.sh</a> is copied to this repo's .git/hooks folder to run
-   * <tt>safety</tt> to identify libraries (versions) marked as vulnerable
    * <tt>ruff</tt> is catch code formatting issues 
    * <a target="_blank" href="https://bandit.readthedocs.io/en/latest/start.html#usage">>bandit</a> to identify secure coding issues
    * GitGuardian, GitLeaks, TruffleHog, Legit, etc. to identify what looks like secrets stored in the repo.
    <br /><br />
-* <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generates diagram files from text, using graphwiz tool library.
+   Note that <tt>safety</tt> is needed to identify libraries (versions) marked as vulnerable in CVS, it is no longer run because the vendor now requires login. That makes it too inconvenient, especially offline.
+
+* <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generate diagrams (image files) from text, based on the graphwiz tool library.
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
 
@@ -60,6 +64,8 @@ In the <strong>weather</strong> folder:
    * Compare actuals vs. predictions of each prediction service.
    * Compare accuracy of different predictors (weather.com vs. wattr.in vs. Openweather. etc.)
    <br /><br />
+
+* <a href="sunset-speed.py"><strong>sunset-speed.py</strong></a> calculates how fast one would need to drive to experience a continuous sunset. This theoretical question is designed to make math fun and make for curiosity about programming math. This shows a use for the cosign trigonometry function.
 
 * <a href="youtube-download.py"><strong>youtube-download.py</strong></a> downloads videos based on its URL from a list of URLs in a CSV file.
 
