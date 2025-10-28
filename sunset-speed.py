@@ -11,9 +11,10 @@ USAGE:
    chmod +x sunset-speed.py
    ./sunset-speed.py -deg 89
    ./sunset-speed.py -deg 40
+   ./sunset-speed.py -deg 0
 """
 
-__last_change__ = "25-10-27 v001 new :sunset-speed.py"
+__last_change__ = "25-10-28 v002 + 0 degree :sunset-speed.py"
 __status__ = "working on macOS."
 
 
@@ -54,5 +55,6 @@ if __name__ == '__main__':
     # Denver, Colorado sits at around 40 degree latitude.
     # The cosign of 40 degrees at Denver, Colorado is 0.766, so <strong>1279 km/h (795 mph)</strong>.
 
-    degrees_mph(89.9)
-    degrees_mph(40)
+    degrees_mph(89.9)  # At North Pole
+    degrees_mph(40)    # At Denver, Colorado
+    degrees_mph(0.00)  # At Equator
