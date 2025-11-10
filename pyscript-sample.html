@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- 
+This is https://github.com/wilsonmar/python-samples/blob/main/pyscript-sample.html
+to run Python code withing HTML using the pyscript library.
+Docs : https://docs.pyscript.net/2025.2.4/
+__last_change__ = "25-11-10 v001 + new :pyscript-sample.html"
+__status__ = "NOT WORKING yet"
+-->  
+<html>
+    <head>
+        <!-- Recommended meta tags -->
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <!-- PyScript CSS -->
+        <link rel="stylesheet" href="https://pyscript.net/releases/2025.2.4/core.css">
+        <!-- This script tag bootstraps PyScript -->
+        <script type="module" src="https://pyscript.net/releases/2025.2.4/core.js"></script>
+    </head>
+    <body>
+        <!-- Now you can use <py-script> tag to write your python code inside-->
+        <py-script>
+          import sys
+          from pyscript import display
+          
+          display(sys.version)
+        </py-script>
+    </body>
+</html>
