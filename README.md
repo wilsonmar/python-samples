@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-10-27 v058 + sunset-speed.py :README.md"
+lastchange: "25-11-17 v059 + pdf2llm.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -85,6 +85,8 @@ In the <strong>recommender</strong> folder:
    * <strong>surprise.py</strong> provides a GUI created (using tkinter) to select movies and TV shows as an example of machine learning matrix eigenvector SVD (Singular Value Decomposition) & PCA (Principal Component Analysis) feature extraction algorithms from <a target="_blank" href="https://jonathan-hui.medium.com/machine-learning-singular-value-decomposition-svd-principal-component-analysis-pca-1d45e885e491">data science</a>.
    * <a target="_blank" href="https://www.geeksforgeeks.org/machine-learning/recommendation-system-in-python/">Recommend movies</a> based on what friends watched.
    <br /><br />
+
+* <a href="pdf2llm.py">pdf2llm.py</a> converts PDF files to ".md" (markdown) format files, which LLMs can read (and are smaller files). There are two algorithms (libraries). pymupdf4llm converts to "###" headings and "**" bold.
 
 
 <a name="OtherPrograms"></a>
@@ -399,3 +401,6 @@ Have a single import per line to reduce merge conflicts.
 See https://github.com/asottile/reorder-python-imports?tab=readme-ov-file#why-this-style
 
 https://www.debuggingbook.org/
+
+https://www.programmingworld.tech/blog/django-framework-build-url-shortener-application-using-django-and-pyshorteners
+Django Framework : Build URL Shortener Application Using Django and Pyshorteners
