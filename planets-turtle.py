@@ -5,11 +5,13 @@
 at https://github.com/wilsonmar/python-samples/blob/main/planets-turtle.py
 
 This illustrates a simple 2D map of planets around our solar system,
-using the turtle library and Python object-oriented programming.
-https://res.cloudinary.com/dcajqrroq/image/upload/v1764224322/planets-turtle-1484x1060_jzgzpx.png
+using object-oriented programming and the turtle graphics library built into Python.
+to create planetary motion as shown by https://res.cloudinary.com/dcajqrroq/image/upload/v1764224322/planets-turtle-1484x1060_jzgzpx.png
 
-Based on the Astronomy Animation
-from https://runestone.academy/ns/books/published/thinkcspy/Labs/astronomylab.html
+Based on the Astronomy Animation code before modifications
+of https://runestone.academy/ns/books/published/thinkcspy/Labs/astronomylab.html
+using data from https://ssd.jpl.nasa.gov/planets/phys_par.html
+adjusted to fit the screen:
 
    | Body | ? | ? | ? | ? | ? | color |
    |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -26,13 +28,14 @@ from https://runestone.academy/ns/books/published/thinkcspy/Labs/astronomylab.ht
 
     chmod +x planets-turtle.py
     ruff check planets-turtle.py
-    uv run planets-turtle.py -s 3
+    uv run planets-turtle.py
+    TODO: Add parameter to specify speed of full build of solar system image.
 
 AFTER RUN:
     rm -rf .ruff_cache
 """
-__last_change__ = "25-11-26 v001 + new :planets-turtle.py"
-__status__ = "NOT WORKING - new"
+__last_change__ = "25-11-26 v002 + intro & ruff changes :planets-turtle.py"
+__status__ = "WORKING on macOS"
 
 # Built-in packages internal to Python:
 import math
@@ -114,7 +117,7 @@ class Sun:
        """Get Mass."""
        return self.mass
 
-   def get_tmperature(self):
+   def get_temperature(self):
        """Get Temperature."""
        return self.temp
 
