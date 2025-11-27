@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-11-17 v059 + pdf2llm.py :README.md"
+lastchange: "25-11-27 v060 + planets-turtle.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -29,6 +29,8 @@ Code which we think have the most <strong>practical usefulness</strong>:
    Note that <tt>safety</tt> is needed to identify libraries (versions) marked as vulnerable in CVS, it is no longer run because the vendor now requires login. That makes it too inconvenient, especially offline.
 
 * <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generate diagrams (image files) from text, based on the graphwiz tool library.
+
+* <a href="planets-turtle.py">planets-turtle.py</a> illustrates a simple 2D map of planets around our sun, using the turtle library and Python object-oriented programming.
 
 * <a href="python-samples.py">python-samples.py</a> is a conglomeration of many features.
 
@@ -147,6 +149,8 @@ In the <strong>countries</strong> folder:
 
 ## Experiments being built
 
+* <a target="_blank" href="https://medium.com/the-pythonworld/12-python-multithreading-secrets-nobody-explains-well-1182948667a5">Multi-threading</a>
+
 * Use OpenCV to recognize hand signals (Sign Language), then take an automatic action or raise an alarm when touching your face (bad hygiene).
 
 In the <strong>predictions</strong> folder is an example
@@ -157,7 +161,7 @@ In the <strong>predictions</strong> folder is an example
 * <a target="_blank" href="https://learning.oreilly.com/library/view/3d-data-science/9781098161323/">3D Point Cloud Data Science</a>
 
 
-* <a target="_blank" href="https://www.geeksforgeeks.org/python/analyzing-selling-price-of-used-cars-using-python/">Analyze Selling Price of used Cars</a>
+* <a target="_blank" href="https://www.geeksforgeeks.org/python/analyzing-selling-price-of-used-cars-using-python/">Analyze Selling Price of used Cars</a> using AI
 
 * https://codepen.io/freeCodeCamp/pen/dNVazZ Recipe Box app in JavaScript for
 <a target="_blank" href="https://www.freecodecamp.org/learn/coding-interview-prep/take-home-projects/build-a-recipe-box">a Take Home Project</a>.
