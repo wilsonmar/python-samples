@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "26-03-11 v061 calculator-tk.py.png :README.md"
+lastchange: "26-03-11 v062 calculator-tk.py.png width 200 :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -98,8 +98,8 @@ In the <strong>recommender</strong> folder:
 * <a href="argparse-samples.py">argparse-samples.py</a> to specify command line arguments into this program.
 * <a href="bookmarks_export.py">bookmarks_export.py</a> to export bookmarks from Chrome to a HTML file.
 
-* <a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
-   <a target="_blank" href="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png"><img alt="calculator-tk.py.png" width="300" src="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png" /></a>
+* <a target="_blank" href="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png"><img align="right" alt="calculator-tk.py.png" width="200" src="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png" /></a><a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
+   
 
 * <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
 * <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
