@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "25-11-27 v060 + planets-turtle.py :README.md"
+lastchange: "26-03-11 v061 calculator-tk.py.png :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -99,6 +99,8 @@ In the <strong>recommender</strong> folder:
 * <a href="bookmarks_export.py">bookmarks_export.py</a> to export bookmarks from Chrome to a HTML file.
 
 * <a href="calculator-tk.py">calculator-tk.py</a> is a calculator created using the Tk GUI library.
+   <a target="_blank" href="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png"><img alt="calculator-tk.py.png" width="300" src="https://res.cloudinary.com/dcajqrroq/image/upload/v1773261679/calculator-tk_vzgft3.png" /></a>
+
 * <a href="dijkstras.py">dijkstras.py</a> to compare calculations of shortest path on a graph
 * <a href="dijkstra-yt.py">dijkstra-yt.py</a> to calculate shortest path using heapq library
 * <a href="endecode-protobuf.py">endecode-protobuf.py</a> encodes/decodes a comma-separated list so each word in front of a # prefix has a char count, like Protobuf does for gRPC.
