@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "tkinter",
+# ]
+# ///
+# https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
 
-r"""calculator-tk.py here.
+
+"""calculator-tk.py here.
 
 at https://github.com/wilsonmar/python-samples/blob/main/calculator-tk.py
 
@@ -10,10 +18,13 @@ gas "v003 + try :calculator-tk.py"
 STATUS: Not working. Output env: python3\r: No such file or directory
 
 Before running, in CLI run pip install tkinter
+USAGE on Terminal:
+    chmod +x calculator-tk.py
+    uv run calculator-tk.py
 
 """
 
-__last_change__ = "25-09-15 v006 + ruff check clear :calculator-tk.py"
+__last_change__ = "26-03-151 v007 + add uv prefix lib & rm r in front of leading quote :calculator-tk.py"
 __status__ = "works great."
 
 import tkinter as tk
