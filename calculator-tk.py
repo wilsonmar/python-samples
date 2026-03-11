@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.12"
-# dependencies = [
-#   "tkinter",
-# ]
+# dependencies = []
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
 
@@ -14,18 +12,19 @@ at https://github.com/wilsonmar/python-samples/blob/main/calculator-tk.py
 
 Provides a calculator created using the Tk GUI library for Python.
 
-gas "v003 + try :calculator-tk.py"
-STATUS: Not working. Output env: python3\r: No such file or directory
-
 Before running, in CLI run pip install tkinter
 USAGE on Terminal:
+    brew install python-tk@3.12
     chmod +x calculator-tk.py
-    uv run calculator-tk.py
+    python -m venv .venv   # creates bin, include, lib, pyvenv.cfg
+    source .venv/bin/activate
+    ruff check calculator-tk.py       # for "All checks passed!"
+    uv run calculator-tk.py  # or python calculator-tk.py
 
 """
 
-__last_change__ = "26-03-151 v007 + add uv prefix lib & rm r in front of leading quote :calculator-tk.py"
-__status__ = "works great."
+__last_change__ = "26-03-11 v007 + add uv prefix lib & rm r in front of leading quote :calculator-tk.py"
+__status__ = "Working on macOS Sequoia 15.6.1."
 
 import tkinter as tk
 
