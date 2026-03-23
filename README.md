@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "26-03-11 v062 calculator-tk.py.png width 200 :README.md"
+lastchange: "26-03-23 v064 exifclean.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -36,6 +36,8 @@ Code which we think have the most <strong>practical usefulness</strong>:
 
 * <a href="retry-flask.py">retry-flask.py</a> is a Flask server app that purposely returns errors to client responses from <br />
 * <a href="retry-client.py">retry-client.py</a> using the tenacity library to handle errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
+* <a href="tk-timer.py">tk-timer.py</a> Pomodoro timer (25 minutes) making use of the Tinker GUI library.
+* <a href="exifclean.py"exifclean.py</a> remove exif (Exchangeable Image File Format) metadata in photo files within the specified folder.
 
 * <a href="gpu-sample.py">gpu-sample.py</a> recognizes what GPU is available (CUDA or Apple MPS) and runs sample PyTorch <strong>microbenchmarks</strong> of timings and memory used. Enhancements:
 
