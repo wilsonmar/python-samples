@@ -34,8 +34,9 @@ J. It should be a crime to hardcode keys in source files exposed on GitHub.
 
    ruff check secure-env.py
    chmod +x secure-env.py
-   uv run secure-env.py
-           # Terminal does not freeze.
+   uv run secure-env.py -s
+      # -s to save var
+      # Terminal does not freeze.
    # Press control+C to cancel/interrupt run.
 
 AFTER RUN:
@@ -44,7 +45,7 @@ AFTER RUN:
 
 """
 
-__last_change__ = "26-03-30 v002 new :secure-env.py"
+__last_change__ = "26-03-30 v002 afplay :secure-env.py"
 __status__ = "WORKS on macOS Sequoia 15.6.1"
 
 # Stdlib modules (no import):
@@ -54,14 +55,60 @@ import subprocess
 import sys
 from pathlib import Path
 # External modules to import from PyPI:
+import argparse
 import keyring
 from dotenv import load_dotenv
 
+#### Process command parameters:
+
+# FEATURE: Add program invocation parameter -s ad PARM_SAVE_VAR to save key_name and key_value as a macOS envrionemnt variable if True. Default True.
+def parse_args():
+    """Parse program invocation parameters."""
+    parser = argparse.ArgumentParser(description="Retrieve secrets from various secure sources.")
+    parser.add_argument(
+        '-s', '--save',
+        dest='PARM_SAVE_VAR',
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help='Save key_name and key_value as a macOS environment variable (default: True)'
+    )
+    return parser.parse_args()
+
+def play_wav(sound_type):
+   r"""Play .wav sound file from C:\\Windows\\Media\\*.wav."""
+   # Using afplay program that comes with macOS.
+   if not sound_type:
+      print(f"sound_type {sound_type} not specified. Required.")
+      return None
+   match sound_type:
+      case "done":
+        filepath="audio/doxne.wav"
+      case "error":
+        filepath="audio/error.wav"
+      case "warning":
+        filepath="audio/warning.wav"
+      case "type":
+        filepath="audio/type.wav"
+      case "disconnected":
+        filepath="audio/disconnected.wav"
+      case _:
+         print("Not specified.")
+         return None
+   # Check if file is available:
+   if not os.path.isfile(filepath):
+      print(f"ERROR: Audio file {filepath} not found.")
+      return None
+   else:
+      # Equivalent of CLI: afplay audio/done.wav
+      subprocess.call(["afplay", filepath])
+      return True
+   
 
 #### Utilities:
 
 def guess_env_path() -> str | None:
    """Guess default folder same name as repo name."""
+   # POLICY: Put .env files outside outside of Git repos.
    # from pathlib import Path
    repo_folder_name = Path(__file__).parent.name
    # NOT  os.path.basename(os.path.dirname(os.path.abspath(__file__)))
@@ -123,6 +170,15 @@ def get_os_variable(key_name) -> str | None:
       return None
 
 
+def save_as_macos_env_var(key_name, key_value) -> bool:
+    """Persist key_name=key_value as a macOS environment variable via launchctl."""
+    result = subprocess.run(
+        ["launchctl", "setenv", key_name, key_value],
+        capture_output=True, text=True
+    )
+    return result.returncode == 0
+
+
 def get_api_key(key_name, env_filepath="") -> str | None:
    """Get named key from OS variables or .env file."""
    # POLICY: Return Sentinel value "None" to force callers to explicitly acknowledge errors without try/except.
@@ -171,10 +227,11 @@ def get_api_key(key_name, env_filepath="") -> str | None:
       print(f"SUCCESS! {key_name} retrieved from env variables.")
       return key_value
    
-   # Last Resort: manual input in a loop in case of typos.
-   # from getpass import getpass
-   # to prompts without echoing characters:
+   # POLICY: Provide manual input as a last resort to failed lookups.
+   # POLICY: When asking for human input, use a loop in case of typos.
    for attempt in range(5):
+      # POLICY: prompt secrets without echoing what's typed.
+      # from getpass import getpass
       key_value = getpass(f"Enter {key_name} (try {attempt + 1}/5): ")
       if key_value.strip():  # Basic validation
          # TODO: Validate # chars/digits.
@@ -191,6 +248,10 @@ def get_api_key(key_name, env_filepath="") -> str | None:
 
 if __name__ == "__main__":
 
+   args = parse_args()
+   PARM_SAVE_VAR = args.PARM_SAVE_VAR
+
+   # Set default values:
    env_filepath = guess_env_path()
 
    key_account = "textere"  # optional?
@@ -201,18 +262,23 @@ if __name__ == "__main__":
    #result = add_password_in_keychain(key_name, key_name, account, key_value)
    #print(f"result={result}")
 
-   my_key_name = key_name
-   my_key_name="OPENWEATHER_API_KEY"
+   # my_key_name="OPENWEATHER_API_KEY"
+   my_key_name="MY_ZIPCODE"
    # key_name="ANTHROPIC_API_KEY"
    # key_name="AMBIENT_APP_KEY"
 
    my_key_value = get_api_key(my_key_name, env_filepath)
    my_key_value_len = len(my_key_value)
    print(f"{my_key_name} is {my_key_value_len} char. Not shown.")
-   # : \"{my_key_value}\" 
-   
-   # TODO: Save to OSVar if program flag asks?
 
+   if PARM_SAVE_VAR:   # True
+      saved = save_as_macos_env_var(my_key_name, my_key_value)
+      if saved:
+         print(f"SUCCESS! {my_key_name} saved as macOS environment variable.")
+      else:
+         print(f"ERROR: failed to save {my_key_name} as macOS environment variable.")
+
+   play_wav("done")
 
 """
 # E. .env file + python-dotenv (good for local dev)
@@ -244,6 +310,8 @@ Keys never touch disk or code — IAM roles control access.
 # uv add install boto3
 # import boto3, json
 
+# from tenacity import retry, stop_after_attempt, wait_exponential
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def get_secret(name):
     client = boto3.client("secretsmanager", region_name="us-east-1")
     return json.loads(client.get_secret_value(SecretId=name)["SecretString"])
