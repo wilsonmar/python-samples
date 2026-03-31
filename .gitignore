@@ -112,3 +112,7 @@ ENV/
 # mkdocs documentation
 /site
 
+# Exclude runtime/generated files from Claude hooks:
+hooks/*.log
+hooks/debug.log
+hooks/todo-enforcer.config.json
