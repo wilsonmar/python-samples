@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "26-03-23 v064 exifclean.py :README.md"
+lastchange: "26-03-31 v066 secure-env.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -21,6 +21,8 @@ Code which we think have the most <strong>practical usefulness</strong>:
 
 * <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the <tt>__last_change__</tt> and <tt>__status__</tt> text in each python program.
 
+* <a href="secure-env.py">secure-env.py</a> uses utilities to get variable from several sources. It sounds wav file when done.
+
 * <a href="git-commit.sh">git-commit.sh</a> is copied to this repo's .git/hooks folder to run
    * <tt>ruff</tt> is catch code formatting issues 
    * <a target="_blank" href="https://bandit.readthedocs.io/en/latest/start.html#usage">>bandit</a> to identify secure coding issues
@@ -29,6 +31,7 @@ Code which we think have the most <strong>practical usefulness</strong>:
    Note that <tt>safety</tt> is needed to identify libraries (versions) marked as vulnerable in CVS, it is no longer run because the vendor now requires login. That makes it too inconvenient, especially offline.
 
 * <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generate diagrams (image files) from text, based on the graphwiz tool library.
+* <a href="playwright-sample.py">playwright-sample.py</a> for browser automation.
 
 * <a href="planets-turtle.py">planets-turtle.py</a> illustrates a simple 2D map of planets around our sun, using the turtle library and Python object-oriented programming.
 
