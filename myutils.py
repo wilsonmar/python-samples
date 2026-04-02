@@ -13,6 +13,7 @@
 #   "python-dotenv",
 #   "qrcode",
 #   "requests",
+#   "shlex",
 #   "timezonefinder",
 # ]
 # ///
@@ -24,7 +25,7 @@
 
 """myutils.py here.
 
-This Python module provides utility functions called by my other custom programs running on macOS:
+This Python module provides utility functions called by my other custom programs running on macOS: openweather.py, 
 opentelemetry.py, gcp-services.py, etc.
 
 Functions provided show OS properties, process directories, files, strings, etc.
@@ -44,7 +45,13 @@ BEFORE RUNNING, on Terminal:
         # ./scripts/activate.bat   # Windows CMD only
    uv add contextlib getpass keyring subprocess --frozen
 
+   brew install fonttools keras pillow protobuf markdown
+   brew install bandit safety semgrep ruff
+   bandit -r ./github-wilsonmar/project-samples          # Security linter for asserts
+   safety scan myutils.py                 # Check dependencies for CVEs (now requires login via internet)
+   semgrep --config=auto .         # Pattern-based analysis
    ruff check myutils.py
+
    chmod +x myutils.py
    uv run myutils.py -v
       # -v for verbose
@@ -183,6 +190,7 @@ try:
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+    import shlex
 except Exception as e:
     print(f"Python module import failed: {e}")
     # pyproject.toml file exists
@@ -632,8 +640,8 @@ def update_env_file(file_path, key, new_value) -> bool:
         if "=" in stripped_line:
             line_key = stripped_line.split("=", 1)[0].strip()
             if line_key == key:
-                # Update the line with new value:
-                updated_lines.append(f"{key}={new_value}\n")
+                safe_value = new_value.replace("\n", "").replace("\r", "")
+                updated_lines.append(f"{key}={safe_value}\n")
                 key_found = True
             else:
                 updated_lines.append(line)
@@ -642,7 +650,8 @@ def update_env_file(file_path, key, new_value) -> bool:
 
     # If key wasn't found, add it to the end:
     if not key_found:
-        updated_lines.append(f"{key}={new_value}\n")
+        safe_value = new_value.replace("\n", "").replace("\r", "")
+        updated_lines.append(f"{key}={safe_value}\n")
 
     # Write the updated content back to the file:
     try:
@@ -922,11 +931,13 @@ def get_fuid(filename):
 def execsh(command):
     """Execute CSH.
 
-    USAGE: myutils.execsh("echo")
-    FIXME: PIPE?
+    USAGE: myutils.execsh(["echo", "hello"])
     """
+    # import shlex
+    if isinstance(command, str):
+        command = shlex.split(command)
     pipe = subprocess.PIPE
-    result = subprocess.run(command, stdout=pipe, stderr=pipe, universal_newlines=True, shell=True)
+    result = subprocess.run(command, stdout=pipe, stderr=pipe, universal_newlines=True, shell=False)
     return result.stdout
 
 
@@ -934,13 +945,17 @@ def force_link(src, linkname):
     """Force link.
 
     USAGE: myutils.force_link(???)
+    NOTE: os.replace() pattern eliminates TOCTOU race.
     """
+    tmp = linkname + f".tmp_{secrets.token_hex(8)}"
     try:
-        os.symlink(src, linkname)
+        os.symlink(src, tmp)
+        os.replace(tmp, linkname)
     except Exception as e:
-        if os.path.islink(linkname):
-            os.remove(linkname)
-            os.symlink(src, linkname)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
         print_error(f"{sys._getframe().f_code.co_name}(): {e}")
 
 
@@ -1610,8 +1625,8 @@ def list_disk_space_by_device() -> None:
         print(partition.mountpoint.ljust(28) + partition.device.ljust(16) + partition.fstype.ljust(8) + partition.opts)
         if partition.mountpoint.startswith("/Volumes/"):
             # Check if the volume is removable
-            cmd = f"diskutil info {partition.device}"
-            output = subprocess.check_output(cmd, shell=True).decode("utf-8")
+            cmd = ["diskutil", "info", partition.device]
+            output = subprocess.check_output(cmd, shell=False).decode("utf-8")
             print_verbose(f'{sys._getframe().f_code.co_name}(): output: "{output}" ')
             # if "Removable Media: Yes" in output:
             # FIXME:
@@ -1647,8 +1662,8 @@ def list_macos_volumes() -> None:
     for partition in partitions:
         if partition.mountpoint.startswith("/Volumes/"):
             # Check if the volume is removable
-            cmd = f"diskutil info {partition.device}"
-            output = subprocess.check_output(cmd, shell=True).decode("utf-8")
+            cmd = ["diskutil", "info", partition.device]
+            output = subprocess.check_output(cmd, shell=False).decode("utf-8")
             if "Removable Media: Yes" in output:
                 removable_volumes.append(partition.mountpoint)
 
@@ -1738,11 +1753,17 @@ def write_file_to_removable_drive(drive_path: str, file_name: str, content: str)
         list_macos_volumes()
         exit(9)
 
+    safe_name = os.path.basename(file_name)
+    if not safe_name or safe_name != file_name:
+        print_error(f"Invalid file_name '{file_name}': must be a plain filename with no path components.")
+        raise ValueError("file_name must not contain path separators.")
+    file_path = os.path.join(drive_path, safe_name)
+
     try:
         # Write the content to the file
-        with open(drive_path, "w") as file:
+        with open(file_path, "w") as file:
             file.write(content)
-        print(f"File '{file_name}' has been successfully written to {drive_path}")
+        print(f"File '{safe_name}' has been successfully written to {drive_path}")
     except PermissionError:
         print(f"Permission denied. Unable to write to {drive_path}")
     except IOError as e:
@@ -1753,6 +1774,7 @@ def eject_drive(drive_path: str) -> None:
     """Safely eject removeable drive after use.
 
     where drive_path = '/Volumes/DRIVE_VOLUME'
+    NOTE: explicit verify=True
     """
     try:
         # import subprocess
@@ -1768,8 +1790,8 @@ def eject_drive(drive_path: str) -> None:
 
 def shorten_url(long_url: str) -> str:
     """Return a shortened URL using tinyurl.com service (unsafe)."""
-    base_url = "http://tinyurl.com/api-create.php?url="
-    response = requests.get(base_url + long_url)
+    base_url = "https://tinyurl.com/api-create.php?url="
+    response = requests.get(base_url + long_url, verify=True)
     print_trace(f"shorten_url() {response.text}")
     return response.text
 
@@ -1872,7 +1894,7 @@ def is_within_git_folder(output_dir: str) -> bool:
     return False
 
 
-def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys"):
+def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys", passphrase: bytes = None):
     """Generate RSA private/public key pair.
 
     private_key.pem & public_key.pem
@@ -1899,7 +1921,7 @@ def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys"
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+        encryption_algorithm=serialization.BestAvailableEncryption(passphrase) if passphrase else serialization.NoEncryption(),
     )
 
     # Serialize public key to PEM format:
@@ -1990,13 +2012,22 @@ def generate_encrypted_keypair(password, key_size=2048, output_dir="~/.keys"):
     return encrypted_private_pem, public_pem
 
 
-def read_file_to_string(file_path):
-    """Return the text contents of a file, as a string."""
+def read_file_to_string(file_path, base_dir=None):
+    """Return the text contents of a file, as a string.
+
+    base_dir: if provided, file_path must resolve to within this directory.
+    """
     if not file_path:
         print_error(f"{sys._getframe().f_code.co_name}(): file_path is needed but not provided.")
         return None
+    resolved = os.path.realpath(file_path)
+    if base_dir is not None:
+        allowed = os.path.realpath(base_dir) + os.sep
+        if not resolved.startswith(allowed):
+            print_error(f"{sys._getframe().f_code.co_name}(): path traversal attempt blocked for \"{file_path}\"")
+            return None
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(resolved, "r", encoding="utf-8") as file:
             text_content = file.read()
         print_verbose(f'{sys._getframe().f_code.co_name}(): "{len(text_content)}" chars in "{file_path}" ')
         return text_content
@@ -2057,14 +2088,7 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     """
     func_start_timer = time.perf_counter()
 
-    encryption_key = gen_random_alphanumeric(32)  # like "abc123def456"  # 12 char.
-
-    # Generate a 32-byte random encryption key like J64ZHFpCWFlS9zT7y5zxuQN1Gb09y7cucne_EhuWyDM=
-    if not encryption_key:  # global variable
-        # pip install cryptography  # cryptography-44.0.0
-        # from cryptography.fernet import Fernet
-        encryption_key = Fernet.generate_key()
-    # Create a Fernet object instance from the encryption key:
+    encryption_key = Fernet.generate_key()
     fernet_obj = Fernet(encryption_key)
 
     # Read file contents:
