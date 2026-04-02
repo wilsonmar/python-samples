@@ -67,7 +67,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-04-02"
-__commit_msg__ = "26-04-02 v014 after vulscan :myutils.py"
+__commit_msg__ = "26-04-02 v015 vulscan comments :myutils.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/myutils.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/myutils.py"
 __status__ = "WORKING: ruff check myutils.py => All checks passed!"
@@ -1546,8 +1546,8 @@ def _extract_dunder_variables(filename: str) -> Dict[str, Any]:
                     var_name = target.id
                     # Check if it's a dunder (starts and ends with double underscores)
                     if var_name.startswith("__") and var_name.endswith("__"):
-                        # Try to evaluate the value
                         try:
+                            # CAUTION: **Unsafe deserialization with `ast.literal_eval While safer than `eval()`, processing untrusted Python files could still cause DoS via deeply nested structures.
                             value = ast.literal_eval(node.value)
                             dunder_vars[var_name] = value
                         except (ValueError, SyntaxError):
@@ -1594,6 +1594,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
         try:
             # import keyring
             api_key = keyring.get_password(app_id, account_name)
+            # POLICY: Do not post key length which may compromise credential format.
             if api_key:
                 print_trace("get_api_key() len(api_key)=" + str(len(api_key)) + " chars.")
                 return api_key
@@ -1774,7 +1775,6 @@ def eject_drive(drive_path: str) -> None:
     """Safely eject removeable drive after use.
 
     where drive_path = '/Volumes/DRIVE_VOLUME'
-    NOTE: explicit verify=True
     """
     resolved = os.path.realpath(drive_path)
     if not resolved.startswith("/Volumes/"):
@@ -1795,6 +1795,7 @@ def shorten_url(long_url: str) -> str:
     """Return a shortened URL using tinyurl.com service (unsafe)."""
     print_warning("shorten_url(): sending URL to third-party service tinyurl.com — do not pass sensitive URLs")
     base_url = "https://tinyurl.com/api-create.php?url="
+    # POLICY: Verify URI as valid before sending to another site such as tinyurl - vulnerable to CA compromise attacks.
     response = requests.get(base_url + requests.utils.requote_uri(long_url), verify=True)
     print_trace(f"shorten_url() {response.text}")
     return response.text
@@ -2092,7 +2093,8 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
     # Read file contents:
     with open(source_file_path, "rb") as file:
         file_contents = file.read()
-    # WARNING: Measure file size because file.read() reads the wholefile into memory.
+    # POLICY: Before file.read() of whole file into memory, measure file size to prevent DoS vector with large files.
+    # TODO: Define threshold of file size at which to block load into memory.
     file_bytes = len(file_contents)
 
     # Encrypt file contents:
@@ -2104,9 +2106,10 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
 
     # import io
     key_out = io.BytesIO()
-    # WARNING: For better security, we do not output the key out to a file.
+    # POLICY: Do not output the key out to a file.
     # with open('filekey.key', 'wb') as key_file:
     #    key_out.write(key)
+    # POLICY: Securely clear memory after write to BytesIO.
 
     func_duration = time.perf_counter() - func_start_timer
     print_info(
