@@ -1,21 +1,35 @@
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "python-samples"
 version = "0.1.0"
-description = "Python samples for various Azure services"
-requires-python = ">=3.8"
-authors = [
-    {name = "Project Author"}
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "authlib==1.6.9",
+    "bandit",
+    "fastapi>=0.122.0",
+    "keyring",
+    "meshtastic>=2.7.5",
+    "nltk==3.9.4",
+    "Pillow",
+    "playwright",
+    "pytap2>=2.3.0",
+    "requests==2.33.0",
+    "safety",
+    "semgrep",
 ]
 
-dependencies = [
-    "python-dotenv",
-    "azure-identity",
-    "azure-keyvault-secrets",
-    "azure-storage-blob",
+[[tool.uv.index]]
+url = "https://pkgs.safetycli.com/repository/public/pypi/simple/"
+default = true
+
+[tool.uv.workspace]
+members = [
+    "3d_rotation",
 ]
-[tool.setuptools]
-py-modules = []
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
