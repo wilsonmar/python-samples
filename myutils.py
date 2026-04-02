@@ -13,8 +13,7 @@
 #   "python-dotenv",
 #   "qrcode",
 #   "requests",
-#   "shlex",
-#   "timezonefinder",
+# #   "timezonefinder",
 # ]
 # ///
 # See https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
@@ -67,8 +66,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-04-01"
-__commit_msg__ = "26-04-01 v012 fix uv :myutils.py"
+__commit_date__ = "2026-04-02"
+__commit_msg__ = "26-04-02 v014 after vulscan :myutils.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/myutils.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/myutils.py"
 __status__ = "WORKING: ruff check myutils.py => All checks passed!"
@@ -124,6 +123,7 @@ import pwd  # https://www.geeksforgeeks.org/pwd-module-in-python/
 # UNUSED: import random
 import resource
 import secrets
+import shlex
 import shutil  # for disk space calcs
 import site
 import smtplib
@@ -728,7 +728,7 @@ SHOW_DEBUG = args.debug
 # args.format
 
 GEN_QR_CODE = False  # TODO: Change in CLI parm
-EMAIL_FROM = "loadtesters@gmail.com"  # TODO: Change in CLI parm
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "")  # set EMAIL_FROM env var
 EMAIL_TO = "???"
 
 DELETE_OUTPUT_FILE = args.delout  # -de  --delout Delete output file
@@ -1776,9 +1776,12 @@ def eject_drive(drive_path: str) -> None:
     where drive_path = '/Volumes/DRIVE_VOLUME'
     NOTE: explicit verify=True
     """
+    resolved = os.path.realpath(drive_path)
+    if not resolved.startswith("/Volumes/"):
+        print_error(f"eject_drive(): invalid drive path: {drive_path}")
+        return None
     try:
-        # import subprocess
-        subprocess.run(["diskutil", "eject", drive_path], check=True)
+        subprocess.run(["diskutil", "eject", resolved], check=True)
         print(f"Successfully ejected {drive_path}")
     except subprocess.CalledProcessError:
         print(f"Failed to eject {drive_path}")
@@ -1790,8 +1793,9 @@ def eject_drive(drive_path: str) -> None:
 
 def shorten_url(long_url: str) -> str:
     """Return a shortened URL using tinyurl.com service (unsafe)."""
+    print_warning("shorten_url(): sending URL to third-party service tinyurl.com — do not pass sensitive URLs")
     base_url = "https://tinyurl.com/api-create.php?url="
-    response = requests.get(base_url + long_url, verify=True)
+    response = requests.get(base_url + requests.utils.requote_uri(long_url), verify=True)
     print_trace(f"shorten_url() {response.text}")
     return response.text
 
@@ -1921,7 +1925,7 @@ def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys"
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(passphrase) if passphrase else serialization.NoEncryption(),
+        encryption_algorithm=serialization.BestAvailableEncryption(passphrase) if passphrase else (print_warning("generate_rsa_keypair(): no passphrase — private key will be unencrypted") or serialization.NoEncryption()),
     )
 
     # Serialize public key to PEM format:
@@ -1934,19 +1938,15 @@ def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys"
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
 
-        # Save private key
         private_key_path = os.path.join(output_dir, "private_key.pem")
-        with open(private_key_path, "wb") as f:
+        fd = os.open(private_key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
             f.write(private_pem)
 
-        # Save public key
         public_key_path = os.path.join(output_dir, "public_key.pem")
-        with open(public_key_path, "wb") as f:
+        fd = os.open(public_key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
             f.write(public_pem)
-
-        # Set appropriate file permissions (readable only by owner)
-        os.chmod(private_key_path, 0o600)
-        os.chmod(public_key_path, 0o644)
 
         print(f"Private key saved to: {private_key_path}")
         print(f"Public key saved to:  {public_key_path}")
@@ -1992,19 +1992,15 @@ def generate_encrypted_keypair(password, key_size=2048, output_dir="~/.keys"):
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save encrypted private key
     private_key_path = os.path.join(output_dir, "private_key_encrypted.pem")
-    with open(private_key_path, "wb") as f:
+    fd = os.open(private_key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f:
         f.write(encrypted_private_pem)
 
-    # Save public key
     public_key_path = os.path.join(output_dir, "public_key.pem")
-    with open(public_key_path, "wb") as f:
+    fd = os.open(public_key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f:
         f.write(public_pem)
-
-    # Set file permissions
-    os.chmod(private_key_path, 0o600)
-    os.chmod(public_key_path, 0o644)
 
     print(f"Encrypted private key saved to: {private_key_path}")
     print(f"Public key saved to: {public_key_path}")
@@ -2020,6 +2016,8 @@ def read_file_to_string(file_path, base_dir=None):
     if not file_path:
         print_error(f"{sys._getframe().f_code.co_name}(): file_path is needed but not provided.")
         return None
+    if base_dir is None:
+        print_warning("read_file_to_string(): no base_dir specified — path traversal protection is disabled")
     resolved = os.path.realpath(file_path)
     if base_dir is not None:
         allowed = os.path.realpath(base_dir) + os.sep
