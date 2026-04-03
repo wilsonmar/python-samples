@@ -28,7 +28,7 @@ packaging==25.0
     # via
     #   -r requirements.in
     #   matplotlib
-pillow==11.2.1
+pillow==12.1.1
     # via
     #   -r requirements.in
     #   matplotlib
