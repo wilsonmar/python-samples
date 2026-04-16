@@ -65,8 +65,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-04-15"
-__commit_msg__ = "26-04-15 v014 + argparse cmd path @claude-vulscan.py"
+__commit_date__ = "2026-04-16"
+__commit_msg__ = "26-04-16 v015 bill format @claude-vulscan.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/claude-vulscan.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/claude-vulscan.py"
 __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
@@ -129,6 +129,11 @@ def parse_args():
     )
 
     return parser.parse_args()
+
+
+def add_commas(number_string):
+    return f"{float(number_string):,}"  # Remove .2f if you don't want decimal places
+
 
 def get_token_usage(response) -> dict:
     """Extract token usage from an Anthropic API response."""
@@ -257,7 +262,7 @@ def scan_file(file_target: str, ai_model="claude-opus-4-5") -> dict:
         return None
     else:
         if args.verbose:
-            print(f"code contains {len(code)} characters.")
+            print(f"code contains {add_commas(len(code))} characters.")
         # IGNORE POLICY: **Unrestricted file read** Any file readable by the process can be scanned and its contents exfiltrated to the external API.
         # **Sensitive data sent to external API** File contents are sent to Anthropic's API without sanitization. If scanned files contain secrets/credentials, they are exfiltrated.
 
@@ -368,7 +373,7 @@ if __name__ == "__main__":
 
     if args.bill:
         # Billing runs on a calendar month cycle — invoices are issued at the end of every calendar month via Stripe. 
-        # The Cost Report endpoint requires an ANTHROPIC_ADMIN_KEY (sk-ant-admin...), which is different from a standard API key and can only be created by org admins in the Console.
+        # The Cost Report endpoint requires an ANTHROPIC_ADMIN_KEY (sk-ant-admin...), which is different from a standard API key and can only be created by org admins in https://console.anthropic.com See https://www.youtube.com/watch?v=vgncj7MJbVU
         api_key = os.environ.get("ANTHROPIC_ADMIN_KEY")
         if not api_key:
             raise EnvironmentError(
@@ -377,21 +382,22 @@ if __name__ == "__main__":
             )
         result = get_billing_period(api_key)
         if result:
-            print(f"Period:        {result['billing_period_start']} → {result['billing_period_end']}")
-            print(f"Days elapsed:  {result['days_elapsed']}")
-            print(f"Days remaining:{result['days_remaining']}")
+            print(f"\nFor model: \"{my_model}\" {result['billing_period_start']} → {result['billing_period_end']}")
+                       # 2026-04-01T00:00:00+00:00 → 2026-04-30T23:59:59+00:00
+            print(f"Days elapsed.     : {result['days_elapsed']}")
+            print(f"Days remaining.   : {result['days_remaining']}")
+            # FIXME: {'error': "Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/organizations/cost_report?starting_at=2026-04-01T00%3A00%3A00Z&ending_at=2026-04-16T06%3A01%3A31Z&bucket_width=1d'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"}
             print(f"Cost report:   {result['cost_report']}")
 
     if args.bill:
         tokens = get_token_usage(response)
         if tokens:
-            print("\nFor model: {my_model}:")
             print(f"    Tokens Input  : {tokens['input_tokens']}")
             print(f"    Tokens Output : {tokens['output_tokens']}")
             print(f"    Tokens Total  : {tokens['total_tokens']}")
 
     pgm_stop_elapsedsecs = time.monotonic()
     pgm_took_elapsedsecs = pgm_stop_elapsedsecs - pgm_strt_elapsedsecs
-    print(f"\nRun took {elapsed_time2format(pgm_took_elapsedsecs)} seconds.")
+    print(f"\nThis run took {elapsed_time2format(pgm_took_elapsedsecs)} seconds.")
 
 # EOF
