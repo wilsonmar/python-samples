@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "azure",
+#   "boto3",
+#   "click",
+#   "dotenv",
+#   "schedule",
+# ]
+# ///
+# See https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
 # -*- coding: utf-8 -*-
-# Copyright (c) 2023 JetBloom LLC
 # SPDX-License-Identifier: MPL-2.0
+
 """python-samples.py within https://github.com/wilsonmar/python-samples/blob/master/python-samples/
    Explained at https://wilsonmar.github.io/python-samples
    This is sample code to provide a feature-rich base for new Python 3.9+ programs run from CLI.
@@ -21,7 +32,7 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "python-samples.py 0.3.13 Fix default logic from .env"
+__last_commit__ = "26-04-05 v014 Rm sample vars tricking scans :python-samples.py"
 # SECTION 49. scan python to copy files from github to cloudinary
 # login azure & retrieve secrets from hvault & azure resc list
 # login aws with boto3
@@ -1100,7 +1111,10 @@ def read_env_file():
     if gen_jwt == None:
         gen_jwt = False
         print_warning("gen_jwt="+str(gen_jwt)+" from default!")
-
+    #jwt_some = "something"
+    #jwt_payload = "my payload"
+    # gen_jwt(jws_some, jwt_payload)
+   
     global gen_lotto
     gen_lotto = get_bool_from_env_file('gen_lotto')
     if gen_lotto == None:
@@ -2139,15 +2153,13 @@ def get_cur_yyyy():
 
 # SECTION 21. Generate JSON Web Token          = gen_jwt
 
-def gen_jwt():
+def gen_jwt(jws_some, jwt_payload):
     # import jwt
-    jwt_some = "something"
-    jwt_payload = "my payload"
+    #jwt_some = "something"
+    #jwt_payload = "my payload"
     encoded_jwt = jwt.encode({jwt_some: jwt_payload},
                              "secret", algorithm="HS256")
     print_info(f'encoded_jwt={encoded_jwt} ')
-    # A
-    # eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzb21lIjoicGF5bG9hZCJ9.Joh1R2dYzkRvDkqv3sygm5YyK8Gi4ShZqbhK2gxcs2U
     response = jwt.decode(encoded_jwt, "secret", algorithms=["HS256"])
     # {'some': 'payload'}
     print_trace(f'response={response} ')
@@ -3063,39 +3075,6 @@ def do_use_hvault():
         return False
     print_verbose(f"authenticated as Hashicorp Vault hvac client!")
 
-"""
-    # After manual entry in Vault: kv get external-apis/socials/twitter
-    TWITTER_API_KEY = get_hvault_secret("TWITTER_API_KEY")
-        # Example: {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
-    # Within .env  IPFIND_API_KEY="external-apis/socials/ipfind"
-    IPFIND_API_KEY = get_hvault_secret(IPFIND_API_KEY)
-    
-    OPENWEATHERMAP_API_KEY = get_hvault_secret(OPENWEATHERMAP_API_KEY)  # "external-apis/socials/ipfind"
-    OPENWEATHERMAP_API_KEY = get_hvault_secret("kv/openweather/api_read")  # "external-apis/socials/ipfind"
-    OPENWEATHERMAP_API_KEY="10c5aa3e8279618cfe92220849af5352"  # This is a secret for a free service
-
-    AWS_ACCOUNT = get_hvault_secret(AWS_ACCOUNT)
-    AWS_ACCESS_KEY_ID = get_hvault_secret(AWS_ACCESS_KEY_ID)
-    AWS_SECRET_ACCESS_KEY = get_hvault_secret(AWS_SECRET_ACCESS_KEY)
-    SUBSCRIPTION_ID = get_hvault_secret(SUBSCRIPTION_ID)  # "kv/azure/projx/subscription_id"
-    AZURE_REDIS_ACCESS_KEY = get_hvault_secret(AZURE_REDIS_ACCESS_KEY)
-    AZURE_REDIS_CONNECTION_STRING = get_hvault_secret(AZURE_REDIS_CONNECTION_STRING)
-    AZURE_REDIS_HOSTNAME_FOR_FIBONACCIPI = get_hvault_secret(AZURE_REDIS_HOSTNAME_FOR_FIBONACCI)
-    
-    GCP_SVC_ACCT_NAME = get_hvault_secret(GCP_SVC_ACCT_NAME)
-    GCP_MAPS_API = get_hvault_secret(GCP_MAPS_API)
-    GCP_DOCUMENT_ID = get_hvault_secret(GCP_DOCUMENT_ID)
-
-    SLACK_APP1_OAUTH_TOKEN = get_hvault_secret(SLACK_APP1_OAUTH_TOKEN)
-    SLACK_APP1_ID = get_hvault_secret(SLACK_APP1_ID)
-    SLACK_APP1_CLIENT_ID = get_hvault_secret(SLACK_APP1_CLIENT_ID)
-    SLACK_APP1_CLIENT_SECRET = get_hvault_secret(SLACK_APP1_CLIENT_SECRET)
-    SLACK_APP1_SIGNING_SECRET = get_hvault_secret(SLACK_APP1_SIGNING_SECRET)
-
-    MAILBOXLAYER_API = get_hvault_secret(MAILBOXLAYER_API)
-    THOWAWAY_GMAIL_ADDRESS = get_hvault_secret(THOWAWAY_GMAIL_ADDRESS)
-    THOWAWAY_GMAIL_PASSWORD = get_hvault_secret(THOWAWAY_GMAIL_PASSWORD)
-"""
 
 def login_hvault():
     """Returns a boolean if logged into a Vault server.
