@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "seaborn",
+#   "matplotlib",
+#   "psutil",
+#   "ray",
+#   "statsmodels",
+#   "torch",
+# ]
+# ///
+# See https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
 
 """gpu-sample.py here.
 
 https://github.com/wilsonmar/python-samples/blob/main/gpu-sample.py
 
-This code provides a microbenchmark structure to compare results of several runs of 
+This code provides multi-variate microbenchmark analytics of runs using different computing techniques:
+   * GPU vs MPS vs CPU 
+   * Different algorithms (for sorting, etc.) 
+   * Different LLMs
+   * Different versions of the above
+"multi-variate" means usage of elapsed time, memory usage, disk usage, network bandwidth, etc.
+   
+See https://en.wikipedia.org/wiki/Multivariate_analysis_of_variance
+
 PyTorch displayed as a bar graph such as this:
 https://res.cloudinary.com/dcajqrroq/image/upload/v1757128591/mac-mps-1033x626_w6wx1p.png
 
-The comparison of run speeds for reproducing Artificial Neural Network (ANN) "deep learning" training and evaluation of various datasets using set batch sizes: 
-   * ResNet50 (Residual Network Learning for Image Recognition) for computer vision https://viso.ai/deep-learning/resnet-residual-neural-network/
-   * HuggingFace BERT (batch size 64) https://viso.ai/deep-learning/vgg-very-deep-convolutional-networks/
-   * VGG 19 (batch size 64)
-   * AlexNet https://viso.ai/deep-learning/alexnet/
-   * MobileNet
-   * Datasets MNIST - see pytorch-mnist.py in wilsonmar/python-samples
-   * CIFAR
-   * https://viso.ai/deep-learning/yolov7-guide/
-   * others imported using ONNX (Open Neural Network Exchange) format and tools.
-https://viso.ai/deep-learning/pytorch-vs-tensorflow/
+The comparison of run speeds for reproducing Artificial Neural Network (ANN) "deep learning" training 
 
 For hardware-assisted parallel asynchronous execution of collective operations and peer-to-peer communication, in addition to "cuda" devices (from NVIDIA), PyTorch now supports "mps" devices, named for Apple's Metal Performance Shaders backend to PyTorch through a  tensorflow-metal plugin provided by Apple. Device "cpu" means no GPU acceleration is used. QUESTION: Raspberry Pi AI chip?
 
@@ -29,43 +40,44 @@ Open-sourced by Meta (FaceBook) in 2016, PyTorch v1.12+ was announced May 18, 20
 
 Previous to that, PyTorch supported only CUDA devices. NVIDIA's proprietary GPU computing platform designed for NVIDIA GPUs not available on Macs. After macOS High Sierra, Apple dropped system-level support of external GPU drivers with AMD Radeon Pro 580 cards connected through Thunderbolt 3/4 (not USB) cables to eGPU enclosures on Intel Macs. See https://support.apple.com/en-us/102363
 
-
-# References:
-------------
-   * https://www.laurencegellert.com/2023/10/how-make-python-code-run-on-the-gpu/
-   * https://pytorch.org/blog/introducing-accelerated-pytorch-training-on-mac
-   * https://wiki.cci.arts.ac.uk/books/how-to-guides/page/enable-gpu-support-with-pytorch-macos
-   * https://www.youtube.com/watch?v=CbmTFTsbyPI
-
-# TODO: Update versions:
-    # from https://www.youtube.com/watch?v=uYas6ysyjgY GPU-Acceleration PyTorch on M1 Macs!
-    #  and https://www.youtube.com/watch?v=VEDy-c5Sk8Y
-    # Based on https://www.youtube.com/watch?v=Zx2MHdRgAIc Setup for Machine Learning with PyTorch
-    # https://github.com/mrdbourke/pytorch-apple-silicon
-
 # Before running, on a Terminal:
-     CONDA_SUBDIR=osx_-arm64 conda create -n ml python=3.9 -c conda-forge
-     conda activate ml
-     conda env config vars set CONDA_SUBDIR=osx-arm64
-     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    CONDA_SUBDIR=osx_-arm64 conda create -n ml python=3.9 -c conda-forge
+    conda activate ml
+    conda env config vars set CONDA_SUBDIR=osx-arm64
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-     To view your CPU and GPU usage, Open Activity Monitor, then Window -> GPU History (command 4), and then Window -> CPU History (command 3).
+    To view your CPU and GPU usage, Open Activity Monitor, then Window -> GPU History (command 4), and then Window -> CPU History (command 3).
 
-     uv venv venv
-     source .venv/bin/activate
-     uv venv --python python3.12
-     uv add psutil numpy torch torchvision torchaudio tensorflow source subprocess-v
-     chmod +x gpu-sample.py
-     uv pip install requests
-     ruff check gpu-sample.py
-     uv run gpu-sample.py
+    uv init
+    python -m venv .venv
+    source .venv/bin/activate
+    uv venv --python python3.12
+    uv add requests psutil numpy torch tensorflow source subprocess-v subprocess_tee
+    uv add --frozen python-platform 
+    uv pip install torchvision torchaudio 
+    chmod +x gpu-sample.py
+    ruff check gpu-sample.py
+    uv run gpu-sample.py
+
+USAGE with Ray:
+    uv add ray   # or pip install -U 'ray[default]'
+    # Start a Ray runtime on the local machine and outputs connection details such as local node IP and port.
+    ray start --head
+    uv run gpu-sample.py --ray
+
+AFTER RUN:
+    deactivate
+    rm -rf .venv .pytest_cache __pycache__
 """
-__last_change__ = "25-09-10 v005 + subprocess-tee :gpu-sample.py"
+__last_change__ = "25-11-02 v004 + ray.io :gpu-sample.py"
+__status__ = "NOT WORKING - import failed: No module named 'subprocess_tee'"
 
 # Built-in libraries:
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
+import platform
+import re
 import time
 from typing import NamedTuple
 
@@ -73,10 +85,9 @@ from typing import NamedTuple
 try:
     #import matplotlib. pyplot
     import numpy as np          # uv pip install numpy
-    import platform
     import psutil
-    import re
-    import subprocess_tee    # uv add subprocess-tee
+    import ray
+#    import subprocess   # uv add subprocess-tee
     # from subprocess_tee import run    # uv add subprocess-tee
     # [B404:blacklist] Consider possible security implications associated with the subprocess module.
     import torch        # uv pip install torch torchvision torchaudio
@@ -113,10 +124,11 @@ except Exception as e:
 # uv pip install tensorflow-metal  # TensorFlow with Metal support
 
 
-# Global static variables:
+# Global static variables default values for override by args:
 SHOW_VERBOSE = False
 SHOW_DEBUG = False
 SHOW_SUMMARY = False
+gpu_device = "cpu"
 MAX_LOOPS = 3   # 0 = infinite
 SLEEP_SECS = 1
 
@@ -137,7 +149,9 @@ def read_cmd_args() -> None:
     parser.add_argument("-v", "--verbose", action="store_true", help="Show inputs into functions")
     parser.add_argument("-vv", "--debug", action="store_true", help="Debug outputs from functions")
     parser.add_argument("-s", "--summary", action="store_true", help="Show summary stats")
+    parser.add_argument("-g", "--gpu", action="store_true", help="gpu device")
     # Default -h = --help (list arguments)
+    # ./gpu-sample.py -v -vv -g "mps"
     args = parser.parse_args()
 
 
@@ -152,6 +166,8 @@ def read_cmd_args() -> None:
         SHOW_DEBUG = True
     if args.summary:       # -s  --summary
         SHOW_SUMMARY = True
+    if args.gpu:       # -g  --gpu
+        gpu_device = args.gpu    # noqa
 
     if args.quiet:         # -q --quiet
         SHOW_VERBOSE = False
@@ -202,23 +218,29 @@ def cuda_env_display():
 
     # uv pip install nvidia-ml-py3  # For NVIDIA GPU monitoring
 
-def chip_device_to_use() -> str:
+def chip_device_to_use(desired_device=None) -> str:
     """Determine GPU device to use ("cuda", "mps", "cpu").
     
-    For cross-platform use of PyTorch with or without CUDA.
+    If a desired_device is specified as input, this function verifies whether it's available.
+    If not, fallback None value is returned.
+    If a desired_device is not specified as input, this function recommends 
+    "cuda" if available, then "mps", then "cpu".
     """
     if SHOW_VERBOSE:
         print(f"VERBOSE: Torch version: {torch.__version__}")   # 1.26.4
+    
     # If a CUDA is available, use it:
-    use_cuda = torch.cuda.is_available()
-    if use_cuda:
-        device = torch.device("cuda")
-        if SHOW_VERBOSE:
-            print(f"VERBOSE: device \"{device}\" available.")
-        cuda_env_display()
-        return device
-
-    if not is_macos:  # Linux Raspberry Pi?
+    if torch.cuda.is_available():
+        if gpu_device == "cuda":
+            device = torch.device("cuda")
+            if SHOW_VERBOSE:
+                print(f"VERBOSE: device \"{device}\" available.")
+            cuda_env_display()
+            return device
+        if gpu_device == "mps":
+            print(f"VERBOSE: device \"{gpu_device}\".")
+    # FIXME: 
+    if is_macos:  # Linux Raspberry Pi?
         device = torch.device("cpu")
         print(f"WARNING: Neither CUDA nor MPS available. Using \"{device}\"." )
         return device
@@ -248,9 +270,15 @@ def chip_device_to_use() -> str:
 # For custom GPU operations in Python, use pyobjc to interface with Apple Metal APIs, but it is more complex than using PyTorch/TensorFlow.
 
 
-#### Utility Functions:
+#### Utility Time Functions:
 
-def gen_local_timestamp() -> str:
+def day_of_week(local_time_obj) -> str:
+    """Return day of week string from date object (starts at 0)."""
+    # str(days[local_time_obj.weekday()])  # Monday=0 ... Sunday=6
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    return str(days[local_time_obj.weekday()])
+
+def timestamp_local() -> str:
     """Generate a timestamp straing containing the local time with AM/PM & Time zone code."""
     # import pytz
     # now = datetime.now(tz)  # adds time zone.
@@ -260,7 +288,7 @@ def gen_local_timestamp() -> str:
     local_timestamp = local_time_obj.strftime("%Y-%m-%d_%I:%M:%S %p %Z%z")  # local timestamp with AM/PM & Time zone codes
     return local_timestamp
 
-def gen_utc_timestamp() -> str:
+def timestamp_utc() -> str:
     """Generate a timestamp straing containing the UTC "Z" time with no AM/PM & Time zone code."""
     # import time
     timestamp = time.time()   # UTC epoch time.
@@ -560,6 +588,31 @@ def compute(self, device='/GPU:0'):
     
 # compute(self)
 
+def run_remote(sequence_size):
+    """@ray.remote decorator to launch distributed tasks in parallel, one per CPU core among sequence_size.
+
+    See https://maxpumperla.com/learning_ray/ch_01_overview/
+    """
+    ray.init(address='auto')
+    futures = [fibonacci_distributed.remote(sequence_size) \
+        for _ in range(ray.cluster_resources().get("CPU", 1))]
+    results = ray.get(futures)
+    print(f"run_@ray.remote({sequence_size}) ) computed in parallel across CPUs: {results}")
+
+
+# Decorate the function with @ray.remote to make it a distributed task
+#import ray
+@ray.remote  # run_remote(sequence_size)
+def fibonacci_distributed(sequence_size):
+    """Clssic way to waste compute time."""
+    fibonacci = []
+    for i in range(sequence_size):
+        if i < 2:
+            fibonacci.append(i)
+            continue
+        fibonacci.append(fibonacci[i-1] + fibonacci[i-2])
+    return sequence_size
+
 
 if __name__ == '__main__':
 
@@ -572,7 +625,7 @@ if __name__ == '__main__':
     print(f"    -s  SHOW_SUMMARY={SHOW_SUMMARY}")
 
 
-    local_timestamp = gen_local_timestamp()
+    local_timestamp = timestamp_local()
     if SHOW_DEBUG:
         pgm_strt_mem_used, pgm_process = pgm_memory_used()
         print(f"DEBUG: {pgm_process}")
@@ -585,6 +638,10 @@ if __name__ == '__main__':
 
     # FIXME: my_waveform, rate = wav_shape_rate_torchaudio()
     # FIXME: my_label = sound_from_torchaudio()
+
+    run_remote(10)
+
+    exit()
 
     device = chip_device_to_use()
 
@@ -622,7 +679,7 @@ if __name__ == '__main__':
 
     print("\n# assemble results:")
     print("utc_stamp,data_points,secs,mem_used")
-    print(gen_utc_timestamp()+","+str(data_points)+","+device_to_use+\
+    print(timestamp_utc()+","+str(data_points)+","+device_to_use+\
           ","+processing+","+str(secs)+","+str(func_stop_mem_diff))
     # plot results:
 
@@ -647,7 +704,32 @@ if __name__ == '__main__':
         # https://www.youtube.com/watch?v=uYas6ysyjgY GPU-Acceleration for PyTorch on M1 Macs!
         # https://www.youtube.com/watch?v=-TOdEjcFldI
 
-    #if SHOW_SUMMARY:
-    print("TODO: Summary line graph of response times as run n increase.")
-    loops_count = 0   # TODO: update
-    pgm_summary(pgm_strt_datetimestamp, loops_count)
+
+"""
+
+References:
+------------
+   * https://www.laurencegellert.com/2023/10/how-make-python-code-run-on-the-gpu/
+   * https://pytorch.org/blog/introducing-accelerated-pytorch-training-on-mac
+   * https://wiki.cci.arts.ac.uk/books/how-to-guides/page/enable-gpu-support-with-pytorch-macos
+   * https://www.youtube.com/watch?v=CbmTFTsbyPI
+
+# TODO: Update versions:
+    # from https://www.youtube.com/watch?v=uYas6ysyjgY GPU-Acceleration PyTorch on M1 Macs!
+    #  and https://www.youtube.com/watch?v=VEDy-c5Sk8Y
+    # Based on https://www.youtube.com/watch?v=Zx2MHdRgAIc Setup for Machine Learning with PyTorch
+    # https://github.com/mrdbourke/pytorch-apple-silicon
+    
+TODO: Evaluation of various datasets using set batch sizes: 
+   * ResNet50 (Residual Network Learning for Image Recognition) for computer vision https://viso.ai/deep-learning/resnet-residual-neural-network/
+   * HuggingFace BERT (batch size 64) https://viso.ai/deep-learning/vgg-very-deep-convolutional-networks/
+   * VGG 19 (batch size 64)
+   * AlexNet https://viso.ai/deep-learning/alexnet/
+   * MobileNet
+   * Datasets MNIST - see pytorch-mnist.py in wilsonmar/python-samples
+   * CIFAR
+   * https://viso.ai/deep-learning/yolov7-guide/
+   * others imported using ONNX (Open Neural Network Exchange) format and tools.
+https://viso.ai/deep-learning/pytorch-vs-tensorflow/
+
+"""

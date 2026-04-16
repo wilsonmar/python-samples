@@ -15,7 +15,10 @@
 
 """secrets-utils.py here.
 
-This program presents a GUI website on a macOS and Linux machine to encrypt text and files, then share them  privately with automatic decryption. 
+at https://github.com/wilsonmar/python-samples/blob/main/secrets-utils.py
+
+This program presents a GUI website on a macOS and Linux machine to encrypt text and files, 
+then share them privately with automatic decryption. 
 
 Why? This does not us 3rd-parties such as Proton Mail, Slack, LinkedIn, Discord, etc.
 Because sending anything over the public internet risks interception.

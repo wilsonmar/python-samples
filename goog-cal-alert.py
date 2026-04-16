@@ -27,6 +27,20 @@ BEFORE RUNNING, on browser:
    2. Link account
 BEFORE RUNNING, on Alexa device:
    3. say "Alexa, open Notify Me" and the skill will introduce itself and send your access code via email from notifymyecho.com.
+BEFORE RUNNING, create OAuth credentials in Google Cloud Console:
+   1. Go to https://console.cloud.google.com as the gmail calendar acct
+   2. Create a project (or select an existing one)
+   3. In "APIs & Services", API Libraries, Calendar
+   https://console.cloud.google.com/apis/library/calendar-json.googleapis.com?project=????
+   4. Click "Enable" https://console.cloud.google.com/apis/api/calendar-json.googleapis.com/metrics?project=????
+   4. Go to APIs & Services → Credentials https://console.cloud.google.com/apis/credentials?project=????
+   5. Click "+ Create Credentials" → "OAuth Client ID"
+   6. Click "Configure consent screen"
+   7. "Get started" in "Google Auth Platform not configured yet" 
+
+   6. Choose Desktop App as the application type
+   7. Click Download JSON and rename the file to credentials.json
+   8. Place it a safe directory reachable (such as ~)
 BEFORE RUNNING, on Terminal:
    # cd to a folder to receive folder (such as github-wilson):
    git clone https://github.com/wilsonmar/python-samples.git --depth 1
@@ -64,7 +78,7 @@ __commit_date__ = "2026-04-03"
 __commit_msg__ = "26-04-03 v016 pyproject.toml configs :goog-cal-alert.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/goog-cal-alert.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/goog-cal-alert.py"
-__status__ = "WORKING: ruff check goog-cal-alert.py => All checks passed!"
+__status__ = "NOT WORKING: Google Branding Configuration"
 # STATUS: Python 3.13.3 working on macOS Sequoia 15.3.1
 
 import datetime
@@ -72,6 +86,7 @@ import requests
 import schedule
 import time
 
+# See https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html
 #from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build

@@ -116,10 +116,19 @@ SHOW_SECRETS = False
 SECS_BETWEEN_TRIES = 5
 
 
-def day_of_week(local_time_obj) -> str:
+def day_of_week(local_time_obj, lang="en", chars="6") -> str:
     """Return day of week name from number."""
     # str(days[local_time_obj.weekday()])  # Monday=0 ... Sunday=6
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    # International standard ISO 8601 treats Monday as the first day of the week
+    if lang == "en":
+        # Names reflects a mix of Roman timekeeping and Germanic/Norse legend influences:
+        if int(chars) == 3:
+            #        0.     1.     2.     3.     4.     5.     6.
+            days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        else:
+            days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    # Other languages: https://en.wikipedia.org/wiki/Names_of_the_days_of_the_week
+
     return str(days[local_time_obj.weekday()])
 
 

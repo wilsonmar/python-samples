@@ -80,7 +80,7 @@ async def run_asyncio():
    print(f'It took {round(end_time - start_time,0)} second(s) to complete.')
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
    # Run the main coroutine
    # asyncio.run(run_asyncio())
 

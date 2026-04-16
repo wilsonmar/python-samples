@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # https://www.perplexity.ai/search/how-to-use-uv-to-create-the-eq-O8ocUS3VSCum2i.ARsyQGQ
 
-"""mock-client.py here.
+"""retry-client.py here.
 
-https://github.com/wilsonmar/python-samples/blob/main/mock-client.py
+https://github.com/wilsonmar/python-samples/blob/main/retry-client.py
 
 A mock client using tenacity library to test recovery from errors purposely returned by Flask server app mock-flask.py (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
 
+See https://tenacity.readthedocs.io/en/latest/
 Based on https://parottasalna.com/2024/09/07/mastering-request-retrying-in-python-with-tenacity-a-developers-journey/
 
 NOTE: Alternative is using a proxy such as https://decodo.com/blog/python-requests-retry#h2-requests_retries_with_decorator
@@ -14,7 +15,7 @@ NOTE: Alternative is using a proxy such as https://decodo.com/blog/python-reques
 """
 # SECTION 1: Custom Dunder variables of metadata about this program:
 
-__last_change__ = "25-09-23 v001 + new from Jafer :mock-client.py"
+__last_change__ = "25-09-23 v002 + from mock-client.py :retry-client.py"
 
 # TODO: Code both client and server code and use parallel?
 
@@ -26,7 +27,7 @@ import logging
 # SECTION 3: Import External libraries:
 
 try:
-    from tenacity import retry_any, retry, retry_if_exception_type, retry_if_result
+    from tenacity import retry, retry_any, retry_if_exception_type, retry_if_result
     from tenacity import wait_fixed, wait_exponential
     from tenacity import stop_after_attempt
     from tenacity import before_log, after_log
@@ -54,8 +55,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# SECTION 9: Invoke retry() from the tenacity library:
-
+# SECTION 9: Invoke decorator retry() from the tenacity library:
 
 @retry(retry=retry_any(retry_if_exception_type((HTTPError, Timeout)), 
         retry_if_result(lambda x: x is None)),   

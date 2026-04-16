@@ -133,7 +133,7 @@ def extract_categories(save_folder_path):
 
     # Read the content of the file saved:
     # TODO: Instead read real-time using Beautiful Soup:
-    with open('surivor.html', 'r')pipepip as file:
+    with open('surivor.html', 'r') pipepip as file:
         content = file.read()
 
     # Define the pattern to extract text:

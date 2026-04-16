@@ -7,17 +7,25 @@ requires-python = ">=3.13"
 dependencies = [
     "authlib==1.6.9",
     "bandit",
+    "detect-secrets>=1.5.0",
     "fastapi>=0.122.0",
+    "filelock>=3.25.2",
     "keyring",
     "meshtastic>=2.7.5",
     "nltk==3.9.4",
-    "Pillow",
+    "pillow>=12.0.0",
+    "pip>=26.0.1",
     "playwright",
+    "pygments>=2.20.0",
     "pytap2>=2.3.0",
     "requests==2.33.0",
     "safety",
     "semgrep",
+    "urllib3>=2.5.0",
 ]
+[tool.poetry.dependencies]
+python = ">=3.13"
+meshtastic = { version = ">=2.7.5", python = ">=3.13,<3.15" }
 
 [[tool.uv.index]]
 url = "https://pkgs.safetycli.com/repository/public/pypi/simple/"
@@ -33,3 +41,139 @@ project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+
+[lint]
+select = ["ALL"]
+preview = true
+
+[tool.ruff]
+# From https://www.reddit.com/r/Python/comments/1kttfst/ruff_users_what_rules_are_using_and_what_are_you/
+indent-width = 3
+line-length = 88
+output-format = "grouped"
+respect-gitignore = true
+extend-exclude = [
+    "doc/",
+]
+show-fixes = true
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "lf"
+quote-style = "double"
+docstring-code-format = true
+
+[tool.ruff.lint]
+# From https://docs.astral.sh/ruff/rules/
+# From https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+ignore = [
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed (already checked by mypy)
+    "C90", # mccabe
+    "COM", # flake8-commas
+    "COM812",  # missing-trailing-comma
+    "COM819",  # prohibited-trailing-comma
+    "CPY", # flake8-copyright
+    "CPY001",  # Missing copyright notice at top of file
+    "D1", # pydocstyle (missing docstring)
+    "D100",    # Missing docstring in public module
+    "D101",    # Missing docstring in public class
+    "D102",    # Missing docstring in public method
+    "D104",    # Missing docstring in public package
+    "D105",    # Missing docstring in magic method
+    "D107",    # Missing docstring in __init__
+    "D203",    # blank line required before class docstring
+    "D212",    # multi-line-summary-first-line
+    "D213",    # multi-line-summary-second-line
+    "D400",    # First line should end with a period
+    "D406",    # Section name should end with a newline
+    "D407",    # Missing dashed underline after section
+    "D202",    # No blank lines allowed after function docstring
+    "D203",    # blank line required before class docstring
+    "D206",    # indent-with-spaces
+    "D210",    # no-blank-line-before-class
+    "D211",    # no-blank-line-before-class
+    "D213",    # multi-line-summary-second-line
+    "D300",    # too-few-docstring-lines
+    "DOC", # flake8-docstrings. Waiting for full rst style support (https://github.com/astral-sh/ruff/issues/12434)
+    "E111",    # indentation is not a multiple of 4
+    "E114",    # indentation is not a multiple of 4 (comment)
+    "E117",    # over-indented
+    "E501",    # line too long
+    "EM101",   # raw-string-in-exception
+    "ERA001",  # commented-out-code
+    "F541",    # f-string without any placeholders
+    "FA", # flake8-future-annotations
+    "FA102",   # future-annotation-using-string
+    "FIX", # flake8-fixme
+    "FIX002",  # line-contains-todo
+    "G004",    # Logging statement uses f-string (I'll take that small performance hit)
+    "ISC001",  # Conflicts with formatter ruff
+    "PGH", # pygrep-hooks
+    "PLC1901", # Useless string comparison
+    "Q000",    # bad-quotes-inline-string
+    "Q001",    # bad-quotes-multiline-string
+    "Q002",    # bad-quotes-attribute-string
+    "Q003",    # bad-quotes-docstring
+    "PLR0904", # Too many public methods (... > 20)
+    "PLR0913", # Too many arguments in function definition
+    "PLR2004", # Magic value used in comparison
+    "S101",    # Use of assert detected (ok for type checking)
+    "SLF",     # Self
+    "SIM112",  # Use context manager instead of try/finally
+    "T201",    # print found
+    "TD", # flake8-todos
+    "TD002",   # Missing author in TODO `# TODO(<author_name>): ...`
+    "TD003",   # missing-todo-link
+    "TRY003",  # raise-vanilla-args
+    "UP006",   # Use `list` instead of `List` for type annotation
+    "UP007",   # Use `X | Y` for type annotations
+    "UP035",   # Import from collections.abc instead of typing
+    "W191",    # tab-indentation
+    "W291",    # trailing whitespace
+    "W293",    # blank line contains whitespace
+    "YTT", # flake8-2020
+]
+task-tags = ["TODO", "FIXME", "XXX", "HACK"]
+unfixable = ["F401", "F841"]
+select = ["ALL"]
+#  "B",      # flake8-bugbear
+#  "C4",     # Helps you write better list/set/dict comprehensions.
+#  "E",      # pycodestyle errors
+#  "FA",     # Verifies files use from __future__ import annotations if a type is used in the module that can be rewritten using PEP 563.
+#  "F",      # pyflakes
+#  "G",      # Better usage of built-in logging
+#  "I",      # isort - Import sorting
+#  "LOG",    # Checks for issues using the standard library logging module.
+#  "PL",     # pylint
+#  "PYI",    # Linting rules for type annotations.
+#  "Q",      # Linting rules for quites
+#  "RUF",    # Ruff lint
+#  "TCH",    # Move type only imports to type-checking condition.
+#  "TID",    # Helps you write tidier imports.
+#  "UP",     # pyupgrade
+#  "W",      # pycodestyle warnings 
+#  "SIM",    # flake8-simplify
+#]
+
+[lint.per-file-ignores]
+# Ignore missing type annotations in tests
+"test_*.py" = [
+    "ANN", 
+    "D",
+    "S101",    # asserts allowed in tests...
+    "ARG",     # Unused function args -> fixtures nevertheless are functionally relevant...
+    "FBT",     # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    "PLR2004", # Magic value used in comparison, ...
+    "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
+]
+[tool.ruff.lint.per-file-ignores]
+# ignore unused imports in __init__.py files
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.flake8-annotations]
+# suppress ANN401 for *args and **kwargs
+allow-star-arg-any = true
+
+[tool.ruff.lint.pydocstyle]
+# https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings
+convention = "google"

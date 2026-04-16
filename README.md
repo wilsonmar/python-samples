@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "26-03-31 v066 secure-env.py :README.md"
+lastchange: "26-04-03 v067 Akexa goog-cal-alert.py :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -23,12 +23,16 @@ Code which we think have the most <strong>practical usefulness</strong>:
 
 * <a href="secure-env.py">secure-env.py</a> uses utilities to get variable from several sources. It sounds wav file when done.
 
+* <a href="claude-vulscan.py">claude-vulscan.py</a> scans Python code by prompting Anthropic's Claude to use an LLM to identify logic vulnerabilities.
+
 * <a href="git-commit.sh">git-commit.sh</a> is copied to this repo's .git/hooks folder to run
    * <tt>ruff</tt> is catch code formatting issues 
    * <a target="_blank" href="https://bandit.readthedocs.io/en/latest/start.html#usage">>bandit</a> to identify secure coding issues
    * GitGuardian, GitLeaks, TruffleHog, Legit, etc. to identify what looks like secrets stored in the repo.
    <br /><br />
    Note that <tt>safety</tt> is needed to identify libraries (versions) marked as vulnerable in CVS, it is no longer run because the vendor now requires login. That makes it too inconvenient, especially offline.
+
+* <a href="goog-cal-alert.py">goog-cal-alert.py</a> Alexa Google Calendar.
 
 * <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generate diagrams (image files) from text, based on the graphwiz tool library.
 * <a href="playwright-sample.py">playwright-sample.py</a> for browser automation.

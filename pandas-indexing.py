@@ -116,7 +116,7 @@ print("***\r\n")
 # iterate through several values matching that key found.
 
 # https://www.geeksforgeeks.org/indexing-and-selecting-data-with-pandas/
-print("*** using .loc reading nba-2 "
+print("*** using .loc reading nba-2 ")
 # making data frame from csv file
 data = pd.read_csv("nba-2.csv", index_col ="Name")  
 # retrieving row by loc method

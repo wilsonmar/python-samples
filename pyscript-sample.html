@@ -2,9 +2,11 @@
 <!-- 
 This is https://github.com/wilsonmar/python-samples/blob/main/pyscript-sample.html
 to run Python code withing HTML using the pyscript library.
+USAGE in local browser:
+   file:///Users/johndoe/github-wilsonmar/python-samples/pyscript-sample.html
 Docs : https://docs.pyscript.net/2025.2.4/
-__last_change__ = "25-11-10 v001 + new :pyscript-sample.html"
-__status__ = "NOT WORKING yet"
+__last_change__ = "25-11-10 v002 + links :pyscript-sample.html"
+__status__ = "simplest display WORKING on local browser"
 -->  
 <html>
     <head>
@@ -22,7 +24,10 @@ __status__ = "NOT WORKING yet"
           import sys
           from pyscript import display
           
+          display("Using PyScript to run Python in internet browsers: version:")
           display(sys.version)
         </py-script>
+        <a target="_blank" href="https://docs.pyscript.net/2025.2.4/">https://docs.pyscript.net/2025.2.4/</a><br />
+        <a target="_blank" href="https://docs.pyscript.net/2025.2.4/examples/">Sample applications</a>
     </body>
 </html>

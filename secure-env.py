@@ -45,7 +45,7 @@ AFTER RUN:
 
 """
 
-__last_change__ = "26-03-30 v002 afplay :secure-env.py"
+__last_change__ = "26-03-30 v003 afplay :secure-env.py"
 __status__ = "WORKS on macOS Sequoia 15.6.1"
 
 # Stdlib modules (no import):
@@ -82,7 +82,7 @@ def play_wav(sound_type):
       return None
    match sound_type:
       case "done":
-        filepath="audio/doxne.wav"
+        filepath="audio/done.wav"
       case "error":
         filepath="audio/error.wav"
       case "warning":
@@ -116,7 +116,7 @@ def guess_env_path() -> str | None:
    if not repo_folder_name:
       return None
    else:
-      env_filepath = "~/" + repo_folder_name + ".env"
+      env_filepath = str(Path("~/" + repo_folder_name + ".env").expanduser())
       # Such as python-samples.env"
       print(f"env_filepath=\"{env_filepath}\" )")
       return env_filepath

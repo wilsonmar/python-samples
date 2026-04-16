@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# https://www.perplexity.ai/search/how-to-use-uv-to-create-the-eq-O8ocUS3VSCum2i.ARsyQGQ
 
 """listen4cmd.py here.
 
@@ -6,12 +7,16 @@ https://github.com/wilsonmar/python-samples/blob/main/listen4cmd.py
 
 Infinite loop listening for known voice commands to execute, a voice user interface
 like Alexa (https://wilsonmar.github.io/alexa/) but this requires no wake word.
+Like https://wisprflow.ai
 
 Currently Google service is used for voice recognition to text.
-This references files in the audio folder (rimshot-joke-drum.wav, jeopardy-theme-song.mp3, etc.)
+
+Pygame references files in the audio folder (rimshot-joke-drum.wav, jeopardy-theme-song.mp3, etc.)
 
 Based on https://medium.com/codrift/7-python-automation-projects-you-can-build-in-less-than-2-hours-each-e00f6c98fb96
 # Based on https://github.com/rlaneyjr/myutils/blob/master/saytime.py 
+
+TODO: uv ///. Retry. Capture response time. Log to file.
 
 Usage in CLI:
     brew install portaudio  # for pyaudio on macOS
@@ -19,70 +24,85 @@ Usage in CLI:
     git clone https://github.com/wilsonmar/python-samples --depth 1
     cd python-samples
 
-    uv init --no-readme.  # creates pyproject.toml
-    uv venv .venv --python python3.12   # for Tensorflow
+    uv init --no-readme  # creates pyproject.toml
+    # Rather than editing requirements.txt, always generate it:
+    uv export --no-dev --format requirements-txt > requirements.txt
+    uv venv .venv   # --python python3.12   # for Tensorflow
     source .venv/bin/activate
+    uv lock --check  # verify the lockfile matches pyproject.toml and dependencies are not stale.
+    uv lock --upgrade   # all packages to their latest compatible versions
 
     chmod +x listen4cmd.py
     ruff check listen4cmd.py  # contains Flake8, Pylint, Xenon, Radon, Black, isort, pyupgrade.
-    pip install -r requirements.txt
+    # pip install -r requirements.txt
 
     uv add pyaudio, requests, google-cloud-speech, speedtest-cli
     uv add discoverhue, pyperclip
     uv add azure-cognitiveservices-speech.  # azure package is deprecated.
     uv add python_hue_v2, BridgeFinder
     uv add SpeechRecognition, pocketsphinx, apiai, assemblyai, subprocess-tee
+    uv add tenacity
     # , ibm-watson, wit, etc.
 
-    uv run listen4cmd.py
+    uv run listen4cmd.py -v -vv -s
     deactivate
 """
-__last_change__ = "25-09-18 v010 + tuple last resort, speedtest assessment :listen4cmd.py"
+__last_change__ = "25-09-18 v012 + activity monitor :listen4cmd.py"
 __status__ = "pause, start, price, speed test, lights commands not working."
 # See listen4cmd_scraps.py in separate repo.
 
 from datetime import datetime, timezone
+import csv
 import os
-from pathlib import Path
+#import logging  - from loguru import logger
 import platform
 import re
 import requests
 import shutil
 import string
 #import ssl
-import time
+import time    # pytz or pendulum library
 #import urllib.request
+# For wall time of standard imports:
+std_stop_datetimestamp = datetime.now()
 
+# For wall time of xpt (external) imports:
+xpt_strt_datetimestamp = datetime.now()
 # SpeechRecognition library works with major speech recognition engines: 
 # google-cloud-speech, ibm-watson, pocketsphinx, wit, apiai, assemblyai
 # NOTE: (from Wit.ai)
 # Supports offline file transcription (WAV, MP3, etc.)
 # See https://realpython.com/python-speech-recognition/ SR 3.8.1 using Python 3.9
 try:   # external libraries from pypi.com:
+    import asyncio
     import azure.cognitiveservices.speech as speechsdk
+    # import dashscope     # uv add dashscope # alibaba - DISABLED due to missing dependency
     import discoverhue   # uv add discoverhue.  # for obsoleted philips hue.
     #from dotenv import load_dotenv, find_dotenv  # uv add python-dotenv
     #import emoji         # uv add emoji  # https://emojidb.org/quote-emojis
     # pip install git+https://github.com/killjoy1221/playsound.git
     #from playsound import playsound==1.2.2   # uv add playsound --frozen # using Python 3.9
+    import itertools
+    import httpx
+    from loguru import logger
     import pyaudio  # noqa  # uv add PyAudio library to use external/Bluetooth microphone input real-time.
     from pygame import mixer   # uv add pygame
     from python_hue_v2 import Hue, BridgeFinder
     import pyperclip   # uv add pyperclip  
     import pyttsx3     # uv add pyttsx  # for offline text to speech # adds pyobjc-framework-* modules
-    import simpleaudio as sa          # uv add simpleaudio   # play .wav sound
+    # import simpleaudio as sa          # uv add simpleaudio   # play .wav sound - DISABLED due to segfault on Python 3.13+
     import speedtest                  # uv add speedtest-cli
     import speech_recognition as sr   # uv add SpeechRecognition # different names!
     from subprocess_tee import run    # uv add subprocess-tee
+    from tenacity import retry, stop_after_attempt, wait_fixed
     import webbrowser
 except Exception as e:
     print(f"Python module import failed: {e}")
-    # uv run log-time-csv.py
-    #print("    sys.prefix      = ", sys.prefix)
-    #print("    sys.base_prefix = ", sys.base_prefix)
     print("Please activate your virtual environment:")
     print("\n  uv venv .venv\n  source .venv/bin/activate\n  uv add ___")
     exit(9)
+# For wall time of xpt imports:
+xpt_stop_datetimestamp = datetime.now()
 
 
 # TODO: Run-time Parameters:
@@ -90,29 +110,41 @@ except Exception as e:
 SHOW_VERBOSE = False
 SHOW_DEBUG = False
 SHOW_SECRETS = False
-SHOW_SUMMARY = False
+SHOW_STATS = False
 
 SECS_BETWEEN_TRIES = 5
+
+#### SECTION 4 - Meny:
+
 global_play_menu = "Press End/Pause/Resume/End"
 
+# user_app is at /Users/<user>/Applications/...
+# sys_app  is at /Applications/...
 actions_tuple = {  # as ordered key-value:
     "acronyms": ["website0", "wilsonmar.github.io/acronyms" ],
+    "activity": ["sys_app", "Utilities/Activity Monitor.app" ],
     "amazon": ["website", "amazon.com" ],
     "asian": ["website", "yami.com" ],
-    "aws": ["website", "aws.amazon.com" ],
+    "aws": ["website0", "aws.amazon.com" ],
     "azure": ["website0", "portal.azure.com" ],
+    "babble": ["website", "babble.com" ],
     "blog": ["website0", "wilsonmar.github.io/posts" ],
     "bomonike": ["website0", "bomonike.github.io/README" ],
+    "brave": ["user_app", "Brave Browser.app" ],
     "calculator": ["sys_app", "Calculator.app" ],
     "calendar": ["website0", "calendar.google.com" ],
     "camtasia": ["sys_app", "camtasia 2023.app" ],
     "claude": ["user_app", "Claude.app" ],
     "clock": ["sys_app", "Clock.app" ],
+    "costco": ["website", "costco.com" ],
     "contacts": ["website0", "contacts.google.com" ],
+
     "cursor": ["user_app", "Causor.app" ],
     "discord": ["sys_app", "Discord.app" ],
+    "drive": ["website0", "drive.google.com" ],
     "docker": ["user_app", "Docker.app" ],
     "facebook": ["website", "facebook.com" ],
+    "firefox": ["sys_app", "Firefox.app" ],
     "github": ["website", "github.com" ],
     "gmail": ["website", "gmail.com" ],
     "google": ["website", "google.com" ],
@@ -121,27 +153,124 @@ actions_tuple = {  # as ordered key-value:
     "just watch": ["website", "justwatch.com" ],
     "linkedin": ["website", "linkedin.com" ],
     "messages": ["sys_app", "Messages.app" ],
+    "quiz": ["sys_app", "Anki.app" ],
     "obs": ["user_app", "OBS.app" ],
     "perplexity": ["website", "perplexity.ai" ],
+    "safari": ["sys_app", "Safari.app" ],
     "search": ["website", "startpage.com" ],
+    "speed test": ["sys_app", "SpeedTest.app" ],
     "slack": ["user_app", "slack.app" ],
     "surf": ["user_app", "windsurf.app" ],
+    "terminal": ["sys_app", "Utilities/Terminal.app" ],
+    "virus total": ["website", "virustotal.com/gui/home/url" ],
     "voice": ["website0", "voice.google.com" ],
     "youtube": ["website", "youtube.com" ],
     "visual": ["user_app", "Visual Studio Code.app" ],
     "warp": ["user_app", "warp.app" ],
     "xcode": ["sys_app", "XCode.app" ],
 }
-
 # Firefox with no cookies: fidelity, capital one, wells fargo, proton mail, etc.
 
-
 def menu():
-    """Recognize these words to return information."""
+    """Recognize these words to return information.
+    
+    TODO: Generate menu based on actions_tuple (above).
+    """
     print("    clock, time, local, london")
     print("    lights on/off, music (jeopardy)")  # , guitar
     print("    Lookup: joke, prices (currency), quote, speed test, weather")
     print("    Apps: calculator, claude, discord, docker, messages, obs, camtasia, slack, teams")
+
+#### SECTION 4 - Logging:
+
+store_log = False
+log_start_stop = True
+if store_log:
+    # Configure logging format and level:
+    # Used by log_http_response_time()
+    # import logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+def log_http_response_time(url):
+    """Log response times of http requests.
+
+    # Example usage:
+    url = 'https://api.github.com'
+    response = log_http_response_time(url)
+    """
+    if log_start_stop:
+        start_time = time.time()
+        logging.info(f"Starting request to {url} at {start_time}")
+    try:
+        response = requests.get(url, timeout=10)
+        elapsed_time = time.time() - start_time
+        response.raise_for_status()  # Will raise HTTPError for bad responses (4xx and 5xx)
+        logging.info(f"Received response from {url} with status code {response.status_code} in {elapsed_time:.4f} seconds")
+        return response
+    except requests.exceptions.RequestException as e:
+        elapsed_time = time.time() - start_time
+        logging.error(f"Request to {url} failed after {elapsed_time:.4f} seconds: {e}")
+        return None
+
+
+async def log_async_http_response_time(url):
+    """Log response times of asynx requests.
+
+    # Example usage:
+    url = 'https://api.github.com'
+    await log_async_http_response_time(url)
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+    https://launchdarkly.com/blog/why-use-logging-libraries-for-python/
+    logger.remove(0)  # https://loguru.readthedocs.io/en/stable/api/logger.html#record
+    logger.add(sys.stderr, format="{level} : {time} : {message}: {process}")  # <-
+
+    logger.critical("This is a critical message.") # A severe issue that can terminate the program, like " out of memory".
+    logger.error("This is an error message.") # An issue that needs your immediate attention but won't terminate the program.
+    logger.debug("This is a debug message")   # Information that is helpful during debugging.
+    logger.info("This is an info message.")   # Confirmation that the application is behaving as expected.
+    logger.warning("This is a warning message.") # an issue that may disrupt the application in the future.
+
+    # loguru only:
+    logger.trace("This is a trace message.")  # low-level details of the program's logic flow.
+    logger.success("This is a success message.") # an operation was successful.
+
+    {"levelname": "ERROR", "name": "__main__", "message": "This is an error message", "asctime": "2023-03-28 14:04:01,930"}
+    {"levelname": "CRITICAL", "name": "__main__", "message": "This is a critical message", "asctime": "2023-03-28 14:04:01,930"}
+    """
+    # import asyncio, httpx, logging, time
+    logging.info(f"Starting async request to {url}")
+    start_time = time.perf_counter()
+    req_count = req_count =+ 1
+    try:
+        timeout_specs = httpx.Timeout(   # seconds (float):
+            timeout=10.0,       # Total timeout default 
+            connect=5.0,        # Timeout to establish connection setup
+            read=10.0,          # Timeout waiting for receiving data
+            write=5.0,          # Timeout waiting for sending data
+            pool=5.0            # Timeout for acquiring connection from pool
+        )
+        async with httpx.AsyncClient(timeout=timeout_specs) as client:
+            response = await client.get(url)
+
+            #response.raise_for_status()
+            # asyncio.wait_for enforces a hard timeout for the coroutine
+            response = await asyncio.wait_for(client.get(url), timeout=12.0)
+            
+            elapsed_time = time.perf_counter() - start_time
+            logging.info(f"Received response from {url} with status code {response.status_code} in {elapsed_time:.4f} seconds")
+            return response
+    except httpx.RequestError as e:
+        elapsed_time = time.perf_counter() - start_time
+        logging.error(f"Request {req_count} to {url} failed after {elapsed_time:.4f} seconds: {e}")
+        return None
+    except httpx.HTTPStatusError as e:
+        elapsed_time = time.perf_counter() - start_time
+        logging.error(f"HTTP error during request {req_count} to {url} after {elapsed_time:.4f} seconds: {e}")
+        return None
 
 
 def listen_command() -> str:
@@ -154,17 +283,21 @@ def listen_command() -> str:
             audio = r.listen(source)
             if not audio:
                 return None
-            # command_str = speech_to_text_azure(audio).lower()   # from Microsoft, online 
-               # FIXME: response: No speech could be recognized: NoMatchDetails(reason=NoMatchReason.InitialSilenceTimeout) # 'NoneType' object has no attribute 'lower'
-            # Fallback to Google: _google comes with a dev. API key good for 50 queries per day.
-            # print(f"DEBUGGING: command_str={command_str}")
-            #if not command_str:
-            command_str = r.recognize_google(audio).lower()
-                    
+            # llms = ["google", "azure", "aws", "qwen", etc.]
+            # if llm_to_use == "Google":
+                # command_str = speech_to_text_qwen(audio).lower() https://www.alibabacloud.com/help/en/model-studio/qwen-speech-recognition
+                   # Local: https://www.perplexity.ai/search/how-to-setup-qwen-speech-recog-utUbfa_5Thaqwz7nORx3yw
 
+                # command_str = speech_to_text_azure(audio).lower()   # from Microsoft, online 
+                    # FIXME: response: No speech could be recognized: NoMatchDetails(reason=NoMatchReason.InitialSilenceTimeout) # 'NoneType' object has no attribute 'lower'
+                    # Fallback to Google: _google comes with a dev. API key good for 50 queries per day.
+                    # print(f"DEBUGGING: command_str={command_str}")
+                    #if not command_str:
+                # command_str = r.recognize_google(audio).lower()
+        
+                # r.recognize_google()    # from Google Web Speech API, uv add google-cloud-speech
                 # Other alternatives (Not as precise as Google):
                 # r.recognize_sphinx(audio).lower()    # from CMU Sphinx, offline!  uv add pocketsphinx
-                # r.recognize_google()    # from Google Web Speech API, uv add google-cloud-speech
                 # r.recognize_ibm()       # from IBM Speech to Text, online  uv add ibm-watson
                 # r.recognize_houndify()  # from SoundHound, online  uv add ???
                 # r.recognize_wit()       # from wit.ai, online  uv add wit
@@ -184,6 +317,25 @@ def listen_command() -> str:
         except Exception as e:
             print(f"   {e}") # listen_command() died {e}")
             return None
+
+def qwen_stt():
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-Audio")
+    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-Audio")
+
+    audio_url = "https://example.com/audio.flac"
+    prompt = "<|startoftranscript|><|en|><|transcribe|><|en|><|notimestamps|><|wo_itn|>"
+
+    query = f"<audio>{audio_url}</audio>{prompt}"
+
+    audio_info = tokenizer.process_audio(query)
+    inputs = tokenizer(query, return_tensors='pt', audio_info=audio_info)
+
+    pred = model.generate(**inputs, audio_info=audio_info)
+    response = tokenizer.decode(pred.cpu()[0], skip_special_tokens=False, audio_info=audio_info)
+
+    print(response)
 
 
 def speech_to_text(text):
@@ -261,10 +413,19 @@ def speech_to_text_azure(audio) -> str | None:
         return None
     
 
+# def speech_to_text_qwen(audio):
+#     """Use Qwen AI Alibaba cloud in Singapore for speech-to-text."""
+#     # DISABLED: dashscope dependency not installed
+#     # https://www.alibabacloud.com/help/en/model-studio/qwen-speech-recognition
+#     # To enable, run: uv add dashscope
+#     pass
+
+
 def wav_play(filepath):
-    """Play a .wav file to your machine's speaker.
+    """Play a .wav file to your machine's speaker using pygame.
     
     Such as "audio/rimshot-joke-drum.wav"
+    NOTE: Fixed segfault issue by replacing simpleaudio with pygame
     """
     #import os
     # os.path.isfile() checks if the file exists and is not a directory:
@@ -272,10 +433,15 @@ def wav_play(filepath):
         print(f"FATAL: File {filepath} not found!")
         return None
     try:
-        # import simpleaudio as sa          # uv add simpleaudio   # play .wav sound
-        wave_object = sa.WaveObject.from_wave_file(filepath)
-        play_object = wave_object.play()
-        play_object.wait_done()  # Wait until playback is finished
+        # Using pygame instead of simpleaudio to avoid segfault on Python 3.13+
+        from pygame import mixer
+        mixer.init()
+        mixer.music.load(filepath)
+        mixer.music.play()
+        # Wait until playback is finished
+        while mixer.music.get_busy():
+            time.sleep(0.1)  # Small delay to prevent busy waiting
+        mixer.quit()  # Clean up resources
     except Exception as e:
         print(f"wav_play(): {e}")
 
@@ -348,11 +514,39 @@ def timestamp_utc() -> str:
     return timestamp
 
 
+def print_wall_times(counter):
+    """Print All the timings together for consistency of output."""
+    # if DISPLAY_RUN_STATS:
+    print("display_run_stats():    Wall times (hh:mm:se.microsecs):")
+    # TODO: Write to log for longer-term analytics
+
+    # For wall time of std imports:
+    std_stop_datetimestamp = datetime.now()
+    std_elapsed_wall_time = std_stop_datetimestamp -  std_strt_datetimestamp
+    print("Import of Python standard libraries: "+ \
+        str(std_elapsed_wall_time))
+
+    # For wall time of xpt imports:
+    xpt_stop_datetimestamp = datetime.now()
+    xpt_elapsed_wall_time = xpt_stop_datetimestamp -  xpt_strt_datetimestamp
+    print("Import of Python extra    libraries: "+ \
+        str(xpt_elapsed_wall_time))
+
+    pgm_stop_datetimestamp = datetime.now()
+    pgm_elapsed_wall_time = pgm_stop_datetimestamp -  pgm_strt_datetimestamp
+    #pgm_stop_perftimestamp = time.perf_counter()
+    print("Whole program run:                   "+ \
+        str(pgm_elapsed_wall_time))
+
+
+
 def load_env_variable(variable_name, env_file='~/python-samples.env') -> str:
     """Retrieve a variable from a .env file in Python without the external dotenv package.
     
     USAGE: my_variable = load_env_variable('MY_VARIABLE')
     Instead of like: api_key = os.getenv("API_KEY")
+    TODO: Encrypt using a key in USB (Yubikey serial number)
+    TODO: Add a parm to retrieve variable from cloud store (Pulumi/Akeyless/AWS Secret Manager, etc.)
     """
     home_path_env = os.path.expanduser('~')+"/python-samples.env"
     # Check for env_file:
@@ -457,8 +651,19 @@ def exchangerates():
     print(f"1 USD= {usd_eur} EUR (Euros), {usd_jpy} JPY (Yen), {usd_gbp} GBP (Pounds)")
 
 
-def get_random_kjv_verse():
-    """Return random English KJV Bible verse."""
+def read_verse_from_csv( csv_filepath = "listen4cmd-verses.csv"):
+    """Return row from csv."""
+    row_seq = 5  # week_number. for example, get the 5th row (0-indexed, so this is the 6th row)
+    # import csv
+    # import itertools
+    with open(csv_filepath, newline='') as csvfile:
+        row = next(itertools.islice(csv.reader(csvfile), row_seq, None))
+        print(row)
+    verse = row
+    return verse
+
+def verse_lookup():
+    """Lookup by calling api."""
     #url = "https://bible-api.com/data/random/KJV"
     url = "https://bible-api.com/John+3:16?translation=kjv"
     # WARNING: Added verify=False to bypass TLS CA certificate bundle issue. Not recommended for production.
@@ -470,6 +675,7 @@ def get_random_kjv_verse():
         return f"{verse_text} — {reference}"
     else:
         return None
+
 
 
 def human_readable_speed(nbytes):
@@ -657,11 +863,17 @@ def organize_downloads():
 
 # TODO: def more commands to process!
 
+## Logging
+# https://www.structlog.org/en/stable/
+# https://www.matthewstrawbridge.com/content/2024/python-logging-basic-better-best/
+
 if __name__ == "__main__":
 
     # uv add python-dotenv
     # Load environment variables from .env file:
     # from dotenv import load_dotenv, find_dotenv
+
+    asyncio.run(main())   # for log_async_http_response_time(url)
 
     if SHOW_VERBOSE:
         print(f"speech_recognition __version__ = {sr.__version__}")
@@ -682,17 +894,17 @@ if __name__ == "__main__":
                 menu()
 
             elif 'exit' in command_str or 'abort' in command_str or 'stop' in command_str:
+                # TODO: 'goodbye' for machine shutdown?
                 print("    Bye Bye")
                 exit()
 
             elif 'speed' in command_str:
                 results = do_speedtest()
 
-            elif 'bible' in command_str:
-                # TODO: Random KJV Bible verse:
-                text=get_random_kjv_verse()
-                print(f"{text}")
-                speech_to_text(text)
+            elif 'verse' in command_str:
+                verse=verse_random()
+                print(f"    {verse}...")
+                speech_to_text(verse)
 
             elif 'lights' in command_str and 'on' in command_str:
                 light_num = 1
@@ -703,7 +915,7 @@ if __name__ == "__main__":
                 action = "off"
                 print(f"{philips_hue_action(light_num,action)}")
 
-            elif 'time' in command_str:
+            elif 'say' in command_str and 'time' in command_str:
                 # Run another Python script (e.g. "saytime.py") with arguments
                 result = run(["python", "saytime.py"], tee=True, text=True, capture_output=True)
                 # "Twenty five past five is the local time"    
@@ -718,13 +930,6 @@ if __name__ == "__main__":
                 result = run(["python", "openweather.py", "-v"], tee=True, text=True, capture_output=True)
                 # Output is printed live and also captured in result.stdout:
                 print("Captured output:", result.stdout)
-
-            elif 'discord' in command_str:
-                result = run(["open", "-a", "Discord"], tee=True, text=True, capture_output=True)
-                print("    Opening Discord...")
-            elif 'messages' in command_str:
-                result = run(["open", "-a", "Messages"], tee=True, text=True, capture_output=True)
-                print("    Opening Messages...")
 
             elif 'calculator' in command_str and 'plus' in command_str:
                 result = run(["open", "-a", "Calculator Plus.app"], tee=True, text=True, capture_output=True)
@@ -812,7 +1017,6 @@ if __name__ == "__main__":
             #    print(".   Playing guitar.")
             #    guitar_play()
 
-
             elif 'settings' in command_str or 'system' in command_str:
                 # import platform
                 if platform.system().lower() == 'darwin':  # is macOS:
@@ -827,25 +1031,25 @@ if __name__ == "__main__":
             else:  # lookups from actions tuple = { "keyword": ["function", "parm"] } :
                 tar = command_str  # target element in tuple, such as "github"  
                 func, parm = actions_tuple.get(tar, (None, None))
-                if SHOW_SUMMARY:
+                if SHOW_STATS:
                     print("STATS: len(actions_tuple) entries in actions_tuple!")
                 if func:  # found:
                     if func == "website0":
                         url = f"https://{parm}/"
-                        print(f"    Opening website to {parm}...")
+                        print(f"    Opening website to {url}...")
                         webbrowser.open(url)
                     elif func == "website":
                         url = f"https://www.{parm}/"
-                        print(f"    Opening website to {parm}...")
+                        print(f"    Opening website to {url}...")
                         webbrowser.open(url)
                     elif func == "user_app":
-                            url = f"../../Applications/{parm}"
-                            print(f"    Opening {parm}...")
-                            result = run(["open", url], tee=True, text=True, capture_output=True)
+                        url = f"../../Applications/{parm}"
+                        print(f"    Opening {url}...")
+                        result = run(["open", url], tee=True, text=True, capture_output=True)
                     elif func == "sys_app":
-                        url = f"{parm}"
-                        print(f"    Opening {parm}...")
-                        result = run(["open", "-a", parm], tee=True, text=True, capture_output=True)
+                        url = f"/Applications/{parm}"
+                        print(f"    Opening {url}...")
+                        result = run(["open", "-a", url], tee=True, text=True, capture_output=True)
                     else:  # action not found:
                         print(f"FATAL: action {func} needs to be added in actions_tuple!")
                         exit(9)
@@ -857,3 +1061,7 @@ if __name__ == "__main__":
         # loop again
     except KeyboardInterrupt:
         print("\ncontrol+C exiting listen4cmd.py gracefully.")
+
+
+    if SHOW_STATS:
+        print_wall_times()

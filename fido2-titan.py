@@ -30,6 +30,7 @@ try:
     from fido2.server import Fido2Server
     from fido2.webauthn import PublicKeyCredentialRpEntity, PublicKeyCredentialUserEntity
     from fido2 import cbor
+    import inspect
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
@@ -192,7 +193,7 @@ def test_authentication(device):
 def main():
     """Main function to demonstrate FIDO2 device detection and info reading"""
 
-    import inspect
+    #import inspect
     print(f"{inspect.getfile(inspect.currentframe())}: FIDO2/Google Titan Reader")
 
     # Find devices:

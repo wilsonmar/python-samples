@@ -8,6 +8,7 @@
 #   "keyring",
 #   "opentelemetry-api",
 #   "opentelemetry-sdk",
+#   #pillow",
 #   "psutil",
 #   "pyAesCrypt",
 #   "python-dotenv",
@@ -43,13 +44,13 @@ BEFORE RUNNING, on Terminal:
         # ./scripts/activate       # PowerShell only
         # ./scripts/activate.bat   # Windows CMD only
    uv add contextlib getpass keyring subprocess --frozen
-
-   brew install fonttools keras pillow protobuf markdown
+   ??? pip install -r requirements.txt
+   brew install keras pillow protobuf markdown
    brew install bandit safety semgrep ruff
-   bandit -r ./github-wilsonmar/project-samples          # Security linter for asserts
+
    safety scan myutils.py                 # Check dependencies for CVEs (now requires login via internet)
-   semgrep --config=auto .         # Pattern-based analysis
-   ruff check myutils.py
+   ruff check myutils.py       # Based on pyproject.toml configs
+   semgrep --config=auto       # Pattern-based analysis
 
    chmod +x myutils.py
    uv run myutils.py -v
@@ -67,7 +68,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-04-02"
-__commit_msg__ = "26-04-02 v015 vulscan comments :myutils.py"
+__commit_msg__ = "26-04-02 v016 pyproject.toml configs :myutils.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/myutils.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/myutils.py"
 __status__ = "WORKING: ruff check myutils.py => All checks passed!"
@@ -176,7 +177,7 @@ try:
     # UNUSED: import pytz   # time zones
     import qrcode
     import requests
-    from cryptography.fernet import Fernet  # pip install cryptography
+    from cryptography.fernet import Fernet
     from cryptography.hazmat.primitives import (
         serialization,  # uv pip install cryptography
     )
@@ -945,7 +946,7 @@ def force_link(src, linkname):
     """Force link.
 
     USAGE: myutils.force_link(???)
-    NOTE: os.replace() pattern eliminates TOCTOU race.
+    NOTE: os.replace() uses the same handle for validation and action to block TOCTOU (Time of Check to Time of Use) security vulnerability where software checks something, then uses it later, and an attacker changes it in between.
     """
     tmp = linkname + f".tmp_{secrets.token_hex(8)}"
     try:
@@ -2119,17 +2120,19 @@ def encrypt_symmetrically(source_file_path: str, cyphertext_file_path: str) -> s
 
 
 def encrypt_secret(cleartext_in=None):
-    """Encrypt a secret using the Fernet module."""
-    # from cryptography.fernet import Fernet   # pip install cryptography
+    """Symmetric AES-128-CBC encrypt text with HMAC-SHA256 signature."""
+    # from cryptography.fernet import Fernet 
+    # uv add cryptography
     if not cleartext_in:
-        cleartext_in = b"A really secret message. Not for prying eyes."
+        cleartext_in = b"Sample secret message. Not for prying eyes."
+    # TODO: Ensure input string is binary.
     key = Fernet.generate_key()
     f = Fernet(key)
     binary_token = f.encrypt(cleartext_in)
     # CAUTION: token is a command which outputs the token b'...(don't do it)
     # decrypted_text = f.decrypt(token)
     # b'A really secret message. Not for prying eyes.'
-    print_verbose(f"Encrypted binary token contains {len(str(binary_token))} characters.")
+    print_verbose(f"Encrypted binary token from \"{cleartext_in}\" contains {len(str(binary_token))} chars.")
     # CAUTION: It is a security violation to display secure tokens in the console.
     return binary_token
 
@@ -2277,7 +2280,10 @@ def gen_qrcode(url: str, qrcode_file_path: str) -> bool:
 
 
 def main():  # SAMPLE USAGE:
-    """Show sample usage."""
+    """Show myutils being used."""
+    
+    encrypt_secret("hello world")
+    
     do_clear_cli()
     show_print_samples()
 

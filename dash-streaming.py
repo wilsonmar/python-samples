@@ -17,7 +17,7 @@ Use Plotly Dash library to animate a stream of real-time updates (random values)
 Based on https://www.perplexity.ai/search/python-code-to-create-a-dashbo-kndpQ8EfThWOL8r7a7bgsg
 https://pythonprogramming.net/live-graphs-data-visualization-application-dash-python-tutorial/#google_vignette
 
-TODO: Instead of random numbers, use real-time.
+TODO: Instead of random numbers, use real-time data: telemetry, finance tickers, sensors.
 
 USAGE:
     chmod +x dash-streaming.py

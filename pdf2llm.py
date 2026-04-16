@@ -2,10 +2,11 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#   "platformdirs",
 #   "markitdown[pdf]",
-#   "pymupdf4llm",
+#   "platformdirs",
+#   "OpenAI",
 #   "psutil",
+#   "pymupdf4llm",
 # ]
 # ///
 # See https://docs.astral.sh/uv/guides/scripts/#using-a-shebang-to-create-an-executable-file
@@ -14,9 +15,10 @@
 
 https://github.com/wilsonmar/python-samples/blob/main/pdf2llm.py
 
-This code uses several techniques to parse a PDF file for use by LLM.
+This (PDF to LLM) code uses several techniques to parse a PDF file for input to an LLM.
 
-Sample file "LSDPrep-V8.pdf" is 509 pages in 9.8 MB.
+Sample file "LSDPrep-V8.pdf" is 509 pages in 9.34 MB.
+Potassium Food List.pdf
 
 # Before running, on a Terminal
     # Create a folder:
@@ -29,6 +31,7 @@ Sample file "LSDPrep-V8.pdf" is 509 pages in 9.8 MB.
     #uv venv --python python3.12
     uv add --frozen MarkItDown[pdf]
     uv add --frozen pymupdf4llm
+    uv add --frozen openai
     uv add --frozen requests
     uv add platformdirs
     uv pip install -e .
@@ -48,7 +51,8 @@ __status__ = "NOT WORKING - new"
 # Built-in libraries:
 import argparse
 from datetime import datetime, timezone
-#from pathlib import Path
+import os
+from pathlib import Path
 import platform
 #import re
 import psutil
@@ -56,8 +60,9 @@ import time
 
 # External libraries defined in requirements.txt:
 try:
-    import pymupdf4llm
     from markitdown import MarkItDown
+    from openai import OpenAI
+    import pymupdf4llm
     #import matplotlib. pyplot
     #import requests
 except Exception as e:
@@ -81,7 +86,9 @@ SLEEP_SECS = 1
 # For wall time measurements:
 pgm_strt_datetimestamp = datetime.now()
 
-print(platform.system())  # Darwin, Linux, Windows, etc.
+#TODO: Set this from parms:
+# From https://www.ldsavow.com/LDSPREP/LDSPrep-V8.pdf
+input_pdf = "FoodList.pdf" # "LDSPrep-V8.pdf"
 
 def read_cmd_args() -> None:
     """Read command line arguments and set global variables.
@@ -129,9 +136,7 @@ def read_cmd_args() -> None:
 def is_macos() -> bool:
     """Return True if this is running on macOS."""
     # import platform
-    return platform.system() == "Darwin"
-
-# For custom GPU operations in Python, use pyobjc to interface with Apple Metal APIs, but it is more complex than using PyTorch/TensorFlow.
+    return platform.system() == "Darwin" # Darwin, Linux, Windows, etc.
 
 
 #### Utility Time Functions:
@@ -175,12 +180,29 @@ def func_timer_stop(strt_time):
     elapsed_secs = stop_time - strt_time
     return elapsed_secs
 
+### Strings and Files
 
 def string_byte_count(string: str, encoding='utf-8') -> int:
     """Encode the string to bytes using the specified (utf-8)."""
     byte_sequence = string.encode(encoding)
     # Return the length of the byte sequence
     return len(byte_sequence)
+
+def file_bytes(in_filepath):
+    """Return number of bytes in file."""
+    #from pathlib import Path
+    file_path = Path(in_filepath)
+    file_size = file_path.stat().st_size
+    # print(f"file {in_filepath} is: {file_size} bytes.")
+    return file_size
+
+def str_to_file(str_out, out_filename) -> str:
+    """Write file from string."""
+    with open(out_filename, "w") as file:
+        file.write(str(str_out))
+    print(f"pdf2llm.py wrote {out_filename}") # 2MB
+    file_size = file_bytes(out_filename)
+    return file_size
 
 
 def user_gb_mem_avail() -> float:
@@ -246,6 +268,32 @@ def use_pymupdf4llm(input_pdf):
 
 # llama-parse: Uses an API to convert PDFs to Markdown with structure preservation, requiring API key setup.​ https://stackoverflow.com/questions/77834102/converting-pdf-to-markdown-in-python-with-structure-preservation
 
+def query_openai(query):
+    """Return answer to query to GenAI."""
+    # from???
+    # Step 1: Read markdown file:
+    #import openai
+    with open("notes.md", "r", encoding="utf-8") as f:
+        markdown_text = f.read()
+
+    # Generate embeddings (using OpenAI API or SentenceTransformers)
+    embedding = get_embedding(markdown_text)  # Placeholder for embedding generation
+
+    # Insert into vector DB (e.g., ChromaDB)
+    vector_db.insert(document_id="doc1", embedding=embedding, metadata={"text": markdown_text})
+
+    # Query flow:
+    # query = "Explain the main points about concurrency in Python."
+    query_embedding = get_embedding(query)
+    results = vector_db.query(query_embedding, top_k=3)
+
+    # Formulate prompt for LLM using retrieved passages:
+    context = "\n\n".join([res.metadata["text"] for res in results])
+    prompt_text = (f"Given the following context from markdown notes:"
+                   f"\n{context}\nAnswer the query: {query}")
+
+    answer = llm_call(prompt_text)  # Call to LLM like OpenAI GPT
+    return answer
 
 
 if __name__ == '__main__':
@@ -269,27 +317,56 @@ if __name__ == '__main__':
         print(f"DEBUG: pgm_diskspace_free()={pgm_strt_disk_free:.2f} GB")
         # list_disk_space_by_device()
 
-    # From https://www.ldsavow.com/LDSPREP/LDSPrep-V8.pdf
-    algo = "pymupdf4llm"
-    #algo = "MarkItDown"
-    input_pdf = "LDSPrep-V8.pdf"
+    #algo = "pymupdf4llm"
+    algo = "MarkItDown"
+
     yymmdd = timestamp_utc()
-    md_out_filename = f"LDSPrep-V8-{algo}-{yymmdd}.md"
+    md_out_filename = f"{input_pdf}-{algo}-{yymmdd}.md"
     if algo == "pymupdf4llm":
         md_out = use_pymupdf4llm(input_pdf)
     elif algo == "MarkItDown":
         md_out = use_markitdown(input_pdf)
+        # See https://realpython.com/python-markitdown/
         #TODO: Convert UTF-8 "" to "##" markdown
         #input_string = "\f\fFF"
         #output_string = input_string.replace("\f\fFF", "##")
         # print(output_string)
     else:
-        print("Invalid algo.")
+        print(f"Invalid algo \"{algo}\".")
         exit()
     
-    print(f"use_markitdown {string_byte_count(str(md_out))} bytes.")
-        #Too big to print(md_text)
-    with open(md_out_filename, "w") as file:
-        file.write(str(md_out))
-    print(f"pdf2llm.py wrote {md_out_filename}") # 2MB
+    #TODO: Remove page numbers within text.
 
+    file_bytes = str_to_file(md_out, md_out_filename)
+    print(f"from {file_bytes} to {string_byte_count(str(md_out))} bytes.")
+        #Too big to print(md_text)
+
+    exit()
+
+    ## STAGE 2: Clean & convert Markdown to structured JSON.
+    
+    ## STAGE 3: Load markdown strong to an LLM client (using OpenAI API).
+
+    # from openai import OpenAI
+    
+    # TODO: OpenAI API key set in environment.
+    # Initialize LLM client:
+    if "SSL_CERT_FILE" in os.environ:
+        print(f"DEBUG: Unsetting SSL_CERT_FILE environment variable: {os.environ['SSL_CERT_FILE']}")
+        del os.environ["SSL_CERT_FILE"]
+    client = OpenAI()
+    # Initialize MarkItDown
+    md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+    # Convert or read the Markdown file:
+    result = md.convert(md_out_filename)
+    # Markdown text ready to be used as input for the LLM
+    markdown_text = result.markdown
+
+    # Use `markdown_text` as prompt or context for your LLM request:
+    #print(markdown_text)
+
+    #### STAGE 4: query markdown data using large language models
+    
+    # From parms:
+    query_text = "Explain the main points about concurrency in Python."
+    result = query_openai(query_text)

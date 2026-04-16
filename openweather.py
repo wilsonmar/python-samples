@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py
-
-git commit -m "v027 + apisec fix :openweather.py"
-
-STATUS: working
+"""openweather.py at https://github.com/wilsonmar/python-samples/blob/main/openweather.py here.
 
 by Wilson Mar, LICENSE: MIT
 This program formats CLI output after parsing JSON returned from
@@ -15,40 +11,47 @@ cloudiness, humidity, dew point comfort, pressure, wind direction, etc..
 
 bathymetry maps determine depth from sea level at the latitude and longitude location.
 
-Sample CLI putput running this program:
-./openweather.py --zip london --verbose
-openweather.org
-id: 2646003    at: 07:01 AM (07:01:38) 2025-03-31 TZ: 3600
-          Sunrise: 11:37 PM (23:37:41) 2025-03-30 local time
-           Sunset: 12:31 PM (12:31:07) 2025-03-31
-few clouds at Islington , country=GB "lat=51.5286416&lon=-0.1015987"
-     Latitude:  51.5286416° North of the Equator &
-     Longitude: -0.1015987° East of the Meridian at Greenwich, UK
-comfortable Dew Point of 41.58°F vs. 60.87°F at 49% humidity
-     Feels like 58.96°F from Wind: 8.79 mph from S (151°)
-     Visibility to 10000 meters
-high +15 pressure at 1028 hPa (HectoPascals = 10.28 millibars)
-          vs. normal 1013.25 hPa at sea level
-                     1024    hPa at ground level
-                
-Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
-Create account at https://home.openweathermap.org/users/sign_up
-⛈ subscribe to the "One Call API 3.0" with a credit card.
-https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
-weatherstack.com/
+BEFORE RUNNING, on Terminal:
+   # cd to a folder to receive folder (such as github-wilson):
+   git clone https://github.com/wilsonmar/python-samples.git --depth 1
+   cd python-samples
+   python3 -m pip install uv
+   python -m venv .venv   # creates bin, include, lib, pyvenv.cfg
+   uv venv .venv
+   source .venv/bin/activate
+   uv add getpass keyring  subprocess --frozen
 
-TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
-like https://www.ventusky.com/?p=45.45;-109.78;6&l=gust&w=soft
-TODO: Store each day's readings to a database for trending on dashboard (such as
-https://wilsonmar.github.io/dashboards/#weather-maps)
-* Ambient Weather: https://ambientweather.net/dashboard/3e5ec6331a8884e1ac1d5fbd2812ba11/tiles
-* Weather Underground: https://www.wunderground.com/dashboard/pws/KNJRIDGE44
-* Weather Cloud: https://app.weathercloud.net/d7511690833#current
-* PWS Weather: https://www.pwsweather.com/station/pws/KRUSE1
-* weather.gov (free)
-* sunriseandsunset.io (free)
+   ruff check openweather.py
+   chmod +x openweather.py
+   uv run openweather.py --zip london --verbose
+      # -s to save var
+      # Terminal does not freeze.
+   # Press control+C to cancel/interrupt run.
+
+SAMPLE OUTPUT:
+    id: 2646003    at: 07:01 AM (07:01:38) 2025-03-31 TZ: 3600
+            Sunrise: 11:37 PM (23:37:41) 2025-03-30 local time
+            Sunset: 12:31 PM (12:31:07) 2025-03-31
+    few clouds at Islington , country=GB "lat=51.5286416&lon=-0.1015987"
+        Latitude:  51.5286416° North of the Equator &
+        Longitude: -0.1015987° East of the Meridian at Greenwich, UK
+    comfortable Dew Point of 41.58°F vs. 60.87°F at 49% humidity
+        Feels like 58.96°F from Wind: 8.79 mph from S (151°)
+        Visibility to 10000 meters
+    high +15 pressure at 1028 hPa (HectoPascals = 10.28 millibars)
+            vs. normal 1013.25 hPa at sea level
+                        1024    hPa at ground level
+
+AFTER RUN:
+    deactivate  # uv
+    rm -rf .venv .pytest_cache __pycache__
 
 """
+
+__last_change__ = "26-03-31 v028 get env path :openweather.py"
+__status__ = "WORKS on macOS Sequoia 15.6.1"
+
+
 # STEP 1 = Setup. Before running this program: Installing Required Libraries & Importing Required Libraries
 
 # pip install yubikey-manager
@@ -56,30 +59,31 @@ https://wilsonmar.github.io/dashboards/#weather-maps)
 # Built-in modules within the Python interpreter:
 from datetime import datetime
 from datetime import timedelta, timezone
+import time
 import argparse
-import pathlib
+#import pathlib
 import math
 import os
 
 try:
     # Based on: conda install -c conda-forge load_dotenv
-    from dotenv import load_dotenv
+    #from dotenv import load_dotenv
     # After: brew install miniconda
     # Based on: conda install python-dotenv   # found!
     # conda create -n py313
     # conda activate py313
     # conda install --name py313 requestsa
-    import urllib.parse
+    # import urllib.parse
     import requests
 except Exception as e:
     print(f"Python module import failed: {e}")
     #print("    sys.prefix      = ", sys.prefix)
     #print("    sys.base_prefix = ", sys.base_prefix)
-    print(f"Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
+    print("Please activate your virtual environment:\n  python3 -m venv venv\n  source venv/bin/activate")
     exit(9)
 
 
-#### TODO: Pull from command arguemnt:
+#### TODO: Pull from command argument parameters:
 # Constants used within functions:
 VERBOSE = False  # True or False
 USE_IMPERIAL_UNITS = True  # True or False
@@ -87,6 +91,11 @@ USE_IMPERIAL_UNITS = True  # True or False
 use_env_file = True    # -env "python-samples.env"
 global ENV_FILE
 ENV_FILE="python-samples.env"
+
+GRAVITY = 9.80665  # m/s^2
+DRY_AIR = 287.05  # Gas constant for dry air, J/(kg*K)
+DEW_A = 17.27
+DEW_B = 237.7
 
 # Colors
 RED = '\033[31m'
@@ -98,7 +107,9 @@ BOLD = '\033[1m'
 GRAY = '\033[90m'
 RESET = '\033[0m'
 
-class bcolors:  # ANSI escape sequences:
+class bcolors:
+    """ANSI color escape sequences."""
+
     BOLD = '\033[1m'       # Begin bold text
     UNDERLINE = '\033[4m'  # Begin underlined text
 
@@ -111,21 +122,58 @@ class bcolors:  # ANSI escape sequences:
     TRACE = '\033[96m'     # [96 blue/green
                  # [94 blue (bad on black background)
     CVIOLET = '\033[35m'
+    FATAL = '\033[35m'     # [35 Violet
     CBEIGE = '\033[36m'
     CWHITE = '\033[37m'
 
     RESET = '\033[0m'   # switch back to default color
 
+
+#### Utility time & date functions:
+
 def get_time() -> str:
-    """ Generate the current local datetime. """
+    """Generate the current local datetime."""
     now: datetime = datetime.now()
     return f'{now:%I:%M %p (%H:%M:%S) %Y-%m-%d}'
 
+def get_log_datetime() -> str:
+    """
+    Return a formatted datetime string in UTC (GMT) timezone so all logs are aligned.
+
+    Example: 2504210416UTC for a minimal with year, month, day, hour, minute, second and timezone code.
+    """
+    # from datetime import datetime
+    # importing timezone from pytz module
+    # from pytz import timezone
+
+    # To get current time in (non-naive) UTC timezone
+    # instead of: now_utc = datetime.now(timezone('UTC'))
+    # Based on https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
+    fts = datetime.fromtimestamp(time.time(), tz=timezone.utc)
+    time_str = fts.strftime("%y%m%d%H%M%Z")  # EX: "...-250419" UTC %H%M%Z https://strftime.org
+
+    # See https://stackoverflow.com/questions/7588511/format-a-datetime-into-a-string-with-milliseconds
+    # time_str=datetime.utcnow().strftime('%F %T.%f')
+    # for ISO 8601-1:2019 like 2023-06-26 04:55:37.123456 https://www.iso.org/news/2017/02/Ref2164.html
+    # time_str=now_utc.strftime(MY_DATE_FORMAT)
+
+    # Alternative: Converting to Asia/Kolkata time zone using the .astimezone method:
+    # now_asia = now_utc.astimezone(timezone('Asia/Kolkata'))
+    # Format the above datetime using the strftime()
+    # print('Current Time in Asia/Kolkata TimeZone:',now_asia.strftime(format))
+    # if show_dates:  https://medium.com/tech-iiitg/zulu-module-in-python-8840f0447801
+
+    return time_str
+
+
+#### Utility print functions:
+
 def print_separator():
-    """ Put a blank line in CLI output. Used in case the technique changes throughout this code. """
+    """Put a blank line in CLI output. Used in case the technique changes throughout this code."""
     print(" ")
 
 def print_heading(text_in):
+    """Print heading."""
     if show_heading:
         if str(show_dates_in_logs) == "True":
             print('\n***', get_log_datetime(), bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
@@ -133,6 +181,7 @@ def print_heading(text_in):
             print('\n***', bcolors.HEADING+bcolors.UNDERLINE,f'{text_in}', bcolors.RESET)
 
 def print_fail(text_in):  # when program should stop
+    """Print fail."""
     if show_fail:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
@@ -140,6 +189,7 @@ def print_fail(text_in):  # when program should stop
             print('***', bcolors.FAIL, "FAIL:", f'{text_in}', bcolors.RESET)
 
 def print_error(text_in):  # when a programming error is evident
+    """Print error."""
     if show_fail:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
@@ -147,13 +197,23 @@ def print_error(text_in):  # when a programming error is evident
             print('***', bcolors.ERROR, "ERROR:", f'{text_in}', bcolors.RESET)
 
 def print_warning(text_in):
+    """Print warning."""
     if show_warning:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.WARNING, f'{text_in}', bcolors.RESET)
         else:
             print('***', bcolors.WARNING, f'{text_in}', bcolors.RESET)
 
+def print_fatal(text_in):
+    """Print fatal."""
+    if show_warning:
+        if str(show_dates_in_logs) == "True":
+            print('***', get_log_datetime(), bcolors.FATAL, f'{text_in}', bcolors.RESET)
+        else:
+            print('***', bcolors.FATAL, f'{text_in}', bcolors.RESET)
+
 def print_todo(text_in):
+    """Print todo."""
     if show_todo:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
@@ -161,6 +221,7 @@ def print_todo(text_in):
             print('***', bcolors.CVIOLET, "TODO:", f'{text_in}', bcolors.RESET)
 
 def print_info(text_in):
+    """Print info."""
     if show_info:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
@@ -168,6 +229,7 @@ def print_info(text_in):
             print('***', bcolors.INFO+bcolors.BOLD, f'{text_in}', bcolors.RESET)
 
 def print_verbose(text_in):
+    """Print verbose."""
     if show_verbose:
         if str(show_dates_in_logs) == "True":
             print('***', get_log_datetime(), bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
@@ -175,6 +237,7 @@ def print_verbose(text_in):
             print('***', bcolors.VERBOSE, f'{text_in}', bcolors.RESET)
 
 def print_trace(text_in):  # displayed as each object is created in pgm:
+    """Print detailed trace."""
     if show_trace:
         if str(show_dates_in_logs) == "True":
             print('***',get_log_datetime(), bcolors.TRACE, f'{text_in}', bcolors.RESET)
@@ -184,8 +247,7 @@ def print_trace(text_in):  # displayed as each object is created in pgm:
 # See https://wilsonmar.github.io/python-samples/#envFile
 
 def open_env_file(env_file) -> str:
-    """Return a Boolean obtained from .env file based on key provided.
-    """
+    """Return a Boolean obtained from .env file based on key provided."""
     from pathlib import Path
     # See https://wilsonmar.github.io/python-samples#run_env
     global user_home_dir_path
@@ -200,7 +262,7 @@ def open_env_file(env_file) -> str:
     #else:
     #    print_info(global_env_path+" (global_env_path) readable.")
 
-    path = pathlib.Path(global_env_path)
+    #path = pathlib.Path(global_env_path)
     # Based on: pip3 install python-dotenv
     from dotenv import load_dotenv
        # See https://www.python-engineer.com/posts/dotenv-python/
@@ -213,35 +275,41 @@ def open_env_file(env_file) -> str:
 
 
 def check_yubikey_serial() -> None:
-    """Stop processing unless the Yubikey serioal is found in the .env file.
-    """
+    """Stop processing unless the Yubikey serioal is found in the .env file."""
     my_yubikey_serial = get_str_from_env_file('YUBIKEY_SERIAL')
     #print("my_yubikey_serial="+my_yubikey_serial)
     if not my_yubikey_serial:  # not in env file:
         print_warning(">>> No YUBIKEY_SERIAL specified in .env file!")
-        exit(9)
+        return None
     else:
         # https://developers.yubico.com/yubikey-manager/Scripting.html
-        from ykman.device import list_all_devices
-        from yubikit.core.smartcard import SmartCardConnection
-        from yubikit.piv import PivSession
+        #from ykman.device import list_all_devices
+        #from yubikit.core.smartcard import SmartCardConnection
+        #from yubikit.piv import PivSession
         # Iterate through all connected Yubikey devices:
         for device, info in list_all_devices():   # using ykman module:
             #print(f" Yubikey inserted={info.serial}")
             # Check if the device serial number is your YubiKey:
             try:
                 if my_yubikey_serial == info.serial:
-                    print(f">>> YubiKey serial not match with env file! Continuing...")
+                    print(">>> YubiKey serial not match with env file! Continuing...")
+                    return None
                 else:
-                    print(f">>> YubiKey serial is not the one connected. Exiting...")
-                #    exit(9)
+                    print(">>> YubiKey serial is not the one connected. Exiting...")
+                    return None
             except Exception as e:
-                print(f">>> Error using city: {city_input} in {e}")
-                #exit(9)
+                print(f">>> Error getting yubikey in {e}")
+                return None
             else:
-                print(f">>> YubiKey not inserted!")
-    return
+                print(">>> YubiKey not inserted!")
+                return None
+    return my_yubikey_serial
 
+
+def list_all_devices():
+    """List all devices in Yubikey."""
+    # TODO: Add code here.
+    return True
 
 def find_yubikey_by_serial(target_serial):
     """
@@ -250,7 +318,7 @@ def find_yubikey_by_serial(target_serial):
     Args:
         target_serial (int): The serial number to match.
 
-    Returns:
+    This Returns:
         bool: True if the YubiKey with the target serial is found, False otherwise.
     """
     for device, info in list_all_devices():
@@ -262,8 +330,7 @@ def find_yubikey_by_serial(target_serial):
 
 
 def other():
-
-
+    """FIX: What is this for."""
     if info.version >= (5, 0, 0):  # The info object provides details about the YubiKey
         print(f"version={info.version} serial={info.serial}")
     else:
@@ -272,34 +339,33 @@ def other():
     if info.version >= (5, 0, 0):  # The info object provides details about the YubiKey
         print(f"version={info.version} serial={info.serial}")
         if my_yubikey_serial == info.serial:
-            print_info(f">>> YubiKey serial not match with env file! Continuing...")
+            print_info(">>> YubiKey serial not match with env file! Continuing...")
         else:
-            print_fatal(f">>> YubiKey serial is not the one connected. Exiting...")
+            print_fatal(">>> YubiKey serial is not the one connected. Exiting...")
             exit(9)
 
 def read_env_file():
-    """Read .env file containing variables and values.
-    See https://wilsonmar.github.io/python-samples/#envLoad
-    """
+    """Read .env file containing variables and values."""
+    # See https://wilsonmar.github.io/python-samples/#envLoad
     # See https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file
 
     # Joliet, MT at "45° 29' 5.028'' N-108° 58' 20.244'' W
 
     global my_latitude
     my_latitude = get_str_from_env_file('MY_LATITUDE')
-    if my_latitude == None:
+    if my_latitude is None:
         my_latitude = "34.123"
         print_warning(">>> my_latitude="+my_latitude+" from default!")
 
     global my_longitude
     my_longitude = get_str_from_env_file('MY_LONGITUDE')
-    if my_longitude == None:
+    if my_longitude is None:
         my_longitude = "104.322"
         print_warning(">>> my_longitude="+my_longitude+" from default!")
 
     global my_zip_code
     my_zip_code = get_str_from_env_file('MY_ZIP_CODE')
-    if my_zip_code == None:
+    if my_zip_code is None:
         my_zip_code = "59041"
         print_warning(">>> my_zip_code="+my_zip_code+" from default!")
 
@@ -310,9 +376,7 @@ def read_env_file():
     return
 
 def get_str_from_env_file(key_in) -> str:
-    """Return a value of string data type from OS environment or .env file
-    (using pip python-dotenv)
-    """
+    """Return a value of string data type from OS environment or env file (using pip python-dotenv)."""
     env_var = os.environ.get(key_in)
     if not env_var:  # yes, defined=True, use it:
         print_warning(key_in + " not found in OS nor .env file: " + ENV_FILE)
@@ -328,7 +392,7 @@ def get_str_from_env_file(key_in) -> str:
 
 
 def get_coordinates(zip_code, api_key):
-    # Construct the API URL
+    """Construct the API URL."""
     url = f'https://api.distancematrix.ai/maps/api/geocode/json?address={zip_code}&key={api_key}'
 
     try:
@@ -346,7 +410,7 @@ def get_coordinates(zip_code, api_key):
         exit(9)  # TODO: Handle retry?
 
     if data['status'] == 'OK':
-        # Extract latitude and longitude
+        # Extract latitude and longitude:
         latitude = data['result'][0]['geometry']['location']['lat']
         longitude = data['result'][0]['geometry']['location']['lng']
         # print(f">>> get_coordinates of {zip_code} is at lat={latitude} & lng={longitude}")
@@ -356,7 +420,8 @@ def get_coordinates(zip_code, api_key):
 
 
 def get_frost_point_c(t_air_c, dew_point_c):
-    """Compute the frost point in degrees Celsius
+    """Compute the frost point in degrees Celsius.
+
     :param t_air_c: current ambient temperature in degrees Celsius
     :type t_air_c: float
     :param dew_point_c: current dew point in degrees Celsius
@@ -372,7 +437,8 @@ def get_frost_point_c(t_air_c, dew_point_c):
 # Online: https://www.omnicalculator.com/physics/dew-point
 # from https://en.wikipedia.org/wiki/Dew_point#Calculating_the_dew_point
 def get_dew_point_c(t_air_c, rel_humidity):
-    """Compute the dew point in degrees Celsius
+    """Compute the dew point in degrees Celsius.
+
     :param t_air_c: current ambient temperature in degrees Celsius
     :type t_air_c: float
     :param rel_humidity: relative humidity in %
@@ -380,10 +446,9 @@ def get_dew_point_c(t_air_c, rel_humidity):
     :return: the dew point in degrees Celsius
     :rtype: float
     """
-    A = 17.27
-    B = 237.7
-    alpha = ((A * t_air_c) / (B + t_air_c)) + math.log(rel_humidity/100.0)
-    return (B * alpha) / (A - alpha)
+    # DEW_A & DEW_B defined in program globals above.
+    alpha = ((DEW_A * t_air_c) / (DEW_B + t_air_c)) + math.log(rel_humidity/100.0)
+    return (DEW_B * alpha) / (DEW_A - alpha)
 
 def calculate_sea_level_pressure(station_pressure, altitude, temperature):
     """
@@ -394,15 +459,12 @@ def calculate_sea_level_pressure(station_pressure, altitude, temperature):
     :param temperature: Temperature at the station (Celsius)
     :return: Calculated sea level pressure (hPa)
     """
-    # Constants
-    GRAVITY = 9.80665  # m/s^2
-    R = 287.05  # Gas constant for dry air, J/(kg*K)
+    # Convert temperature to Kelvin:
+    kelvin = temperature + 273.15
 
-    # Convert temperature to Kelvin
-    T = temperature + 273.15
-
+    # Constants defined in globals.
     # Calculate sea level pressure
-    sea_level_pressure = station_pressure * math.exp((GRAVITY * altitude) / (R * T))
+    sea_level_pressure = station_pressure * math.exp((GRAVITY * altitude) / (DRY_AIR * kelvin))
 
     return round(sea_level_pressure, 2)
 
@@ -416,35 +478,38 @@ def adjust_pressure_for_altitude(sea_level_pressure, altitude, temperature):
     :param temperature: Temperature at the altitude (Celsius)
     :return: Adjusted pressure for the given altitude (hPa)
     """
-    # Constants
-    GRAVITY = 9.80665  # m/s^2
-    R = 287.05  # Gas constant for dry air, J/(kg*K)
+    # Convert temperature to Kelvin:
+    kelvin = temperature + 273.15
 
-    # Convert temperature to Kelvin
-    T = temperature + 273.15
-
+    # Constants defined in globals.
     # Calculate adjusted pressure
-    adjusted_pressure = sea_level_pressure * math.exp(-(GRAVITY * altitude) / (R * T))
+    adjusted_pressure = sea_level_pressure * math.exp(-(GRAVITY * altitude) / (DRY_AIR * kelvin))
     return round(adjusted_pressure, 2)
 
 def kelvin2celcius(temp_k):
+    """Convert Kelvin (absolute zero) to metric Celcius."""
     return float(temp_k) - 273.15
 
 def celcius2fahrenheit(temp_c):
+    """Convert metric Celcius to imperial Fahrenheit."""
     return (temp_c * 9/5) + 32
 
 def kelvin2fahrenheit(temp_k):
+    """Convert Kelvin (absolute zero) to imperial Fahrenheit."""
     temp_c = kelvin2celcius(temp_k)
     return celcius2fahrenheit(temp_c)
 
 def meters2feet(meters):
+    """Convert Meters to imperial Feet."""
     return meters * 3.28084
 
 def kph2mph(kph):
+    """Convert Kilometers per Hour to imperial Miles per Hour."""
     return kph * 3.28084
 
 
 def compass_text_from_degrees(degrees):
+    """Return letters for compass direction degrees."""
     # adapted from https://www.campbellsci.com/blog/convert-wind-directions
     compass_sector = [
         "N",
@@ -472,6 +537,7 @@ def compass_text_from_degrees(degrees):
     return compass_sector[index]
 
 def dew_desc_f(dew_point_f):
+    """Return fuzzy descriptions for Dew Point level groups."""
     # Dew Point is the temperature at which air becomes 100% saturated with water vapor
     # (at a given pressure) causing condensation to occur (at 60F=muggy, 70F=humid)
     # https://www.weather.gov/arx/why_dewpoint_vs_humidity
@@ -484,6 +550,7 @@ def dew_desc_f(dew_point_f):
 
 
 def pressure_desc(pressure):
+    """Return format for atmosphere pressure level groupings."""
     # Above 1022.689 hPa at sea level for clear skies and calm weather.
     # pressure rarely exceeds 1050 hPa at sea level.
     if pressure > 1022.689:
@@ -497,7 +564,7 @@ def pressure_desc(pressure):
 
 
 def cloud_text(cloud_desc):
-    # Fuzzy names
+    """Return fuzzy names for weath condition."""
     # https://openweathermap.org/history
     if cloud_desc == "clear sky":
         return BLUE+cloud_desc+RESET
@@ -562,7 +629,7 @@ if __name__ == "__main__":
 
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
-    #check_yubikey_serial()
+    my_yubikey_serial=check_yubikey_serial()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true', help="Increase output verbosity")  # on/off flag
@@ -620,7 +687,7 @@ if __name__ == "__main__":
         data = res.json()
     except Exception as e:
         "data= {'cod': '404', 'message': 'city not found'}"
-        print(f">>> Error using city: {city_input} in {e}")
+        print(f">>> Error using data in {e}")
         exit(9)
 
     current_datetime = datetime.now()
@@ -633,7 +700,8 @@ if __name__ == "__main__":
     lat = data['coord']['lat']
     try:
         cloud_desc = data['weather'][0]['description']
-    except:
+    except Exception as e:
+        print(f">>> Error using cloud_desc: {cloud_desc} in {e}")
         cloud_desc = ""
     icon_code = data['weather'][0]['icon']  # '01n'
     wind_kph = data['wind']['speed']
@@ -641,7 +709,8 @@ if __name__ == "__main__":
     wind_gust_kph = 0
     try:
         wind_gust_kph = data['wind']['gust']
-    except:
+    except Exception as e:
+        print(f">>> Error using wind_gust_kph: {wind_gust_kph} in {e}")
         wind_gust_kph = 0
     else:
         wind_gust_kph = 0
@@ -658,7 +727,8 @@ if __name__ == "__main__":
     # 'sys': {'country': 'UA', 'sunrise': 1727497180, 'sunrise': 1727539818},
     try:
         country_text = ", country=" + data['sys']['country']
-    except:
+    except Exception as e:
+        print(f">>> Error using country_text: {country_text} in {e}")
         country_text = ""
     sunrise_epoch = data['sys']['sunrise']
     sunset_epoch = data['sys']['sunset']
@@ -669,7 +739,7 @@ if __name__ == "__main__":
     try:
         station_name = data['name']  # "Bigfork"
     except Exception as e:
-        # print(f">>> Error getting: name in {e}")
+        print(f">>> Error getting: name in {e}")
         station_name = ""
 
 
@@ -708,13 +778,13 @@ if __name__ == "__main__":
 
     #### Print:
 
-    print(f"openweather.org")
+    print("openweather.org")
     print(f"id: {call_id}    at: {formatted_datetime} TZ: {timezone}")
     print(f"          Sunrise: {GREEN}{sunrise_formatted}{RESET} local time")
     print(f"           Sunset: {sunset_formatted}")
 
     print(f"{cloud_text} at ",end="")
-    if not station_name == None:
+    if not station_name:
         print(f"{station_name} {country_text}",end="")
     print(f" {GRAY}\"{apispec}\"{RESET}")
     if latitude_direction:
@@ -802,3 +872,25 @@ if __name__ == "__main__":
     # What is normal for your location's altitude
     # Python code: https://www.perplexity.ai/search/how-adjust-normal-hectopascals-SuInNLlARxadL9GbY.NmBA
     # print(f"      vs. {adjusted_pressure:.2f} hPa normally for local elevation.")
+
+
+"""
+                
+Based on https://www.instructables.com/Get-Weather-Data-Using-Python-and-Openweather-API/
+Create account at https://home.openweathermap.org/users/sign_up
+⛈ subscribe to the "One Call API 3.0" with a credit card.
+https://blog.apilayer.com/what-is-the-best-weather-api-for-python/
+weatherstack.com/
+
+TODO: Integrate locally collected data (rainfall, sunlight, soil moisture, etc.)
+like https://www.ventusky.com/?p=45.45;-109.78;6&l=gust&w=soft
+TODO: Store each day's readings to a database for trending on dashboard (such as
+https://wilsonmar.github.io/dashboards/#weather-maps)
+* Ambient Weather: https://ambientweather.net/dashboard/3e5ec6331a8884e1ac1d5fbd2812ba11/tiles
+* Weather Underground: https://www.wunderground.com/dashboard/pws/KNJRIDGE44
+* Weather Cloud: https://app.weathercloud.net/d7511690833#current
+* PWS Weather: https://www.pwsweather.com/station/pws/KRUSE1
+* weather.gov (free)
+* sunriseandsunset.io (free)
+
+"""

@@ -665,7 +665,6 @@ def sys_info():
     # this_pgm_name = os.path.basename(__file__)      # = python-samples.py
     # this_pgm_path = os.path.realpath(sys.argv[0])   # = python-samples.py
     # Used by display_run_stats() at bottom:
-    this_pgm_name = os.path.basename(os.path.normpath(sys.argv[0]))
     print_trace("this_pgm_name="+this_pgm_name)
 
     this_pgm_last_commit = __last_commit__
@@ -3119,7 +3118,7 @@ def get_hvault_secret(hvault_client, hvault_path):
     """
     print_trace("in get_hvault_secret("+hvault_path)
     # Equiv to vault kv get external-apis/socials/twitter
-    # {"api_key"=>"MQfS4XAJXYE3SxTna6Yzrw", "api_secret_key"=>"uXZ4VHykCrYKP64wSQ72SRM10WZwirnXq5rmyiLnVk"}
+    # {"api_key"=>"...", "api_secret_key"=>"..."}
 
     # import hvac
     # import json
@@ -3326,7 +3325,7 @@ def azure_blob_actions():
 
     # TODO: Encrypt/hash secret in transit and at rest!
     result = set_azure_secret_from_env("OPENWEATHERMAP_API_KEY")
-        # OPENWEATHERMAP_API_KEY="12345678901234567890123456789012"
+    
     if not result:
         exit
 
@@ -3338,7 +3337,7 @@ def azure_blob_actions():
 
     # set_azure_secret_from_env("IPFIND_API_KEY")
     # retrieve_azure_secret("IPFIND_API_KEY")
-        # IPFIND_API_KEY="12345678-abcd-4460-a7d7-b5f6983a33c7"
+        # IPFIND_API_KEY="..."
 
     #if show_logging:
     #    print_heading("show_logging")
@@ -4725,6 +4724,12 @@ class TestDisplayRunStats(unittest.TestCase):
 
 # Execute a script by itself, and import objects from the script as though it were a regular module:
 if __name__ == "__main__":
+
+    start_run_time = time.monotonic()
+
+    this_pgm_name = os.path.basename(os.path.normpath(sys.argv[0]))
+    print_trace("this_pgm_name="+this_pgm_name)
+
     do_clear_cli()
     open_env_file(ENV_FILE)
     read_env_file()  # calls print_samples()
@@ -4798,7 +4803,7 @@ if __name__ == "__main__":
             print_trace("Exiting main: Thank you for visiting!")
             break  # out of while True
 
-        if gen_sound_for_text == True:
+        if gen_sound_for_text:
             gen_sound_for_text("Bye bye!")
 
     # while True

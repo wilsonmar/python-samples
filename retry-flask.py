@@ -1,18 +1,34 @@
 #!/usr/bin/env python3
 # https://www.perplexity.ai/search/how-to-use-uv-to-create-the-eq-O8ocUS3VSCum2i.ARsyQGQ
 
-"""mock-flask.py here.
+"""retry-flask.py here.
 
-https://github.com/wilsonmar/python-samples/blob/main/mock-flask.py
+https://github.com/wilsonmar/python-samples/blob/main/retry-flask.py
 
-A mock Flask server app run for testing how mock-client.py recovers from request errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
+A mock Flask micro-framework router app run for testing how retry-client.py recovers from request errors (500 server err, Timelout, 404, 204 rate limit, 204 empty response).
 
 Based on https://parottasalna.com/2024/09/07/mastering-request-retrying-in-python-with-tenacity-a-developers-journey/
 by https://www.linkedin.com/in/syedjaferk/ Syed Jafer K
 
+# TODO:  Flask-RESTX or Flask-Swagger for automatic documentation
+HTTP/3
+FastAPI async/await on ASGI (Asynchronous Server Gateway Interface) concurrent requests with type hints data serialization generate OpenAPI (Swagger)
+IaC (Pulumi) to create IAM accounts in graph database in local, cloud AWS, GCP, Azure, etc.
+Run cloud AWS, GCP, Azure, etc. for performance check across clouds
+Collect & combine logs to archive
+Calculate stats from logs to Star-Schema
+Summarize groups of logs
+
+GCP Login with Flask = https://realpython.com/lessons/configuring-database/
+https://realpython.com/lessons/fastapi-post-requests/
+ORM https://realpython.com/lessons/many-to-many-relationships/
+Agent to MCP
+
+https://medium.com/gitconnected/7-fastapi-extensions-so-powerful-i-stopped-using-flask-forever-9c6e9a4fbb5a
+
 """
 
-__last_change__ = "25-09-23 v001 + new from Jafer :mock-flask.py"
+__last_change__ = "25-09-23 v001 + new from Jafer :retry-flask.py"
 
 import random
 import time
@@ -74,10 +90,10 @@ if __name__ == '__main__':
     app.run(host='localhost', port=server_port, debug=True)
 
 """
-$ chmod +x mock-flask.py
+$ chmod +x retry-flask.py
 $ source .venv/bin/activate
-$ uv run mock-flask.py &    # & for run in background
- * Serving Flask app 'mock-flask'
+$ uv run retry-flask.py &    # & for run in background
+ * Serving Flask app 'retry-flask'
  * Debug mode: on
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on http://localhost:5000
@@ -85,11 +101,11 @@ Press CTRL+C to quit
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 791-292-641
- * Detected change in '/Users/johndoe/github-wilsonmar/python-samples/mock-flask.py', reloading
+ * Detected change in '/Users/johndoe/github-wilsonmar/python-samples/retry-flask.py', reloading
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 754-560-600
 $ rm -f "/Users/johndoe/.safety/safety-uv.lock"
-$ uv run mock-client.py
+$ uv run retry-client.py
 $ deactivate
 """
