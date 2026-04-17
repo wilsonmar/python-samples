@@ -54,6 +54,7 @@ BEFORE RUNNING, on Terminal:
    chmod +x claude-vulscan.py
    uv run claude-vulscan.py -v -b -f "claude-vulscan.py"
       # -v for verbose, -b for bill (stats), -sl --sizelimit of code in bytes "1gb"
+      # OPTIONAL: -pt for --prompt,
       # -f for file to --target for scanning (at end of CWD: /Users/johndoe/github-wilsonmar/python-samples/)
            # Not specifying -f would result in this program processing all .py files in the current folder
       # -m for --model ID recognized by Claude ("claude-opus-4-5" or "claude-sonnet-4-20250514")
@@ -68,8 +69,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-04-16"
-__commit_msg__ = "26-04-16 v016 iterate project @claude-vulscan.py"
+__commit_date__ = "2026-04-17"
+__commit_msg__ = "26-04-17 v018 total bytes run @claude-vulscan.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/claude-vulscan.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/claude-vulscan.py"
 __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
@@ -77,7 +78,12 @@ __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
 
 # based on https://github.com/trkonduri/vulscan/blob/master/claude-vulscan.py
 
-#import myutils  # in folder python-samples
+# TODO: Display menu
+# TODO: Make prompt text a variable.
+# TODO: Get default model_id from ,env file.
+# TODO: Add external enterprise robust logging
+# TODO: import myutils  # in folder python-samples
+# TODO: Track externally each request
 
 # POLICY: Use of 3rd-party packages are limited to minimize potential supply chain attacks, 
 import time
@@ -123,6 +129,12 @@ def parse_args():
         type=str,
         required=False,
         help="-sl = --sizelimit of code other than default 2gb"
+    )
+    parser.add_argument(
+        "--prompt", "-pt",
+        type=str,
+        required=False,
+        help="-pt = --prompt of ext for AI to process"
     )
     parser.add_argument(
         "--output", "-o",
@@ -527,6 +539,9 @@ if __name__ == "__main__":
     # POLICY: It's best practice to pass args from CLI call so the args structure is global.
     args = parse_args()    # read in arguments from command CLI using explicit passing.
     pgm_strt_elapsedsecs = time.monotonic()   # uptime like 1208973.03808275 since the system was last booted.
+    # POLICY: Track the total number of bytes processed during entire program run to establish a time rate of processing.
+    run_bytes_processed = 0
+
     # POLICY: Pass the entire global args structure into functions to work with.
     program_greeting(args,pgm_strt_elapsedsecs)
 
@@ -537,10 +552,14 @@ if __name__ == "__main__":
         exit()
 
     # CAUTION: The entire file is in this string, which may consume more memory than allocated.
+    # TODO: Get computer memory as basis for maximum code size allowed.
     code_from_file = obtain_file(args)  # individual file.
     if code_from_file is None:
         print(f"FATAL: code_from_file not valid!")
         exit()
+    else:
+        code_from_file_bytes = len(code_from_file)
+        run_bytes_processed =+ code_from_file_bytes
 
     # POLICY: To secrets off logs, obtain api_keys by lookup from secrets manager rather than from CLI parameters.
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -637,7 +656,8 @@ if __name__ == "__main__":
 
     pgm_stop_elapsedsecs = time.monotonic()
     pgm_took_elapsedsecs = pgm_stop_elapsedsecs - pgm_strt_elapsedsecs
-    print(f"This run took {elapsed_time2format(pgm_took_elapsedsecs)} seconds.")
+    run_bytes_processed_fmt = format_bytes(run_bytes_processed)
+    print(f"Run took {elapsed_time2format(pgm_took_elapsedsecs)} seconds to process {run_bytes_processed_fmt} lines of code.")
 
 """
 uv run claude-vulscan.py -v -b -f "claude-vulscan.py"
@@ -677,6 +697,6 @@ Billing period : 2026-04-01T00:00:00+00:00 → 2026-04-30T23:59:59+00:00
   Tokens Input   : 8
   Tokens Output  : 10
   Tokens Total   : 18
-This run took 00:00:06.578 seconds.
+Run took 00:00:06.331 seconds to process 12gb of code.
 """
 # EOF
