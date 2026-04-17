@@ -70,7 +70,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-04-17"
-__commit_msg__ = "26-04-17 v019 model list, prompt text var @claude-vulscan.py"
+__commit_msg__ = "26-04-17 v020 ruff fixes @claude-vulscan.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/claude-vulscan.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/claude-vulscan.py"
 __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
@@ -79,16 +79,16 @@ __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
 # based on https://github.com/trkonduri/vulscan/blob/master/claude-vulscan.py
 
 # TODO: Display menu
-# TODO: Get default model_id from ,env file.
+# TODO: Get default model_id from .env file.
 # TODO: Add external enterprise robust logging
 # TODO: import myutils  # in folder python-samples
-# TODO: Track externally each request
+# TODO: Track externally history of requests & responses metrics for trending
 
 import argparse
 from calendar import monthrange
 from datetime import datetime, timezone  #, timedelta
 import httpx
-import json
+# import json
 import os
 from pathlib import Path
 import ssl
@@ -299,6 +299,7 @@ def safe_path(base: Path, target: str) -> Path:
 
 
 def print_table(headers, rows, col_width=25):
+    """Print table with lines."""
     separator = "+" + "+".join(["-" * (col_width + 2)] * len(headers)) + "+"
     def format_row(cells):
         return "|" + "|".join(f" {str(c):<{col_width}} " for c in cells) + "|"
@@ -350,6 +351,7 @@ def resolve_model_family(alias: str) -> dict:
         raise RuntimeError(f"Anthropic API error {e.status_code}: {e.message}") from None
 
 def print_model_info(model: dict, indent: int = 4) -> None:
+    """Print model info from json."""
     pad = " " * indent
     for key, value in model.items():
         if isinstance(value, dict):
@@ -368,17 +370,17 @@ def model_id_from_args(args) -> str:
     model_id = claude_model_list.get(args.model.lower().strip())
     if model_id is None:
         # POLICY: When processing each item of a list, Use match case python structure instead of if sttements.
-        match model_family:
-            case str() if "gemma" in model_family:
+        match args.model:
+            case str() if "gemma" in args.model:
                 # TODO: Turn temporary placeholder assignment to use Google's LLM via ollama.
                 return "claude-haiku-4-5-20251001"
-            case str() if "qwen" in model_family:
+            case str() if "qwen" in args.model:
                 # TODO: Turn temporary placeholder assignment to use Alibaba's LLM via ollama.
                 return "claude-haiku-4-5-20251001"
-            case str() if "kimi" in model_family:
+            case str() if "kimi" in args.model:
                 # TODO: Turn temporary placeholder assignment to use Moonshot's LLM via ollama.
                 return "claude-haiku-4-5-20251001"
-            case str() if "minimax" in model_family:
+            case str() if "minimax" in args.model:
                 # TODO: Turn temporary placeholder assignment to use minimax's LLM via ollama.
                 return "claude-haiku-4-5-20251001"
             case _:
@@ -429,42 +431,6 @@ def get_latest_models() -> dict:
         if model is not None
     }
 
-
-def get_model_id(json_data: dict | str) -> str:
-    """Get value of id from within json structure."""
-    if isinstance(json_data, str):
-        json_data = json.loads(json_data)
-    return json_data["id"]
-
-
-def model_id_from_anthropic(model_family: str) -> str | None:
-    """Obtain AI model ID based on input model_family.
-
-    See full models reference at: https://docs.claude.com/en/docs/about-claude/models/overview
-    GET https://api.anthropic.com/v1/models
-    GET https://api.anthropic.com/v1/models/{model_id}
-    """
-    client = anthropic.Anthropic()
-    try:
-        # Receive model object structure json:
-        model_info = client.models.retrieve(model_family)
-        result_json = resolve_model_family("claude-sonnet-4-5")
-        model_id = get_model_id(result_json)
-        if model_id:
-            print(f"VERBOSE: model_id {model_id} from {model_family}.")
-            return model_id  # such as "claude-opus-4-5"
-        else:
-            return None
-    except anthropic.NotFoundError:
-        raise ValueError(f"Model alias '{alias}' not found") from None
-    except anthropic.AuthenticationError:
-        raise RuntimeError("Invalid or missing Anthropic API key") from None
-    except anthropic.APIConnectionError:
-        raise RuntimeError("Failed to connect to Anthropic API") from None
-    except anthropic.APIStatusError as e:
-        raise RuntimeError(f"Anthropic API error {e.status_code}: {e.message}") from None
-   
-
 def run_is_within_budget(tokens_expected) -> bool:
     """
     Issue an Anthropic API to print out subscription token limits for the org.
@@ -503,7 +469,7 @@ def run_is_within_budget(tokens_expected) -> bool:
     rpm = int(headers.get('anthropic-ratelimit-requests-limit'))
     # if limits["requests_limit"] else None
     if not rpm:
-        print(f"No rpm to identify tier!")
+        print("No rpm to identify tier!")
         tier = "???"
     else:
         if rpm <= 50:
@@ -650,7 +616,7 @@ def scan_code(filepath: str, code: str, prompt_text: str, model_id: str) -> dict
     """
     # POLICY: Provide hard-coded defaults and a warning message if it's used.
     if not prompt_text:
-        print(f"WARNING: prompt text default used.")
+        print("WARNING: prompt text default used.")
         prompt_text = "List only real security vulnerabilities in this Python file. Be concise."
 
     print(f"TRACE: scan_code({len(code)} bytes, \"{prompt_text}\", \"{model_id}\" )")
@@ -712,7 +678,7 @@ if __name__ == "__main__":
     # POLICY: Expose some args as global using expose_global_args() function.
     my_prompt_text = expose_global_args(args)
     if not my_prompt_text:
-        print(f"WARNING: -pt = --prompt text not specified. Hard-coded default vulscan will be processed.")
+        print("WARNING: -pt = --prompt text not specified. Hard-coded default vulscan will be processed.")
 
     # POLICY: Track the total number of bytes and files processed during pgm run to establish a time rate of processing.
     run_bytes_processed = 0
@@ -728,7 +694,7 @@ if __name__ == "__main__":
     # TODO: Get computer memory as basis for maximum code size allowed.
     code_from_file = obtain_file(args)  # individual file.
     if code_from_file is None:
-        print(f"FATAL: code_from_file not valid!")
+        print("FATAL: code_from_file not valid!")
         exit()
     else:
         run_files_processed += 1
