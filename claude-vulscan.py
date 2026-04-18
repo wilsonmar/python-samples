@@ -13,8 +13,9 @@
 
 """claude-vulscan.py here.
 
-This Python program scans Python code for vulnerabilities and errors using 
-LLM models within Anthropic Claude, as described by
+This Python program calls Anthropic Claude APIs to obtain status and to 
+scan Python code for vulnerabilities.
+Additional LLM models 
 https://bomonike.github.io/claude-vulscan 
 
 RISK ACCEPTED: **Potential sensitive data exposure in output** (line 178): The scanned file contents are sent to an external API and findings are printed to stdout, which could leak secrets if scanning files containing credentials.
@@ -58,6 +59,7 @@ BEFORE RUNNING, on Terminal:
       # -f for file to --target for scanning (at end of CWD: /Users/johndoe/github-wilsonmar/python-samples/)
            # Not specifying -f would result in this program processing all .py files in the current folder
       # -m for --model ID recognized by Claude ("claude-opus-4-7" or "claude-sonnet-4-20250514")
+      # --nometric to not write csv file of results for each call.
       # Avg run time: Terminal should not freeze.
    # Press control+C to cancel/interrupt run.
 
@@ -70,7 +72,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-04-17"
-__commit_msg__ = "26-04-17 v020 ruff fixes @claude-vulscan.py"
+__commit_msg__ = "26-04-17 v021 metrics csv @claude-vulscan.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/claude-vulscan.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/claude-vulscan.py"
 __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
@@ -78,7 +80,7 @@ __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
 
 # based on https://github.com/trkonduri/vulscan/blob/master/claude-vulscan.py
 
-# TODO: Display menu
+# TODO: Display menu of CLI parameters.
 # TODO: Get default model_id from .env file.
 # TODO: Add external enterprise robust logging
 # TODO: import myutils  # in folder python-samples
@@ -86,12 +88,14 @@ __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
 
 import argparse
 from calendar import monthrange
+import csv
 from datetime import datetime, timezone  #, timedelta
 import httpx
 # import json
 import os
 from pathlib import Path
 import ssl
+import sys
 import time
 
 # POLICY: Use of 3rd-party packages are limited to minimize potential supply chain attacks, 
@@ -142,6 +146,12 @@ def parse_args():
         help="-pt = --prompt of ext for AI to process"
     )
     parser.add_argument(
+        "--nometric",
+        type=str,
+        required=False,
+        help="--nometric write to csv file"
+    )
+    parser.add_argument(
         "--output", "-o",
         type=str,
         default="results.json",
@@ -154,8 +164,6 @@ def parse_args():
         default="opus",
         help="-m = --model alias without model version"
     )
-    # TODO: Specify model ids to open source model list.
-
     return parser.parse_args()
 
 
@@ -366,7 +374,7 @@ def model_id_from_args(args) -> str:
     claude_model_list = get_latest_models()
         # claude_model_list={'opus': 'claude-opus-4-7', 'sonnet': 'claude-sonnet-4-6', 'haiku': 'claude-haiku-4-5-20251001'}
     if args.trace:
-        print(f"TRACE: {claude_model_list}")
+        print(f"TRACE: claude_model_list: {claude_model_list}")
     model_id = claude_model_list.get(args.model.lower().strip())
     if model_id is None:
         # POLICY: When processing each item of a list, Use match case python structure instead of if sttements.
@@ -393,6 +401,28 @@ def model_id_from_args(args) -> str:
     if args.trace: # details about model_id:
         model_json = resolve_model_family(model_id)
         print_model_info(model_json)
+        """
+            id: claude-opus-4-7
+            display_name: Claude Opus 4.7
+            type: model
+            created_at: 2026-04-14T00:00:00+00:00
+            max_input_tokens: 1000000
+            max_tokens: 128000
+            capabilities:
+            batch: True
+            citations: True
+            code_execution: True
+            image_input: True
+            pdf_input: True
+            structured_outputs: True
+            thinking: True
+            effort: True
+        """
+        # The response above (except for cutoff dates) are shown 
+        # at https://platform.claude.com/docs/en/about-claude/models/overview
+        # The response above does not include 
+        # nor https://platform.claude.com/docs/en/about-claude/model-deprecations
+        # Get detailed "Model Cards" pdf for each model at https://platform.claude.com/docs/en/resources/overview
     return model_id
 
 
@@ -614,12 +644,10 @@ def scan_code(filepath: str, code: str, prompt_text: str, model_id: str) -> dict
     
     CAUTION: **Sensitive data sent to external API** File contents are sent to Anthropic's API without sanitization. If scanned files contain secrets/credentials, they are exfiltrated.
     """
-    # POLICY: Provide hard-coded defaults and a warning message if it's used.
+    # POLICY: Code a hard-coded default and print a warning message if it's used.
     if not prompt_text:
-        print("WARNING: prompt text default used.")
         prompt_text = "List only real security vulnerabilities in this Python file. Be concise."
-
-    print(f"TRACE: scan_code({len(code)} bytes, \"{prompt_text}\", \"{model_id}\" )")
+        print(f"WARNING: prompt text default: {prompt_text}")
 
     # TODO: POLICY: Specify correct max_tokens based on code size and tokens consumed?
     response = client.messages.create(
@@ -660,10 +688,38 @@ def expose_global_args(args) -> str | None:
     """Expose specific args to become global."""
     return args.prompt
 
-def program_greeting(args,elapsedsecs):
+def write_call_metadata(args, target_file, call_seq, call_start_utc: str, elapsed_seconds: float, bytes_processed: int, model_id: str, lines_out: str, filepath: str = "claude-vulscan.csv") -> None:
+    """Write line to call metadata csv."""
+    # POLICY: Use a --nometric parameter to optionally not write call metrics to a .csv file.
+    if args.nometric:
+        print("METRIC: Not shown due to --nometric parameter in program call in CLI.")
+    else:
+        # POLICY: Avoid overwhelming the CLI log by showing only the first 10 bytes of variables that can be too long.
+
+        print(f"METRIC: {call_start_utc} : {target_file} took {elapsed_seconds} for {bytes_processed} bytes to {lines_out} lines.")
+    # import csv
+    row = {
+        "call_seq": call_seq,
+        "target_file": target_file,
+        "start_utc": call_start_utc,
+        "elapsed_seconds": elapsed_seconds,
+        "bytes_processed": bytes_processed,
+        "model_id": model_id,
+        "lines_out": lines_out,
+    }
+
+    file_exists = os.path.exists(filepath)
+    with open(filepath, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+
+def program_greeting(pgm_name:str, args, elapsedsecs):
     """Print start-of-program greeting."""
     if args.verbose:
-        print(f"STARTING: \"{args.target}\" from uptime: {elapsed_time2format(elapsedsecs)} ({elapsedsecs}).")
+        print(f"STARTING: {pgm_name} from uptime: {elapsed_time2format(elapsedsecs)} ({elapsedsecs}).")
 
 
 if __name__ == "__main__":
@@ -673,8 +729,10 @@ if __name__ == "__main__":
     # POLICY: Pass args (parameter values) from CLI call in a parse_args() function so the args structure is global.
     args = parse_args()    # read in arguments from command CLI using explicit passing.
     
+    # import sys
+    PROGRAM_NAME = os.path.basename(os.path.normpath(sys.argv[0]))
     # POLICY: Pass the entire global args structure into functions to work with.
-    program_greeting(args,pgm_strt_elapsedsecs)
+    program_greeting(PROGRAM_NAME,args,pgm_strt_elapsedsecs)
     # POLICY: Expose some args as global using expose_global_args() function.
     my_prompt_text = expose_global_args(args)
     if not my_prompt_text:
@@ -702,23 +760,23 @@ if __name__ == "__main__":
         run_bytes_processed += code_from_file_bytes
 
     # POLICY: To secrets off logs, obtain api_keys by lookup from a secrets manager rather than from CLI parameters.
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    call_api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not call_api_key:
         raise EnvironmentError(
             "ANTHROPIC_API_KEY is not set. "
             "Please export it before running this script."
         )
         exit(9)
     if args.verbose:
-        # POLICY: Display the number of characters in secrets, not the whole string.
-        print(f"TRACE: api_key (a secret) contains {len(api_key)} chars.")
+        # POLICY: Avoid **API key length logged to stdout** hackers use for fingerprinting encryption.
+        print(f"TRACE: call_api_key (a secret) contains {len(call_api_key)} chars.")
 
     # Create SSL context with strict verification:
     ssl_context = ssl.create_default_context()
     ssl_context.verify_mode = ssl.CERT_REQUIRED  # reject connections with invalid/missing certificates
     ssl_context.check_hostname = True  # ensure the certificate hostname matches the server
 
-    # Optionally pin to a specific CA bundle instead of system defaults (stronger protection against MITM):
+    # TODO: Optionally pin to a specific CA bundle instead of system defaults (stronger protection against MITM):
     # ssl_context.load_verify_locations("/path/to/ca-bundle.crt")
 
     # Pass custom httpx client with SSL context to Anthropic:
@@ -729,7 +787,7 @@ if __name__ == "__main__":
 
     my_model_id = model_id_from_args(args)  # like "claude-opus-4-7"
     
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=call_api_key)
     # client = Anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     # POLICY: Ensure that the API KEY is available, and raise error if not.
     if not client:
@@ -742,12 +800,26 @@ if __name__ == "__main__":
     # save_results(results, args.output)
 
     # findings = scan_project(my_project_path)
-       # TODO: read csv file to process
 
+    # from datetime import datetime, timezone
+    call_start_utc = datetime.now(timezone.utc).isoformat()
+        # print(timestamp.isoformat())                        # 2026-04-17T18:32:01.123456+00:00
+        # print(timestamp.strftime("%Y-%m-%d %H:%M:%S UTC"))  # 2026-04-17 18:32:01 UTC    
+    call_start_elapsedsecs = time.time()
+    # POLICY: Because a crash can bypasses metrics logging when an exception is raised, `call_took_elapsedsecs` is undefined.
+    call_took_elapsedsecs = 0
     try:
         findings = scan_code(args.target, code_from_file, my_prompt_text, my_model_id)  # individual file.
+        # POLICY: Capture individual call timings immediately after return and before formatting of output.
+        call_took_elapsedsecs = time.time() - call_start_elapsedsecs
+        # print(f"DEBUG: {findings}")
+        # POLICY: Print findings in json returned between blank spacer lines.
         print(f"\n{'='*40}\n{findings['file']}\n{findings['findings']}")
-        # POLICY: Even on failure, do not exit program until billing info for run is displayed.
+
+        line_count = len(findings['findings'].splitlines())
+        call_status = str(line_count)
+
+    # POLICY: Even on failure, do not exit program until billing info for run is displayed.
     except FileNotFoundError:
         print(f"Error: Target file '{args.target}' not found.")
     except PermissionError:
@@ -759,6 +831,9 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Unexpected error while scanning '{args.target}': {e}")
 
+    print("\n")
+    write_call_metadata(args, args.target, run_files_processed, call_start_utc, call_took_elapsedsecs, code_from_file_bytes, my_model_id, call_status)
+
     if args.bill:
         """Make API call to get rate limit headers."""
         # POLICY: Use a appropriate number of max_tokens when calling API for response headers, identified by experimentation.
@@ -769,13 +844,13 @@ if __name__ == "__main__":
         )
         # Billing runs on a calendar month cycle — invoices are issued at the end of every calendar month via Stripe. 
         # The Cost Report endpoint requires an ANTHROPIC_ADMIN_KEY (sk-ant-admin...), which is different from a standard API key and can only be created by org admins in https://console.anthropic.com See https://www.youtube.com/watch?v=vgncj7MJbVU
-        api_key = os.environ.get("ANTHROPIC_ADMIN_KEY")
-        if not api_key:
+        admin_api_key = os.environ.get("ANTHROPIC_ADMIN_KEY")
+        if not admin_api_key:
             raise EnvironmentError(
                 "ANTHROPIC_ADMIN_KEY is not set. "
                 "Please export it before running this script."
             )
-        result = get_billing_period(api_key)   # make the API call
+        result = get_billing_period(admin_api_key)   # make the API call
         if result:
             print(f"\nFor model: \"{my_model_id}\" ")
             print(f"Billing period : {result['billing_period_start']} → {result['billing_period_end']}")
@@ -795,16 +870,17 @@ if __name__ == "__main__":
     pgm_stop_elapsedsecs = time.monotonic()
     pgm_took_elapsedsecs = pgm_stop_elapsedsecs - pgm_strt_elapsedsecs
     run_bytes_processed_fmt = format_bytes(run_bytes_processed)
-    # SUMMARY: Run took 00:00:06.331 seconds to process 12gb of code in 1 file(s).
-    print(f"ENDING: Run took {elapsed_time2format(pgm_took_elapsedsecs)} seconds to process {run_bytes_processed_fmt} lines of code in {run_files_processed} file(s).")
+
+    print(f"TOTALS: {run_files_processed} call(s) took {elapsed_time2format(pgm_took_elapsedsecs)} seconds for {run_bytes_processed_fmt} bytes of code.")
+        # TOTALS: 1 call(s) took 00:00:09.815 seconds for 42.58kb bytes of code.
 
 """
-$ uv run claude-vulscan.py -v -vv -b -m "opus" -f "claude-vulscan.py"
-STARTING: "claude-vulscan.py" from uptime: 361:33:52.908 (1301632.90785325).
+$ uv run claude-vulscan.py -v -vv -b -m "sonnet" -f "claude-vulscan.py"
+STARTING: claude-vulscan.py "claude-vulscan.py" from uptime: 364:32:25.739 (1312345.738976166).
 WARNING: -pt = --prompt text not specified. Hard-coded default vulscan will be processed.
 === Anthropic Claude Organization Limits: Rate Limits on API capacity ===
-requests_reset on : 2026-04-17 10:43:06 AM MDT -0600 (2026-04-17T16:43:06Z) UTC
-tokens_reset on   : 2026-04-17 10:43:05 AM MDT -0600 (2026-04-17T16:43:05Z) UTC
+requests_reset on : 2026-04-17 08:12:35 PM MDT -0600 (2026-04-18T02:12:35Z) UTC
+tokens_reset on   : 2026-04-17 08:12:35 PM MDT -0600 (2026-04-18T02:12:35Z) UTC
   requests_limit      : 50        per minute = Tier 1 (Build - likely free or new account)
   input_tokens_limit  : 30000     per minute
   output_tokens_limit : 8000      per minute
@@ -812,17 +888,17 @@ tokens_reset on   : 2026-04-17 10:43:05 AM MDT -0600 (2026-04-17T16:43:05Z) UTC
   tokens_limit        : 38000     -        
   tokens_remaining    : 38000     -        
 VERBOSE: filepath = "/Users/johndoe/github-wilsonmar/python-samples/claude-vulscan.py"
-TRACE: code_from_file contains 40029 characters.
-INFO: code file claude-vulscan.py contains 39.09kb bytes (40,029 characters)
+TRACE: code_from_file contains 43597 characters.
+INFO: code file claude-vulscan.py contains 42.58kb bytes (43,597 characters)
 GREAT: code file claude-vulscan.py is within the 1,073,741,824 character limit.
-TRACE: obtain_file() returning code with file_size 40029.
-TRACE: api_key (a secret) contains 108 chars.
-TRACE: {'opus': 'claude-opus-4-7', 'sonnet': 'claude-sonnet-4-6', 'haiku': 'claude-haiku-4-5-20251001'}
-INFO: -m "opus" => model_id="claude-opus-4-7" 
-    id: claude-opus-4-7
-    display_name: Claude Opus 4.7
+TRACE: obtain_file() returning code with file_size 43597.
+TRACE: call_api_key (a secret) contains 108 chars.
+TRACE: claude_model_list: {'opus': 'claude-opus-4-7', 'sonnet': 'claude-sonnet-4-6', 'haiku': 'claude-haiku-4-5-20251001'}
+INFO: -m "sonnet" => model_id="claude-sonnet-4-6" 
+    id: claude-sonnet-4-6
+    display_name: Claude Sonnet 4.6
     type: model
-    created_at: 2026-04-14T00:00:00+00:00
+    created_at: 2026-02-17T00:00:00+00:00
     max_input_tokens: 1000000
     max_tokens: 128000
     capabilities:
@@ -834,41 +910,37 @@ INFO: -m "opus" => model_id="claude-opus-4-7"
       structured_outputs: True
       thinking: True
       effort: True
-WARNING: prompt text default used.
-TRACE: scan_code(40029 bytes, "List only real security vulnerabilities in this Python file. Be concise.", "claude-opus-4-7" )
+WARNING: prompt text default: List only real security vulnerabilities in this Python file. Be concise.
 
 ========================================
 claude-vulscan.py
-# Real Security Vulnerabilities
+## Real Security Vulnerabilities
 
-1. **Undefined variable `model_family` in `model_id_from_args()`** (in the `match` block) — references `model_family` which is never defined in that scope, causing a `NameError`. While a bug, in security-sensitive control flow this means the fallback/default model selection logic is unreachable/broken.
+1. **Hardened HTTP client never used**: A custom `httpx.Client` with SSL context and 30s timeout is created but never passed to `anthropic.Anthropic()`, which uses its own default client instead — making the SSL hardening ineffective.
 
-2. **Undefined variable `alias` in exception handlers** — `model_id_from_anthropic()` and `resolve_model_family()`'s `NotFoundError` handler references `alias` in one case where it's not a parameter, leading to a `NameError` that masks the original error (information disclosure/error handling flaw).
+2. **Path traversal via unresolved CWD**: `safe_path()` uses `Path.cwd()` without `.resolve()`, so symlinks in the working directory can bypass the `is_relative_to()` check.
 
-3. **Path traversal via symlinks** — `safe_path()` uses `resolve()` + `is_relative_to(base)`, but `base` is `Path.cwd()` which is not resolved. If `cwd` itself contains symlinks, the comparison can be bypassed. Should use `base.resolve()`.
+3. **CSV path not sanitized**: `write_call_metadata()` opens `filepath` (caller-influenced) with no `safe_path()` validation, unlike file reads — allowing potential path traversal on write.
 
-4. **Sensitive data exfiltration to third-party API** — entire file contents (potentially containing secrets, keys, PII) are sent to Anthropic's API with no redaction/sanitization. Acknowledged in docstring but still a real vulnerability.
+4. **No timeout on main API calls**: `client.messages.create()` calls lack explicit timeouts, enabling indefinite hangs and resource exhaustion.
 
-5. **API key length disclosure in logs** — `print(f"TRACE: api_key ... contains {len(api_key)} chars.")` leaks the key length, which narrows brute-force/identification of key type. Minor but real.
+5. **Sensitive file contents exfiltrated to external API**: Full file contents (potentially containing secrets) are sent to Anthropic's API in `scan_code()` without sanitization or secret-scrubbing.
 
-6. **No timeout on most Anthropic SDK calls** — only the `httpx.Client` for billing has a timeout; the main `client.messages.create()` calls have no explicit timeout, enabling resource exhaustion / hang-based DoS.
+6. **API key length logged to stdout**: Logging `len(call_api_key)` leaks key-length metadata useful for fingerprinting key type/format.
 
-7. **Variable shadowing of `api_key`** — the script reuses the `api_key` variable name for both `ANTHROPIC_API_KEY` and `ANTHROPIC_ADMIN_KEY`. The admin key (higher privilege) overwrites the standard key in scope, which can cause privileged credentials to be used unintentionally in later operations if code is extended.
+7. **Broad `except Exception` suppresses security-relevant failures**: SSL errors, auth anomalies, and MITM-related exceptions are silently caught and printed, preventing proper alerting or halting.
 
-8. **Broad `except Exception`** at the main scan call — swallows all errors including ones that may indicate security issues (e.g., SSL failures, auth anomalies), hindering detection.
 
-9. **`scan_project()` path traversal (noted in code comments)** — the commented-out code would call `safe_path(root, file)` using `root` from `os.walk(directory)` as the base, which defeats traversal protection since `directory` is attacker-influenced. Currently dead code, but if re-enabled it's exploitable.
+METRIC: 2026-04-18T02:12:36.113572+00:00 : claude-vulscan.py took 6.303612947463989 for 43597 bytes to 15 lines.
 
-Not real vulnerabilities: the SSL context setup, `open()` usage (guarded by `safe_path`), and the use of `anthropic` SDK itself.
-
-For model: "claude-opus-4-7" 
+For model: "claude-sonnet-4-6" 
 Billing period : 2026-04-01T00:00:00+00:00 → 2026-04-30T23:59:59+00:00
-  Days elapsed   : 17
-  Days remaining : 14
-  Cost report    : {'error': "Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/organizations/cost_report?starting_at=2026-04-01T00%3A00%3A00Z&ending_at=2026-04-17T16%3A43%3A25Z&bucket_width=1d'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"}
-  Tokens Input   : 14
+  Days elapsed   : 18
+  Days remaining : 13
+  Cost report    : {'error': "Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/organizations/cost_report?starting_at=2026-04-01T00%3A00%3A00Z&ending_at=2026-04-18T02%3A12%3A43Z&bucket_width=1d'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"}
+  Tokens Input   : 8
   Tokens Output  : 10
-  Tokens Total   : 24
-ENDING: Run took 00:00:21.902 seconds to process 39.09kb lines of code in 1 file(s).
+  Tokens Total   : 18
+TOTALS: 1 call(s) took 00:00:09.815 seconds for 42.58kb bytes of code.
 """
 # EOF
