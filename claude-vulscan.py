@@ -81,8 +81,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-04-18"
-__commit_msg__ = "26-04-18 v022 billing, tokens, Admin sdk @claude-vulscan.py"
+__commit_date__ = "2026-04-20"
+__commit_msg__ = "26-04-20 v023 after warp changes @claude-vulscan.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/claude-vulscan.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/claude-vulscan.py"
 __status__ = "WORKING: ruff check claude-vulscan.py => All checks passed!"
@@ -115,7 +115,6 @@ import time
 # POLICY: Use of 3rd-party packages are limited to minimize potential supply chain attacks, 
 import anthropic   # Anthropic Client SDK - from anthropic import Anthropic
 import certifi
-from config import settings   # Dynaconf
 from dotenv import load_dotenv  # install python-dotenv
 from openai import OpenAI
 
@@ -394,7 +393,7 @@ def safe_path(base: Path, target: str) -> Path:
 
 def read_github_repo(owner, repo, branch="main", token=None):
     """
-    Reads all files from a public GitHub repo via the GitHub API.
+    Read all files within a public GitHub repo via the GitHub API.
     
     files = read_github_repo("owner", "repo-name")
     for path, content in files.items():
@@ -541,10 +540,10 @@ def resolve_model_family(alias: str) -> dict:
         raise RuntimeError("Invalid or missing Anthropic API key") from None
     except anthropic.NotFoundError: # 404
         raise ValueError(f"Model alias '{alias}' not found") from None
-    except anthropic.RateLimitError as e: # 429
+    except anthropic.RateLimitError: # 429
         print("A 429 status code was received; we should back off a bit.")
     except anthropic.APIStatusError as e: 
-        print("Another non-200-range status code was received")
+        print("Another non-200-range status code was received. {e}")
         print(e.status_code)
         print(e.response)
         raise RuntimeError(f"Anthropic API error {e.status_code}: {e.message}") from None
@@ -903,6 +902,7 @@ def obtain_file(args, target: str, filepath: str) -> str | None:
             return None
 
 def ollama_is_running():
+    """Verify ollama server is running by listing its models."""
     try:
         response = requests.get("http://localhost:11434/api/tags")
         if response.status_code == 200:
@@ -1052,7 +1052,7 @@ def write_call_to_csv(args, target_file, call_seq, call_start_utc: str, elapsed_
     bytes_processed_fmt = format_bytes(bytes_processed)
     elapsed_seconds_fmt = format_elapsed_time(elapsed_seconds)
     # POLICY: Do not put sensitive text within unencrypted csv files.
-    print(f"\nMETRIC: At {call_start_utc}, {bytes_processed_fmt} bytes {target_file} took {elapsed_seconds} secs for {lines_out} findings thru {model_id}.")
+    print(f"\nMETRIC: At {call_start_utc}, {bytes_processed_fmt} bytes {target_file} took {elapsed_seconds_fmt} secs for {lines_out} findings thru {model_id}.")
 
     # import csv
     row = {
@@ -1109,7 +1109,6 @@ def print_cost_report(cost_report):
 
 def ant_billing(model_id) -> float | None:
     """Make API call to get rate limit headers."""
-
     # Billing runs on a calendar month cycle — invoices are issued at the end of every calendar month via Stripe. 
     # The ANTHROPIC_ADMIN_KEY (sk-ant-admin...) required to get the Cost Report is different from a standard API key
     admin_api_key = get_str_from_env_file("ANTHROPIC_ADMIN_KEY")
