@@ -116,3 +116,8 @@ ENV/
 hooks/*.log
 hooks/debug.log
 hooks/todo-enforcer.config.json
+
+# For Dynaconf:
+.secrets.toml 
+# Ignore dynaconf secret files:
+.secrets.*
