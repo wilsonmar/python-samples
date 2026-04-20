@@ -767,7 +767,14 @@ def get_billing_period(admin_api_key: str) -> dict:
         "bucket_width": "1d",
     }
     try:
-        response = httpx.get(url, headers=headers, params=params, timeout=10.0)
+        # POLICY: Use hardened SSL context (certifi CA bundle, CERT_REQUIRED) for all outbound
+        # HTTPS calls carrying sensitive credentials — including the admin API key.
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.load_verify_locations(certifi.where())
+        ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+        ssl_ctx.check_hostname = True
+        with httpx.Client(verify=ssl_ctx, timeout=10.0) as http_client:
+            response = http_client.get(url, headers=headers, params=params)
         response.raise_for_status()
         cost_data = response.json()
     except httpx.HTTPStatusError as e:
