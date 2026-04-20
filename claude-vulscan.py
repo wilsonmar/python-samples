@@ -476,6 +476,34 @@ def _make_anthropic_client(api_key: str) -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key, http_client=http_client)
 
 
+def _extract_anthropic_error_message(err: Exception) -> str:
+    """Return the human-readable `error.message` from an Anthropic APIStatusError, or ''.
+
+    The SDK wraps HTTP errors with a `.response` httpx.Response; its JSON body looks like
+    {"type": "error", "error": {"type": "invalid_request_error", "message": "..."}}.
+    We defensively try multiple access paths so a malformed body never masks the original
+    exception from the caller's except-block.
+    """
+    # Preferred: parse the response body.
+    response = getattr(err, "response", None)
+    if response is not None:
+        try:
+            body = response.json()
+            if isinstance(body, dict):
+                error_obj = body.get("error") or {}
+                if isinstance(error_obj, dict):
+                    msg = error_obj.get("message")
+                    if isinstance(msg, str) and msg:
+                        return msg
+        except (ValueError, AttributeError):
+            pass
+    # Fallback: SDK-populated attribute, then str(err).
+    msg = getattr(err, "message", None)
+    if isinstance(msg, str) and msg:
+        return msg
+    return str(err) if err else ""
+
+
 def resolve_model_family(alias: str) -> dict:
     """Resolve model info from input model_family."""
     client_api_key = get_str_from_env_file("ANTHROPIC_API_KEY")
@@ -668,14 +696,57 @@ def run_is_within_budget(model_id: str, code_from_file_bytes: bytes) -> float | 
     """
     # POLICY: Use _make_anthropic_client() to enforce SSL hardening on all Anthropic API calls.
     client_api_key = get_str_from_env_file("ANTHROPIC_API_KEY")
+    # POLICY: Fail fast with a clean message (no traceback, no secret) if the key is missing.
+    if not client_api_key:
+        print("FATAL: ANTHROPIC_API_KEY is not set. Export it or add it to ~/.claude-vulscan.env before running.")
+        return None
     client = _make_anthropic_client(client_api_key)
     client_api_key = ""
     # Make a minimal API call to capture response headers:
-    response = client.messages.with_raw_response.create(
-        model=model_id,
-        max_tokens=10,
-        messages=[{"role": "user", "content": "Hi"}]
-    )
+    # POLICY: This probe itself consumes credits, so billing failures must be surfaced here
+    # with an actionable message instead of letting a raw 400 traceback escape to the user.
+    try:
+        response = client.messages.with_raw_response.create(
+            model=model_id,
+            max_tokens=10,
+            messages=[{"role": "user", "content": "Hi"}]
+        )
+    except anthropic.BadRequestError as e:  # 400 — includes "credit balance too low"
+        api_message = _extract_anthropic_error_message(e)
+        lowered = api_message.lower()
+        if (
+            "credit balance" in lowered
+            or "insufficient" in lowered
+            or "billing" in lowered
+            or "upgrade" in lowered
+        ):
+            print("FATAL: Anthropic credit balance is too low to access the API.")
+            print("   Add credits or upgrade your plan at:")
+            print("   https://console.anthropic.com/settings/billing")
+            if api_message:
+                print(f"   API said: {api_message}")
+        else:
+            print(f"FATAL: Anthropic API rejected the budget probe (400): {api_message or e}")
+        return None
+    except anthropic.AuthenticationError:  # 401
+        print("FATAL: Invalid or missing Anthropic API key (ANTHROPIC_API_KEY).")
+        return None
+    except anthropic.PermissionDeniedError as e:  # 403
+        print(f"FATAL: Anthropic API permission denied for model '{model_id}': {e}")
+        return None
+    except anthropic.NotFoundError:  # 404
+        print(f"FATAL: Anthropic model '{model_id}' not found or not available to this key.")
+        return None
+    except anthropic.RateLimitError:  # 429
+        print("ERROR: Rate limit exceeded during budget probe — back off and retry shortly.")
+        return None
+    except anthropic.APIConnectionError as e:
+        print(f"FATAL: Could not connect to Anthropic API: {e}")
+        return None
+    except anthropic.APIStatusError as e:  # catch-all for other non-2xx responses
+        api_message = _extract_anthropic_error_message(e)
+        print(f"FATAL: Anthropic API error {e.status_code}: {api_message or getattr(e, 'message', e)}")
+        return None
 
     print("=== Anthropic Claude Organization Limits: Rate Limits on API capacity ===")
         # Also shown on GUI Console at https://platform.claude.com/settings/limits
@@ -1088,7 +1159,7 @@ def ant_billing(model_id) -> float | None:
 
 
 def open_python_files(args, folder_path: str):
-    """Opens and reads all .py files in a folder, returning their contents.
+    """Open and read all .py files in a folder, returning their contents.
     
     The key difference is that os.walk yields (root, dirs, files) tuples for every directory it encounters, so the key becomes the full path instead of just the filename to avoid collisions.
 
@@ -1203,9 +1274,15 @@ if __name__ == "__main__":
     # TODO: Use prior run metric statistics as basis to calculate tokens_expected to be consumed during this run.
     tokens_expected = run_is_within_budget(my_model_id, code_from_file_bytes)
     # POLICY: Do not proceed if there is not enough tokens available within budget to run this.
-    if not tokens_expected:   # None
-        print(f"FATAL: {tokens_expected} tokens_expected for this run is not within budget!")
-        exit()
+    # run_is_within_budget() prints its own FATAL for API/billing failures and returns None;
+    # on success it returns a positive token estimate. Treat None and non-positive as abort,
+    # and avoid interpolating the sentinel (which would print the literal "None").
+    if tokens_expected is None:
+        print("FATAL: Aborting run — budget check failed (see error above).")
+        sys.exit(1)
+    if tokens_expected <= 0:
+        print(f"FATAL: Aborting run — estimated {tokens_expected} tokens is not within budget.")
+        sys.exit(1)
 
     
     """
