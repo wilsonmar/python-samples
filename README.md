@@ -1,6 +1,6 @@
 ---
 layout: post
-lastchange: "26-04-03 v067 Akexa goog-cal-alert.py :README.md"
+lastchange: "26-04-22 v068 bs4 migration + API error handling :README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -24,6 +24,8 @@ Code which we think have the most <strong>practical usefulness</strong>:
 * <a href="secure-env.py">secure-env.py</a> uses utilities to get variable from several sources. It sounds wav file when done.
 
 * <a href="claude-vulscan.py">claude-vulscan.py</a> scans Python code by prompting Anthropic's Claude to use an LLM to identify logic vulnerabilities.
+   * Uses <tt>beautifulsoup4</tt> (imported as <tt>bs4</tt>) to scrape the Ollama model library. The legacy <tt>BeautifulSoup</tt> 3.x package was replaced in both the PEP 723 inline script header and the project-level <tt>pyproject.toml</tt> because <tt>beautifulsoup==3.2.2</tt> contains Python 2 syntax and cannot be built under Python 3.13.
+   * Anthropic API failures (authentication, rate limit, connection, 400 bad-request such as "credit balance too low", and generic status errors) are now handled gracefully in both <tt>process_a_single_file()</tt> and <tt>ant_billing()</tt>. Runs complete with zero-finding totals instead of aborting with a <tt>TypeError</tt>.
 
 * <a href="git-commit.sh">git-commit.sh</a> is copied to this repo's .git/hooks folder to run
    * <tt>ruff</tt> is catch code formatting issues 
