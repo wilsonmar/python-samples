@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.13"
 # dependencies = [
 #   "click",
 #   "cryptography",
@@ -36,6 +36,7 @@ BEFORE RUNNING, on Terminal:
    # cd to a folder to receive folder (such as github-wilson):
    git clone https://github.com/wilsonmar/python-samples.git --depth 1
    cd python-samples
+
    # uv init was run to set pyproject.toml & .python-version 
    python3 -m pip install uv
    python -m venv .venv   # creates bin, include, lib, pyvenv.cfg
@@ -48,10 +49,20 @@ BEFORE RUNNING, on Terminal:
    brew install keras pillow protobuf markdown
    brew install bandit safety semgrep ruff
 
-   safety scan myutils.py                 # Check dependencies for CVEs (now requires login via internet)
-   ruff check myutils.py       # Based on pyproject.toml configs
-   semgrep --config=auto       # Pattern-based analysis
+BEFORE RUNNING, on Terminal EVERY DAY:
+   uv venv .venv                   # create folder .venv to import packages
+   source .venv/bin/activate       # on macOS & Linux
+        # ./scripts/activate       # PowerShell only
+        # ./scripts/activate.bat   # Windows CMD only
+   uv lock --upgrade               # to latest version available publicly
+   uv sync
 
+   ruff check myutils.py              # Based on pyproject.toml configs
+   safety scan myutils.py             # Check dependencies for CVEs (now requires login via internet)
+   semgrep --config=auto . --verbose  # Find code security errors using pattern-based analysis
+   bandit -r ./my_project             # Security linter
+
+   
    chmod +x myutils.py
    uv run myutils.py -v
       # -v for verbose
@@ -67,8 +78,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-04-02"
-__commit_msg__ = "26-04-02 v016 pyproject.toml configs :myutils.py"
+__commit_date__ = "2026-05-01"
+__commit_msg__ = "26-05-01 v017 sys.exit(msg) @myutils.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/myutils.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/myutils.py"
 __status__ = "WORKING: ruff check myutils.py => All checks passed!"
@@ -196,8 +207,7 @@ except Exception as e:
     print(f"Python module import failed: {e}")
     # pyproject.toml file exists
     # print_?() not used becuase they are defined after this line:
-    print("Please activate your virtual environment:\n  python3 -m venv venv && source .venv/bin/activate")
-    exit(9)
+    sys.exit(f"FAIL: {sys._getframe().f_code.co_name}(): Activate your virtual environment: uv venv .venv && source .venv/bin/activate")
 
 # POLICY: Capture stop time for measuring external python library load time.
 xpt_stop_timestamp = time.monotonic()
@@ -976,8 +986,7 @@ def os_platform():
     elif platform_system == "win32":  # includes 64-bit
         my_platform = "Windows"
     else:
-        print_fail("platform_system=" + platform_system + " is unknown!")
-        exit(1)  # entire program
+        sys.exit(f"FATAL: {sys._getframe().f_code.co_name}(): platform_system={platform_system}  unknown!")
     return my_platform
 
 
@@ -1435,8 +1444,7 @@ def macos_sys_info():
         # major, minor, micro, release level, and serial: for sys.version_info.major, etc.
         # Version info sys.version_info(major=3, minor=7, micro=6,
         # releaselevel='final', serial=0)
-        print_fail("Python 3.6 or higher is required for this program. Please upgrade.")
-        sys.exit(1)
+        sys.exit(f"FATAL: {sys._getframe().f_code.co_name}(): Python 3.6 or higher is required for this program. Please upgrade.")
 
     # TODO: Make this function for call before & after run:
     #    disk_list = get_disk_free()
@@ -1487,8 +1495,7 @@ def show_summary() -> bool:
 
 def handle_fatal_exit():
     """Handle fatal exit with a message first."""
-    print_trace("handle_fatal_exit() called.")
-    sys.exit(9)
+    sys.exit(f"FATAL: {sys._getframe().f_code.co_name}(): called!")
 
 
 def list_pgm_functions(filename):
@@ -1569,14 +1576,12 @@ def print_dunder_vars(filename) -> str:
                 print(f"{name} = {repr(value)}")
 
     except FileNotFoundError:
-        print(f"{sys._getframe().f_code.co_name}() Error: File '{filename}' not found!")
+        print(f"FATAL: {sys._getframe().f_code.co_name}() Error: File '{filename}' not found!")
         sys.exit(1)
     except SyntaxError as e:
-        print(f"{sys._getframe().f_code.co_name}()Error: Invalid Python syntax in '{filename}': {e}")
-        sys.exit(1)
+        sys.exit(f"FATAL: {sys._getframe().f_code.co_name}()Error: Invalid Python syntax in '{filename}': {e}")
     except Exception as e:
-        print(f"{sys._getframe().f_code.co_name}() Error: {e}! ")
-        sys.exit(1)
+        sys.exit(f"FATAL: {sys._getframe().f_code.co_name}() Error: {e}! ")
 
 
 #### Encryption on Drives
@@ -1751,9 +1756,9 @@ def write_file_to_removable_drive(drive_path: str, file_name: str, content: str)
         # mount point = drive_path = '/Volumes/YourDriveName'
         print_error(f"Drive path {drive_path} not found. Please check if it's properly connected.")
         raise FileNotFoundError(f"The drive path {drive_path} does not exist.")
-        # Perhaps permission error?
+        # FIXME: Perhaps permission error?
         list_macos_volumes()
-        exit(9)
+        # sys.exit(f"FATAL: {sys._getframe().f_code.co_name}(): Drive path {drive_path})
 
     safe_name = os.path.basename(file_name)
     if not safe_name or safe_name != file_name:
@@ -1912,7 +1917,7 @@ def generate_rsa_keypair(key_size=2048, save_to_files=True, output_dir="~/.keys"
     Returns tuple: (private_key_pem, public_key_pem) as bytes
     """
     if is_within_git_folder(output_dir):
-        exit(9)
+        sys.exit(f"FATAL: {sys._getframe().f_code.co_name}(): output_dir {output_dir}")
 
     # Generate private key:
     private_key = rsa.generate_private_key(
@@ -1968,7 +1973,7 @@ def generate_encrypted_keypair(password, key_size=2048, output_dir="~/.keys"):
     # (.) in first character resolves to current directory.
     # Substitute tilde (~) in first character of output_dir with User's home directory:
     if is_within_git_folder(output_dir):
-        exit(9)
+        output_dir
 
     # Generate private key
     private_key = rsa.generate_private_key(
@@ -2128,6 +2133,8 @@ def encrypt_secret(cleartext_in=None):
     # TODO: Ensure input string is binary.
     key = Fernet.generate_key()
     f = Fernet(key)
+    if isinstance(cleartext_in, str):
+        cleartext_in = cleartext_in.encode("utf-8")
     binary_token = f.encrypt(cleartext_in)
     # CAUTION: token is a command which outputs the token b'...(don't do it)
     # decrypted_text = f.decrypt(token)
@@ -2216,8 +2223,7 @@ def send_smtp() -> bool:
     """
     password = get_api_key("gmail", EMAIL_FROM)  # loadtesters
     if not password:
-        print_fail(f"{sys._getframe().f_code.co_name}(): password needed.")
-        exit(9)
+        sys.exit(f"{sys._getframe().f_code.co_name}(): password needed.")
 
     recipients = EMAIL_TO  # Recipients as a list: "[ 1@example.com, 2@example.com ]"
     if recipients is None:  # Not a list
@@ -2281,7 +2287,6 @@ def gen_qrcode(url: str, qrcode_file_path: str) -> bool:
 
 def main():  # SAMPLE USAGE:
     """Show myutils being used."""
-    
     encrypt_secret("hello world")
     
     do_clear_cli()
@@ -2358,3 +2363,175 @@ def main():  # SAMPLE USAGE:
 
 if __name__ == "__main__":
     main()
+
+
+"""
+$ uv run myutils.py -v
+psutil.Process(pid=46571, name='python3.13', status='running')
+memory used()=46.171875 MiB
+diskspace_free()=449.74 GB
+📢 Encrypted binary token from "b'hello world'" contains 103 chars. 
+⚙️ At do_clear_cli() 
+👇 print_heading( show_print_samples(): 
+❌ print_fail() -> sample fail 
+⭕ print_error() -> sample error 
+⚠️ print_warning() -> sample warning 
+💡 print_todo() -> sample task to do 
+✅ print_info() -> sample info 
+📢 print_verbose() -> sample verbose 
+⚙️ print_trace() -> sample trace 
+📢 Started: 11:55 PM (23:55:20) 2026-05-01 MDT, in logs: 2605020555UTC  
+⚙️ psutil.Process(pid=46571, name='python3.13', status='running') MiB from get_process_memory() 
+📢 Started: 47.31 MiB RAM being used. 
+📢 Started: 449.74 GB (48.55%) disk space free. 
+is_running_locally()? True 
+is_local_development()? True 
+⚙️ At print_module_filenames() 
+inspect.getfile(currentframe()): myutils.py
+__file__ without extension:      myutils     created:  2026-05-01-23:55 
+Filename only:                   myutils.py  modified: 2026-05-01-23:55
+os.path.basename():              myutils.py 
+current_module.__file__:    /Users/johndoe/github-wilsonmar/python-samples/myutils.py
+os.path.abspath(__file__):  /Users/johndoe/github-wilsonmar/python-samples/myutils.py 
+psutil.Process(pid=46571, name='python3.13', status='running')
+memory used()=51.734375 MiB
+diskspace_free()=449.74 GB
+myutils.list_pgm_functions("myutils.py") alphabetically: 
+    _extract_dunder_variables
+    _get_local_ip
+    _is_local_ip
+    beautify_json
+    count_files_within_path
+    ctimestamp
+    day_of_week
+    decrypt_file
+    delete_all_files_in_folder
+    diskspace_free
+    display_cli_parameters
+    do_clear_cli
+    eject_drive
+    encrypt_file
+    encrypt_secret
+    encrypt_symmetrically
+    execsh
+    export_optel
+    filetimestamp
+    force_link
+    gen_qrcode
+    gen_random_alphanumeric
+    generate_encrypted_keypair
+    generate_rsa_keypair
+    get_all_objects_by_type
+    get_api_key
+    get_disk_free
+    get_environment_info
+    get_file_size_on_disk
+    get_fuid
+    get_log_datetime
+    get_process_memory
+    get_str_from_env_file
+    get_str_from_os
+    get_user_local_time
+    get_user_local_timestamp
+    handle_fatal_exit
+    hash_file_sha256
+    is_local_development
+    is_macos
+    is_none
+    is_number
+    is_only_numbers
+    is_running_locally
+    is_within_git_folder
+    list_disk_space_by_device
+    list_files
+    list_files_by_mountpoint
+    list_files_on_removable_drive
+    list_macos_volumes
+    list_pgm_functions
+    load_dotenv
+    macos_sys_info
+    macos_version_name
+    main
+    mem_usage
+    memory_used
+    mtimestamp
+    no_newlines
+    open_env_file
+    os_platform
+    print_dunder_vars
+    print_env_vars
+    print_error
+    print_fail
+    print_heading
+    print_info
+    print_module_filenames
+    print_secret
+    print_separator
+    print_todo
+    print_trace
+    print_verbose
+    print_warning
+    read_file_from_removable_drive
+    read_file_to_string
+    reverse_words
+    save_key_in_keychain
+    save_url_to_file
+    send_smtp
+    set_cli_parms
+    shorten_url
+    show_memory_profile
+    show_print_samples
+    show_summary
+    stats_to_file
+    test_datetime
+    trace_memory_usage
+    update_env_file
+    update_env_with_quotes
+    write_file_to_removable_drive
+⚙️ At print_dunder_vars() within /Users/johndoe/github-wilsonmar/python-samples/myutils.py: 
+__commit_date__ = '2026-05-01'
+__commit_msg__ = '26-05-01 v017 sys.exit(msg) @myutils.py'
+__repository__ = 'https://github.com/bomonike/google/blob/main/myutils.py'
+__status__ = 'WORKING: ruff check myutils.py => All checks passed!'
+⚙️ psutil.Process(pid=46571, name='python3.13', status='running') MiB from get_process_memory() 
+📢 show_memory_profile(): 
+📢 psutil.virtual_memory(): 81.7% (Available: 5.86 GB, System: 32.00 GB) 
+⚙️ psutil.Process(pid=46571, name='python3.13', status='running') MiB from get_process_memory() 
+📢     Total process memory:                   57.03 MB 
+📢     RSS (Resident Set Size):                57.03 MB 
+📢     VMS (Virtual Memory Size):              401433.22 MB 
+📢 Top 10 memory consumers by type: 
+📢     type                                        2.44 MB (1835 objects) 
+📢     dict                                        1.94 MB (4805 objects) 
+📢     function                                    1.42 MB (9315 objects) 
+📢     ABCMeta                                     0.43 MB (286 objects) 
+📢     tuple                                       0.36 MB (6180 objects) 
+📢     list                                        0.34 MB (1552 objects) 
+📢     frozenset                                   0.28 MB (451 objects) 
+📢     set                                         0.24 MB (324 objects) 
+📢     ReferenceType                               0.20 MB (2658 objects) 
+📢     BufferedWriter                              0.13 MB (2 objects) 
+📢 open_env_file(): at global_env_path: "/Users/johndoe/python-samples.env"  
+✅ get_str_from_env_file(): MY_PRINTER: "EPSON_ET_2850_Series"  
+my_printer=EPSON_ET_2850_Series
+✅ update_env_file(): "TESTING" => "whatever3"  
+👇 RSA Key Pair Generator: 
+gen_random_alphanumeric(): "hmdwvc37m3rc" (SAMPLE ONLY) 
+👇 3. Generating large RSA key pair to "~/large_keys"... 
+📢 is_within_git_folder(): output_dir: "/Users/johndoe/large_keys" 
+⚠️ generate_rsa_keypair(): no passphrase — private key will be unencrypted 
+Private key saved to: ~/large_keys/private_key.pem
+Public key saved to:  ~/large_keys/public_key.pem
+⚠️ read_file_to_string(): no base_dir specified — path traversal protection is disabled 
+📢 read_file_to_string(): "3268" chars in "~/large_keys/private_key.pem"  
+📢 private_rsa_key_clear_text: 3268 bytes 
+ 
+👇 show_summary(): 
+⚙️ psutil.Process(pid=46571, name='python3.13', status='running') MiB from get_process_memory() 
+✅ 10.41 MB memory consumed during run 2605012355. 
+✅ 0.00 GB disk space consumed during run 2605012355. 48.55% remaining. 
+👇 Monotonic wall timings (seconds): 
+📢 for import of Python standard libraries: 0.0504 
+📢 for import of Python extra    libraries: 0.1202 
+📢 for whole program run:                   0.4798 
+"""
