@@ -47,14 +47,15 @@ BEFORE RUNNING, on Terminal EVERY DAY:
 
    chmod +x openrouter-models.py
 
-   ruff check openrouter-models.py
+   ruff check openrouter-models.py    # Fast Flake8, Black, isort, pydocstyle, pyupgrade, autoflake
    safety scan openrouter-models.py   # Check dependencies in pyproject.toml for bad CVEs
    semgrep --config=auto . --verbose  # Find code security errors using pattern-based analysis
    bandit -r ./my_project          # Security linter
 
 BEFORE RUNNING, on Terminal EVERY TIME:
-    uv run openrouter-models.py
-
+    uv run openrouter-models.py -p
+    # -j = --json to print JSON
+    # -p = --providers to list providers
     # Press control+C to cancel/interrupt run.
 
 AFTER RUN:
@@ -76,6 +77,7 @@ __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
 import argparse
 import csv
+from collections import Counter
 import requests
 import sys
 import time
@@ -100,7 +102,7 @@ def get_openrouter_models() -> list:
     models = response.json()["data"]
 
     with open("openrouter_models.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["model_id", "name", "provider", "context_length", 
+        writer = csv.DictWriter(f, fieldnames=["model_id", "name", "provider", "ctx", 
                                             "pricing_prompt", "pricing_completion", "is_free", "modalities"])
         writer.writeheader()
         for m in models:
@@ -133,13 +135,30 @@ def list_openrouter_models(models: list) -> None:
     print(f"Total models: {len(models)}")
 
 
+def list_openrouter_providers(models: list) -> int:
+    """Print providers sorted alphabetically with model counts. Returns unique provider count."""
+    provider_counts = Counter(
+        m["id"].split("/")[0] if "/" in m["id"] else "other"
+        for m in models
+    )
+    sorted_providers = sorted(provider_counts.items())
+    print(f"\n{'='*50}")
+    print(f"{'PROVIDER':<35} {'MODELS':>6}")
+    print(f"{'='*50}")
+    for provider, count in sorted_providers:
+        print(f"{provider:<35} {count:>6}")
+    print(f"{'='*50}")
+    print(f"Unique providers: {len(sorted_providers)}")
+    return len(sorted_providers)
+
+
 #### SECTION: Main function run if this was not imported.
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print raw JSON model list")
-    parser.add_argument("-m", "--models", action="store_true", help="Print models")
+    parser.add_argument("-j", "--json", action="store_true", help="Print raw JSON model list")
+    parser.add_argument("-m", "--models", action="store_true", help="Print models list with CTX")
     parser.add_argument("-p", "--providers", action="store_true", help="Print sorted providers with models count")
     args = parser.parse_args()
 
@@ -147,13 +166,20 @@ if __name__ == "__main__":
     pgm_strt_elapsedsecs = time.monotonic()  # uptime like 1208973.03808275 since the system was last booted.
 
     model_list = get_openrouter_models()
-    if args.verbose:
+    if args.json:
         print(f"model_list={model_list}")
     if model_list is None:
         sys.exit()
 
     list_openrouter_models(model_list)
 
+    if args.providers:
+        list_openrouter_providers(model_list)
+
+    unique_providers = len(set(
+        m["id"].split("/")[0] if "/" in m["id"] else "other"
+        for m in model_list
+    ))
     elapsed = time.monotonic() - pgm_strt_elapsedsecs
-    print(f"\nCompleted in {elapsed:.2f}s. CSV saved to openrouter_models.csv")
+    print(f"\nCompleted in {elapsed:.2f}s. {len(model_list)} models from {unique_providers} unique providers. CSV saved to openrouter_models.csv")
 
