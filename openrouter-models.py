@@ -66,11 +66,11 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-05-05"
-__commit_msg__ = "26-05-05 v002 add sort by CTX @openrouter-models.py"
+__commit_msg__ = "26-05-05 v002 add model sort by CTX @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
-# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash. 
+# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash.
 
 #### SECTION 03: imports from Python libraries:
 
