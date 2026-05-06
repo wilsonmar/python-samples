@@ -66,18 +66,20 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-05-05"
-__commit_msg__ = "26-05-05 v002 add model sort by CTX @openrouter-models.py"
+__commit_date__ = "2026-05-06"
+__commit_msg__ = "26-05-06 v004 add providers count & list @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
-# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash.
 
 #### SECTION 03: imports from Python libraries:
 
 import argparse
 import csv
 from collections import Counter
+from datetime import datetime, timezone
+import os
+from pathlib import Path
 import requests
 import sys
 import time
@@ -156,30 +158,43 @@ def list_openrouter_providers(models: list) -> int:
 
 if __name__ == "__main__":
 
+    # POLICY: Begin the monotonic (uptime) run timer as soon as the program starts.
+    pgm_strt_elapsedsecs = time.monotonic()  # uptime like 1208973.03808275 since the system was last booted.
+
+    # POLICY: Recognize parameter flags to optionally output files and reports.
     parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print run stats")
     parser.add_argument("-j", "--json", action="store_true", help="Print raw JSON model list")
     parser.add_argument("-m", "--models", action="store_true", help="Print models list with CTX")
     parser.add_argument("-p", "--providers", action="store_true", help="Print sorted providers with models count")
     args = parser.parse_args()
 
-    # POLICY: Begin the monotonic (uptime) run timer as soon as the program starts.
-    pgm_strt_elapsedsecs = time.monotonic()  # uptime like 1208973.03808275 since the system was last booted.
+    if args.verbose:        # "-v", "--verbose"
+        # import sys
+        current_module = sys.modules[__name__]
+        if hasattr(current_module, "__file__"):
+            print(f"At {current_module.__file__}")
+        # from datetime import datetime, timezone
+        utc_now = datetime.now(timezone.utc)
+        local_now = datetime.now().astimezone()
+        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
 
     model_list = get_openrouter_models()
-    if args.json:
-        print(f"model_list={model_list}")
     if model_list is None:
         sys.exit()
-
-    list_openrouter_models(model_list)
-
-    if args.providers:
+    if args.json:        # "-j", "--json"
+        print(f"model_list={model_list}")
+    if args.models:      # "-m", "--models"
+        list_openrouter_models(model_list)
+    if args.providers:   # "-p", "--providers"
         list_openrouter_providers(model_list)
 
-    unique_providers = len(set(
-        m["id"].split("/")[0] if "/" in m["id"] else "other"
-        for m in model_list
-    ))
-    elapsed = time.monotonic() - pgm_strt_elapsedsecs
-    print(f"\nCompleted in {elapsed:.2f}s. {len(model_list)} models from {unique_providers} unique providers. CSV saved to openrouter_models.csv")
-
+    if args.verbose:
+        unique_providers = len(set(
+            m["id"].split("/")[0] if "/" in m["id"] else "other"
+            for m in model_list
+        ))    
+        elapsed = time.monotonic() - pgm_strt_elapsedsecs
+        print(f"\n{len(model_list)} models from {unique_providers} unique providers in CSV saved to openrouter_models.csv in {elapsed:.2f}s.")
+        # 370 models from 60 unique providers in CSV saved to openrouter_models.csv in 1.76s.
