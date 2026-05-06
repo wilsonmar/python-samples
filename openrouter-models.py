@@ -17,6 +17,7 @@
 """openrouter-models.py here.
 
 This Python program calls OpenRouter.ai URL to retrieve a CSV file of its models.
+See https://bomonike.github.io/ai-providers/
 
 BEFORE RUNNING, on internet browser:
    At https://agentfactory.panaversity.org/docs/General-Agents-Foundations/general-agents/free-claude-setup
@@ -69,7 +70,7 @@ __commit_msg__ = "26-05-05 v002 add sort by CTX @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
-# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash.
+# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash. 
 
 #### SECTION 03: imports from Python libraries:
 
@@ -83,7 +84,18 @@ import time
 #### SECTION: App-specific functions
 
 def get_openrouter_models() -> list:
-    """List models in openrouter.ai."""        
+    """List models in openrouter.ai.
+
+    Column	Description:
+    * model_id	Unique identifier for the model when making API calls
+    * name	Human-readable display name
+    * provider	Primary provider or organization offering the model
+    * ctx = context_length	Maximum tokens the model can process (input + reasoning)
+    * pricing_prompt	Cost per 1,000 input tokens (in USD)
+    * pricing_completion	Cost per 1,000 output tokens (in USD)
+    * is_free	TRUE if both input and output costs are $0
+    * modalities	Supported input types (text, image, audio, video, file)
+    """    
     response = requests.get("https://openrouter.ai/api/v1/models")
     models = response.json()["data"]
 
@@ -96,14 +108,14 @@ def get_openrouter_models() -> list:
                 "model_id": m["id"],
                 "name": m["name"],
                 "provider": m["id"].split("/")[0] if "/" in m["id"] else "other",
-                "context_length": m["context_length"],
+                "ctx": m["context_length"],
                 "pricing_prompt": m["pricing"]["prompt"],
                 "pricing_completion": m["pricing"]["completion"],
                 "is_free": m["pricing"]["prompt"] == "0" and m["pricing"]["completion"] == "0",
                 "modalities": ", ".join(m["architecture"].get("input_modalities", []))
             })
-
     return models
+
 
 def list_openrouter_models(models: list) -> None:
     """Print a human-readable summary of OpenRouter models."""
@@ -127,6 +139,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print raw JSON model list")
+    parser.add_argument("-m", "--models", action="store_true", help="Print models")
+    parser.add_argument("-p", "--providers", action="store_true", help="Print sorted providers with models count")
     args = parser.parse_args()
 
     # POLICY: Begin the monotonic (uptime) run timer as soon as the program starts.
@@ -143,14 +157,3 @@ if __name__ == "__main__":
     elapsed = time.monotonic() - pgm_strt_elapsedsecs
     print(f"\nCompleted in {elapsed:.2f}s. CSV saved to openrouter_models.csv")
 
-"""
-Column	Description
-* model_id	Unique identifier for the model when making API calls
-* name	Human-readable display name
-* provider	Primary provider or organization offering the model
-* context_length	Maximum tokens the model can process (input + reasoning)
-* pricing_prompt	Cost per 1,000 input tokens (in USD)
-* pricing_completion	Cost per 1,000 output tokens (in USD)
-* is_free	TRUE if both input and output costs are $0
-* modalities	Supported input types (text, image, audio, video, file)
-"""
