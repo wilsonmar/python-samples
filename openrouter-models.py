@@ -2,6 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
+#   "requests",
 # ]
 # ///
 #   "openrouter",
@@ -64,12 +65,15 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-05-05"
-__commit_msg__ = "26-05-05 v001 from deepseek @openrouter-models.py"
+__commit_msg__ = "26-05-05 v002 add sort by CTX @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
+# TODO: Add count of models from each provider, sorted alphabetically. The provider is the first part of model name separated by a slash.
+
 #### SECTION 03: imports from Python libraries:
 
+import argparse
 import csv
 import requests
 import sys
@@ -78,7 +82,7 @@ import time
 
 #### SECTION: App-specific functions
 
-def get_openrouter_models() -> str:
+def get_openrouter_models() -> list:
     """List models in openrouter.ai."""        
     response = requests.get("https://openrouter.ai/api/v1/models")
     models = response.json()["data"]
@@ -98,6 +102,8 @@ def get_openrouter_models() -> str:
                 "is_free": m["pricing"]["prompt"] == "0" and m["pricing"]["completion"] == "0",
                 "modalities": ", ".join(m["architecture"].get("input_modalities", []))
             })
+
+    return models
 
 def list_openrouter_models(models: list) -> None:
     """Print a human-readable summary of OpenRouter models."""
@@ -119,12 +125,17 @@ def list_openrouter_models(models: list) -> None:
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print raw JSON model list")
+    args = parser.parse_args()
+
     # POLICY: Begin the monotonic (uptime) run timer as soon as the program starts.
     pgm_strt_elapsedsecs = time.monotonic()  # uptime like 1208973.03808275 since the system was last booted.
-    
+
     model_list = get_openrouter_models()
-    print(f"model_list={model_list}")
-    if model_list == None:
+    if args.verbose:
+        print(f"model_list={model_list}")
+    if model_list is None:
         sys.exit()
 
     list_openrouter_models(model_list)
