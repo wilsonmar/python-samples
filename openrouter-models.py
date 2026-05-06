@@ -54,7 +54,9 @@ BEFORE RUNNING, on Terminal EVERY DAY:
 
 BEFORE RUNNING, on Terminal EVERY TIME:
     uv run openrouter-models.py -p
+    # -s = --silent (no run statistics)
     # -j = --json to print JSON
+    # -m = --models
     # -p = --providers to list providers
     # Press control+C to cancel/interrupt run.
 
@@ -67,7 +69,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-05-06"
-__commit_msg__ = "26-05-06 v004 add providers count & list @openrouter-models.py"
+__commit_msg__ = "26-05-06 v005 csv filename @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
@@ -87,7 +89,7 @@ import time
 
 #### SECTION: App-specific functions
 
-def get_openrouter_models() -> list:
+def get_openrouter_models(outfilepath) -> list:
     """List models in openrouter.ai.
 
     Column	Description:
@@ -103,7 +105,11 @@ def get_openrouter_models() -> list:
     response = requests.get("https://openrouter.ai/api/v1/models")
     models = response.json()["data"]
 
-    with open("openrouter_models.csv", "w", newline="", encoding="utf-8") as f:
+    if not outfilepath:  # if filepath is empty
+        filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]
+        outfilepath = f"{os.getcwd()}/{filename_no_ext}_{datetime.now().strftime('%Y%m%dT%H%M%S%s')}.csv"
+        print(f"Default outfilepath={outfilepath}")
+    with open(outfilepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["model_id", "name", "provider", "ctx", 
                                             "pricing_prompt", "pricing_completion", "is_free", "modalities"])
         writer.writeheader()
@@ -163,24 +169,29 @@ if __name__ == "__main__":
 
     # POLICY: Recognize parameter flags to optionally output files and reports.
     parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
+    parser.add_argument("-s", "--silent", action="store_true", help="No run stats")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print run stats")
     parser.add_argument("-j", "--json", action="store_true", help="Print raw JSON model list")
     parser.add_argument("-m", "--models", action="store_true", help="Print models list with CTX")
     parser.add_argument("-p", "--providers", action="store_true", help="Print sorted providers with models count")
     args = parser.parse_args()
 
-    if args.verbose:        # "-v", "--verbose"
+    utc_now = datetime.now(timezone.utc)
+    local_now = datetime.now().astimezone()
+    filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]
+    outfilepath = f"{os.getcwd()}/{filename_no_ext}-{utc_now.strftime('%Y%m%dT%H%M%S%Z')}.csv"
+    
+    if not args.silent:      # "-s", "--silent"
         # import sys
         current_module = sys.modules[__name__]
         if hasattr(current_module, "__file__"):
             print(f"At {current_module.__file__}")
+        print(f"outfilepath={outfilepath}")
         # from datetime import datetime, timezone
-        utc_now = datetime.now(timezone.utc)
-        local_now = datetime.now().astimezone()
         print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
 
-    model_list = get_openrouter_models()
+    model_list = get_openrouter_models(outfilepath)
     if model_list is None:
         sys.exit()
     if args.json:        # "-j", "--json"
@@ -190,11 +201,21 @@ if __name__ == "__main__":
     if args.providers:   # "-p", "--providers"
         list_openrouter_providers(model_list)
 
-    if args.verbose:
+    if not args.silent:
         unique_providers = len(set(
             m["id"].split("/")[0] if "/" in m["id"] else "other"
             for m in model_list
         ))    
         elapsed = time.monotonic() - pgm_strt_elapsedsecs
-        print(f"\n{len(model_list)} models from {unique_providers} unique providers in CSV saved to openrouter_models.csv in {elapsed:.2f}s.")
-        # 370 models from 60 unique providers in CSV saved to openrouter_models.csv in 1.76s.
+        print(f"\nSUMMARY: {len(model_list)} models from {unique_providers} providers saved in {elapsed:.2f}s\nto {outfilepath}.")
+
+"""
+$ uv run openrouter-models.py
+At /Users/johndoe/github-wilsonmar/python-samples/openrouter-models.py
+outfilepath=/Users/johndoe/github-wilsonmar/python-samples/20260506T151542UTC.csv
+    2026-05-06 09:15:42 MDT
+    2026-05-06 15:15:42 UTC
+
+SUMMARY: 370 models from 60 providers saved in 0.56s
+to /Users/johndoe/github-wilsonmar/python-samples/20260506T151542UTC.csv.
+"""
