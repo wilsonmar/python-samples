@@ -43,17 +43,17 @@ BEFORE RUNNING, on Terminal EVERY DAY:
         # ./scripts/activate       # PowerShell only
         # ./scripts/activate.bat   # Windows CMD only
    uv lock --upgrade               # to latest version available publicly
-   uv sync
+   uv sync                         # Install dependencies
 
    chmod +x openrouter-models.py
 
    ruff check openrouter-models.py    # Fast Flake8, Black, isort, pydocstyle, pyupgrade, autoflake
    safety scan openrouter-models.py   # Check dependencies in pyproject.toml for bad CVEs
    semgrep --config=auto . --verbose  # Find code security errors using pattern-based analysis
-   bandit -r ./my_project          # Security linter
+   bandit -r ./openrouter-models.py   # Security linter
 
 BEFORE RUNNING, on Terminal EVERY TIME:
-    uv run openrouter-models.py -p
+    uv run openrouter-models.py -p -m
     # -s = --silent (no run statistics)
     # -j = --json to print JSON
     # -m = --models
@@ -101,8 +101,20 @@ def get_openrouter_models(outfilepath) -> list:
     * pricing_completion	Cost per 1,000 output tokens (in USD)
     * is_free	TRUE if both input and output costs are $0
     * modalities	Supported input types (text, image, audio, video, file)
-    """    
-    response = requests.get("https://openrouter.ai/api/v1/models")
+    """
+    REQUEST_TIMEOUT_SECS = 30
+    try:
+        response = requests.get("https://openrouter.ai/api/v1/models", timeout=REQUEST_TIMEOUT_SECS)
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        print(f"ERROR: Request timed out after {REQUEST_TIMEOUT_SECS}s.")
+        return None
+    except requests.exceptions.ConnectionError:
+        print("ERROR: Could not connect to openrouter.ai.")
+        return None
+    except requests.exceptions.HTTPError as e:
+        print(f"ERROR: HTTP {e.response.status_code} from openrouter.ai.")
+        return None
     models = response.json()["data"]
 
     if not outfilepath:  # if filepath is empty
@@ -113,6 +125,7 @@ def get_openrouter_models(outfilepath) -> list:
         writer = csv.DictWriter(f, fieldnames=["model_id", "name", "provider", "ctx", 
                                             "pricing_prompt", "pricing_completion", "is_free", "modalities"])
         writer.writeheader()
+        # POLICY: Convert values in $/M columns to numeric before display
         for m in models:
             writer.writerow({
                 "model_id": m["id"],
@@ -174,6 +187,8 @@ if __name__ == "__main__":
     parser.add_argument("-j", "--json", action="store_true", help="Print raw JSON model list")
     parser.add_argument("-m", "--models", action="store_true", help="Print models list with CTX")
     parser.add_argument("-p", "--providers", action="store_true", help="Print sorted providers with models count")
+    # TODO: Add a --sort-by flag to allow users to choose between sorting by input_cost or output_cost in the output.
+    # TODO: Add a --help flag description of program parameters.
     args = parser.parse_args()
 
     utc_now = datetime.now(timezone.utc)
