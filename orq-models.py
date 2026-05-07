@@ -63,7 +63,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-05-06"
-__commit_msg__ = "2026-05-06 v001 initial @orq-models.py"
+__commit_msg__ = "2026-05-06 v003 add am/pm @orq-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/orq-models.py"
 __status__ = "WORKING: ruff check orq-models.py => All checks passed!"
 
@@ -320,7 +320,7 @@ if __name__ == "__main__":
         filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]
         outfilepath = (
             f"{os.getcwd()}/{filename_no_ext}"
-            f"-{utc_now.strftime('%Y%m%dT%H%M%S%Z')}.csv"
+            f"-{utc_now.strftime('%Y%m%dT%H%M%S%p%Z')}.csv"
         )
 
     if not args.silent:
@@ -328,8 +328,8 @@ if __name__ == "__main__":
         if hasattr(current_module, "__file__"):
             print(f"At {current_module.__file__}")
         print(f"outfilepath={outfilepath}")
-        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S%p%Z')}")
+        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S%p%Z')}")
 
     sort_by = args.sort_by
     model_list = get_orq_models(outfilepath, sort_by)
