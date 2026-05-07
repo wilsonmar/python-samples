@@ -69,7 +69,7 @@ AFTER RUN:
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
 __commit_date__ = "2026-05-06"
-__commit_msg__ = "26-05-06 v005 csv filename @openrouter-models.py"
+__commit_msg__ = "26-05-06 v006 am/pm in strftime@openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
 
@@ -203,8 +203,8 @@ if __name__ == "__main__":
             print(f"At {current_module.__file__}")
         print(f"outfilepath={outfilepath}")
         # from datetime import datetime, timezone
-        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S%p %Z')}")
+        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S%p %Z')}")
 
     model_list = get_openrouter_models(outfilepath)
     if model_list is None:
