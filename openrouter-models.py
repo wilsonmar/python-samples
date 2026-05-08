@@ -2,7 +2,9 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
+#   #psycopg2",
 #   "requests",
+#   "tenacity",
 # ]
 # ///
 #   "openrouter",
@@ -42,7 +44,7 @@ BEFORE RUNNING, on Terminal EVERY DAY:
    source .venv/bin/activate       # on macOS & Linux
         # ./scripts/activate       # PowerShell only
         # ./scripts/activate.bat   # Windows CMD only
-   uv lock --upgrade               # to latest version available publicly
+   uv lock --upgrade               # to latest version available publicly, including SHA-256 hashes
    uv sync                         # Install dependencies
 
    chmod +x openrouter-models.py
@@ -68,10 +70,12 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-05-06"
-__commit_msg__ = "26-05-06 v006 am/pm in strftime@openrouter-models.py"
+__commit_date__ = "2026-05-08"
+__commit_msg__ = "26-05-08 v008 [feat] + tenacity @openrouter-models.py"
 __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/openrouter-models.py"
 __status__ = "WORKING: ruff check openrouter-models.py => All checks passed!"
+
+# TODO: Store providers and models in PostgreSQL database.
 
 
 #### SECTION 03: imports from Python libraries:
@@ -80,16 +84,107 @@ import argparse
 import csv
 from collections import Counter
 from datetime import datetime, timezone
+import logging
 import os
-from pathlib import Path
 import requests
 import sys
 import time
+import re
+
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
+try:
+    import psycopg2  # PostgreSQL library (optional)
+except ImportError:
+    psycopg2 = None  # type: ignore[assignment]
+
+
+#### SECTION: Printing functions:  TODO: Move this to myutils.py module
+
+def elapsed_time2format(seconds) -> str:
+    """Format elapsed monotonic floating number to human-readable."""
+    # seconds = time.monotonic()
+    # import time
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    readable = f"{int(hours):02}:{int(minutes):02}:{secs:06.3f}"
+
+    # POLICY: Match regex ^(00:)+ one or more 00 so groups at the start of the string are removed all at once:
+    # import re  # regular expressions
+    truncated = re.sub(r"^(00:)+", "", str(readable))  # 00:00:45.123 to 45.123
+    return truncated
+
+def craft_runid(args, utc_now) -> str:
+    """Define Run ID as a GUID."""
+    # Using utc_now captured at start of program run.
+    if not args.silent:
+        runid = utc_now.strftime('%Y%m%dT%H%M%S')  # UTC
+        local_now = utc_now.astimezone()   # datetime.now().astimezone() would obtain another time.
+        print(f"runid={runid} = {utc_now} {local_now} local time.") # like a GUID
+    # TODO: Add base64?
+    return runid
+
+def define_outfilepath(args, runid) -> str:
+    """Define output full filepath."""
+    filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]  # like "openrouter-models"
+    outfilepath = f"{os.getcwd()}/{filename_no_ext}_{runid}.csv"
+    #if not args.silent:     # "-s", "--silent"
+    #    print(f"outfilepath={outfilepath}")
+            # like outfilepath=/Users/johndoe/github-wilsonmar/python-samples/20260506T151542UTC.csv
+    return outfilepath
+
+
+def print_program_greeting(args, pgm_runid, elapsedsecs):
+    """Print start-of-program greeting."""
+    if not args.silent:     # "-s", "--silent"
+        if args.verbose:
+            local_now = utc_now.astimezone()
+            print(f"RunID: {pgm_runid} at {local_now.strftime('%Y-%m-%d %H:%M:%S %p %Z')}" \
+                f" = {utc_now.strftime('%Y-%m-%d %H:%M:%S %p %Z')}")
+            print(f"From uptime: {elapsed_time2format(elapsedsecs)} ({elapsedsecs}).")
+
+            # import sys
+            current_module = sys.modules[__name__]
+            if hasattr(current_module, "__file__"):
+                print(f"At {current_module.__file__}")  
+                # like "/Users/johndoe/github-wilsonmar/python-samples/openrouter-models.py
+
+            print(f"TRACE: __commit_msg__={__commit_msg__}")
 
 
 #### SECTION: App-specific functions
 
-def get_openrouter_models(outfilepath) -> list:
+_LOG = logging.getLogger(__name__)
+
+REQUEST_TIMEOUT_SECS = 30
+MAX_RETRY_ATTEMPTS = 3
+
+def _is_retryable_error(exc: BaseException) -> bool:
+    """Return True for transient network/server errors worth retrying."""
+    if isinstance(exc, requests.exceptions.HTTPError):
+        return exc.response is not None and exc.response.status_code in {429, 500, 502, 503, 504}
+    return isinstance(exc, (requests.exceptions.Timeout, requests.exceptions.ConnectionError))
+
+@retry(
+    retry=retry_if_exception(_is_retryable_error),
+    stop=stop_after_attempt(MAX_RETRY_ATTEMPTS),
+    wait=wait_exponential(multiplier=1, min=2, max=30),
+    before_sleep=before_sleep_log(_LOG, logging.WARNING),
+    reraise=True,
+)
+def _fetch_openrouter_response() -> requests.Response:
+    """GET /api/v1/models with automatic retry/backoff on transient errors."""
+    response = requests.get("https://openrouter.ai/api/v1/models", timeout=REQUEST_TIMEOUT_SECS)
+    response.raise_for_status()
+    return response
+
+
+def get_openrouter_models(args, outfilepath) -> list | None:
     """List models in openrouter.ai.
 
     Column	Description:
@@ -102,25 +197,24 @@ def get_openrouter_models(outfilepath) -> list:
     * is_free	TRUE if both input and output costs are $0
     * modalities	Supported input types (text, image, audio, video, file)
     """
-    REQUEST_TIMEOUT_SECS = 30
+    # POLICY: Use tenacity library for a common & simple way to request retries with backoff
     try:
-        response = requests.get("https://openrouter.ai/api/v1/models", timeout=REQUEST_TIMEOUT_SECS)
-        response.raise_for_status()
+        response = _fetch_openrouter_response()
     except requests.exceptions.Timeout:
-        print(f"ERROR: Request timed out after {REQUEST_TIMEOUT_SECS}s.")
+        print(f"ERROR: Request timed out after {REQUEST_TIMEOUT_SECS}s ({MAX_RETRY_ATTEMPTS} attempts).")
         return None
     except requests.exceptions.ConnectionError:
-        print("ERROR: Could not connect to openrouter.ai.")
+        print(f"ERROR: Could not connect to openrouter.ai ({MAX_RETRY_ATTEMPTS} attempts).")
         return None
     except requests.exceptions.HTTPError as e:
         print(f"ERROR: HTTP {e.response.status_code} from openrouter.ai.")
         return None
     models = response.json()["data"]
 
-    if not outfilepath:  # if filepath is empty
-        filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]
-        outfilepath = f"{os.getcwd()}/{filename_no_ext}_{datetime.now().strftime('%Y%m%dT%H%M%S%s')}.csv"
-        print(f"Default outfilepath={outfilepath}")
+    if not outfilepath:  # if filepath parm is empty
+        print("ERROR: outfilepath not provided!")
+        return None
+
     with open(outfilepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["model_id", "name", "provider", "ctx", 
                                             "pricing_prompt", "pricing_completion", "is_free", "modalities"])
@@ -179,6 +273,9 @@ if __name__ == "__main__":
 
     # POLICY: Begin the monotonic (uptime) run timer as soon as the program starts.
     pgm_strt_elapsedsecs = time.monotonic()  # uptime like 1208973.03808275 since the system was last booted.
+    
+    # TODO: POLICY: Get a runid based on the pgm_start and a random plug for scalability.
+    utc_now = datetime.now(timezone.utc)
 
     # POLICY: Recognize parameter flags to optionally output files and reports.
     parser = argparse.ArgumentParser(description="Fetch and list OpenRouter models.")
@@ -191,24 +288,14 @@ if __name__ == "__main__":
     # TODO: Add a --help flag description of program parameters.
     args = parser.parse_args()
 
-    utc_now = datetime.now(timezone.utc)
-    local_now = datetime.now().astimezone()
-    filename_no_ext = os.path.splitext(os.path.basename(__file__))[0]
-    outfilepath = f"{os.getcwd()}/{filename_no_ext}-{utc_now.strftime('%Y%m%dT%H%M%S%Z')}.csv"
-    
-    if not args.silent:      # "-s", "--silent"
-        # import sys
-        current_module = sys.modules[__name__]
-        if hasattr(current_module, "__file__"):
-            print(f"At {current_module.__file__}")
-        print(f"outfilepath={outfilepath}")
-        # from datetime import datetime, timezone
-        print(f"    {local_now.strftime('%Y-%m-%d %H:%M:%S%p %Z')}")
-        print(f"    {utc_now.strftime('%Y-%m-%d %H:%M:%S%p %Z')}")
+    pgm_runid = craft_runid(args, utc_now) # like a GUID
+    # POLICY: Start program STDOUT output (if not silenced)
+    print_program_greeting(args, pgm_runid, pgm_strt_elapsedsecs)
+    outfilepath = define_outfilepath(args, pgm_runid)
 
-    model_list = get_openrouter_models(outfilepath)
+    model_list = get_openrouter_models(args, outfilepath)
     if model_list is None:
-        sys.exit()
+        sys.exit("FATAL: models list not gen'd!")
     if args.json:        # "-j", "--json"
         print(f"model_list={model_list}")
     if args.models:      # "-m", "--models"
@@ -217,20 +304,18 @@ if __name__ == "__main__":
         list_openrouter_providers(model_list)
 
     if not args.silent:
+        # Separate provider in front of slash and mordle id
         unique_providers = len(set(
             m["id"].split("/")[0] if "/" in m["id"] else "other"
             for m in model_list
         ))    
         elapsed = time.monotonic() - pgm_strt_elapsedsecs
-        print(f"\nSUMMARY: {len(model_list)} models from {unique_providers} providers saved in {elapsed:.2f}s\nto {outfilepath}.")
+        print(f"\nSUMMARY: {len(model_list)} models from {unique_providers} providers saved in {elapsed:.2f}s\nto {outfilepath}")
 
 """
 $ uv run openrouter-models.py
-At /Users/johndoe/github-wilsonmar/python-samples/openrouter-models.py
-outfilepath=/Users/johndoe/github-wilsonmar/python-samples/20260506T151542UTC.csv
-    2026-05-06 09:15:42 MDT
-    2026-05-06 15:15:42 UTC
+runid=20260508T123443 = 2026-05-08 06:34:43.121395-06:00 local time.
 
-SUMMARY: 370 models from 60 providers saved in 0.56s
-to /Users/johndoe/github-wilsonmar/python-samples/20260506T151542UTC.csv.
+SUMMARY: 367 models from 60 providers saved in 0.35s
+to /Users/johndoe/github-wilsonmar/python-samples/openrouter-models_20260508T123443.csv
 """
