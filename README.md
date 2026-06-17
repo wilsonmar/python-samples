@@ -1,6 +1,7 @@
 ---
 layout: post
-lastchange: "26-04-22 v068 bs4 migration + API error handling :README.md"
+date: "2026-06-17"
+lastchange: "v062 + .github auto translate README @README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -12,6 +13,27 @@ To catch dependency issues, we recommend that the latest set of dependencies is 
 creating <tt>requirements.txt</tt>, <tt>pyprojects.toml</tt>, and <tt>uv.lock</tt> with every run.
 
 We also recommend that libraries download historical versions of each library downloaded so that in case of issues, forensics and fall-back can be performed even though public versions become corrupted.
+
+
+## Python external libraries
+
+CAUTION: Each additional library dependency added increases the risk of 3rd-party supply chain attack on your code.
+This is why Walmart makes no use of external libraries at all.
+
+However, these are external packages that may be worth the risk:
+
+Described by <a target="_blank" href="https://python.plainenglish.io/7-python-libraries-that-saved-me-weeks-of-development-time-2d50526e2c4a">BLOG</a>:
+* <tt>polars as pl</tt> for data validation of pandas
+* <tt>typer</tt> - CLI Tools without the Argparse Tax
+* <tt>returns</tt> for error handling of type signatures calling .unwrap() after checking is_successful.
+* <tt>pendulum</tt> wrapper for working with Timezones and DST transitions with naive datetime library functions.
+* <tt>hypothesis</tt> to generate a huge range of inputs, including weird boundary ones.
+* <tt>faker</tt> gen test realistic real-world messy data
+* <tt>watchfiles import watch</tt> [Rust] for restart when files change, based on OS native file-watching mechanism — inotify on Linux, FSEvents on macOS 
+
+Others:
+* Walmart's package for easier switching between GenAI harnesses (Claude, OpenAI Codex, AWS Kiro, etc.)
+
 
 <a name="Featured"></a>
 
@@ -34,7 +56,13 @@ Code which we think have the most <strong>practical usefulness</strong>:
    <br /><br />
    Note that <tt>safety</tt> is needed to identify libraries (versions) marked as vulnerable in CVS, it is no longer run because the vendor now requires login. That makes it too inconvenient, especially offline.
 
+* <a href="local-git.py">local-git.py</a> Setup a basic local Git server so a SHA can be obtained for the version of each file before worked on.
+
+* <a href="rust_ext.py">rust_ext.py</a> measures the difference in performance between calculations made in pure Python verses Rust calcs through bindings for the Python interpreter by the <a target="_blank" href="https://docs.rs/pyo3/latest/pyo3/">PyO3</a> extensions library. All to reduce bottlenecks by profiling your application to find the most resource-intensive parts.
+
 * <a href="goog-cal-alert.py">goog-cal-alert.py</a> Alexa Google Calendar.
+
+* <a href="dump-keychain.py">dump-keychain.py</a> Dump the macOS Keychain.
 
 * <a href="#diagrams-graphwiz.py">diagrams-graphwiz.py</a> generate diagrams (image files) from text, based on the graphwiz tool library.
 * <a href="playwright-sample.py">playwright-sample.py</a> for browser automation.
@@ -66,6 +94,32 @@ Code which we think have the most <strong>practical usefulness</strong>:
 * <a href="dash-streaming.py"><strong>dash-streaming.py</strong></a> to use Plotly Dash library to animate a stream of real-time updates (random values) within a Flask app.
 
 * <a href="sqlite-sample.py"><strong>sqlite-sample.py</strong></a> to create and maintain a SQLite database. 
+
+* <a href="openrouter-models.py"><strong>openrouter-models.py</strong></a> calls the OpenRouter.ai API to retrieve a catalogue of AI models and saves it as a timestamped CSV. Flags: <tt>-m</tt> list models, <tt>-p</tt> list providers, <tt>-wd</tt> write to PostgreSQL.
+
+* <a href="csv-to-postgres.py"><strong>csv-to-postgres.py</strong></a> loads an OpenRouter models CSV (produced by <tt>openrouter-models.py</tt>) into a PostgreSQL database using <strong>psycopg v3</strong>. Creates the <tt>openrouter</tt> database and <tt>models</tt> table if they don't exist. Uses <tt>ON CONFLICT … DO UPDATE</tt> (upsert) so re-runs update existing rows instead of creating duplicates.
+
+   <strong>PostgreSQL database schema</strong> (<tt>openrouter.models</tt>):
+   <pre>
+   Column              Type          Notes
+   ──────────────────  ────────────  ──────────────────────────────────────
+   model_id            TEXT (PK)     Unique model identifier (e.g. openai/gpt-5.5)
+   name                TEXT          Human-readable display name
+   provider            TEXT          Organisation slug (indexed)
+   ctx                 INTEGER       Max context window in tokens
+   pricing_prompt      NUMERIC       Cost per token for input (USD)
+   pricing_completion  NUMERIC       Cost per token for output (USD)
+   is_free             BOOLEAN       True when both costs are zero
+   modalities          TEXT          Comma-separated input types (text, image, …)
+   loaded_at           TIMESTAMPTZ   Timestamp of last import (DEFAULT NOW())
+   </pre>
+
+   Usage:
+   <pre>
+   brew services start postgresql@17
+   uv run csv-to-postgres.py openrouter-models_20260509T032937.csv
+   </pre>
+   Override connection defaults with <tt>PGHOST</tt>, <tt>PGPORT</tt>, <tt>PGUSER</tt>, <tt>PGPASSWORD</tt> env vars.
 
 In the <strong>weather</strong> folder:
 
