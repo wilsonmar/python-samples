@@ -8,7 +8,7 @@
 #   "keyring",
 #   "opentelemetry-api",
 #   "opentelemetry-sdk",
-#   #pillow",
+#   "pillow",
 #   "psutil",
 #   "pyAesCrypt",
 #   "python-dotenv",
@@ -78,8 +78,8 @@ AFTER RUN:
 #### SECTION 02: Dundar variables for git command gxp to git add, commit, push
 
 # POLICY: Dunder (double-underline) variables readable from CLI outside Python
-__commit_date__ = "2026-05-01"
-__commit_msg__ = "26-05-01 v017 sys.exit(msg) @myutils.py"
+__commit_date__ = "2026-05-02"
+__commit_msg__ = "26-05-02 v018 monotonic summary @myutils.py"
 __repository__ = "https://github.com/bomonike/google/blob/main/myutils.py"
 # __repository__ = "https://github.com/wilsonmar/python-samples/blob/main/myutils.py"
 __status__ = "WORKING: ruff check myutils.py => All checks passed!"
@@ -179,7 +179,7 @@ try:
     # UNUSED: import pandas as pd
     from pathlib import Path
 
-    import keyring  # on macOS
+    import keyring  # abstracts macos Keychain to work on Windows/Linux too.
     import psutil  #  psutil-5.9.5
 
     # UNUSED: from pythonping import ping
@@ -1470,21 +1470,21 @@ def show_summary() -> bool:
     pgm_stop_disk_diff = pgm_strt_disk_free - pgm_stop_disk_free
     print_info(f"{pgm_stop_disk_diff:.2f} GB disk space consumed during run {RUNID}. {pct_disk_free_now} remaining.")
 
-    print_heading("Monotonic wall timings (seconds):")
+    print_heading("Seconds elapsed (monotonic wall timings):")
     # TODO: Write to log for longer-term analytics
 
     # For wall time of std imports:
     std_elapsed_wall_time = std_stop_timestamp - std_strt_timestamp
-    print_verbose("for import of Python standard libraries: " + f"{std_elapsed_wall_time:.4f}")
+    print_verbose(f"{std_elapsed_wall_time:.4f} for import of Python standard libraries")
 
     # For wall time of xpt imports:
     xpt_elapsed_wall_time = xpt_stop_timestamp - xpt_strt_timestamp
-    print_verbose("for import of Python extra    libraries: " + f"{xpt_elapsed_wall_time:.4f}")
+    print_verbose(f"{xpt_elapsed_wall_time:.4f} for import of Python extra    libraries")
 
     pgm_stop_timestamp = time.monotonic()
     pgm_elapsed_wall_time = pgm_stop_timestamp - pgm_strt_timestamp
     # pgm_stop_perftimestamp = time.perf_counter()
-    print_verbose("for whole program run:                   " + f"{pgm_elapsed_wall_time:.4f}")
+    print_verbose(f"{pgm_elapsed_wall_time:.4f} for whole program run")
 
     # TODO: Write wall times to log for longer-term analytics
     return True
@@ -1596,7 +1596,7 @@ def get_api_key(app_id: str, account_name: str) -> str:
     print_verbose("get_api_key() app_id=" + app_id + ", account_name=" + account_name)
 
     if is_macos():
-        # Pull sd_api_key as password from macOS Keyring file (and other password manager):
+        # Pull sd_api_key as password from macOS Keyring (password manager):
         try:
             # import keyring
             api_key = keyring.get_password(app_id, account_name)
