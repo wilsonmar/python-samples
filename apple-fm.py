@@ -75,8 +75,10 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "26-10-05 v001 new @apple-fm.py"
+__last_commit__ = "26-10-07 v002 new @apple-fm.py"
 
+
+import myutils
 
 import asyncio
 import platform
@@ -84,12 +86,11 @@ import sys
 
 import apple_fm_sdk as fm
 
-import myutils
 
 MIN_MACOS_MAJOR = 27
 
-
 def is_supported_platform() -> bool:
+    """Return True if macOS supports."""
     if not myutils.is_macos():
         myutils.print_error("Apple Foundation Models require macOS.")
         return False
@@ -104,11 +105,18 @@ def is_supported_platform() -> bool:
 
 
 async def main():
+    """Loop."""
     if not is_supported_platform():
         sys.exit(1)
 
-    # TODO: Retrieve prompt_txt
+    # TODO: Repeat prompt using OpenAI, Google, etc.
+    # TODO: Retrieve prompt_txt:
     prompt_txt = "Hello, how are you?"
+    # ✅ Model response: Hello! I'm doing well, thank you. How can I assist you today? 
+
+    prompt_txt = "What time is it in San Fransicso?"
+✅  # Model response: I'm sorry, but I can't provide real-time information. Please check a clock or a reliable time service for the current time in San Francisco. 
+
     myutils.print_heading(f"apple-fm.py: Model prompt: {prompt_txt}")
 
     model = fm.SystemLanguageModel()
@@ -119,6 +127,8 @@ async def main():
         sys.exit(1)
 
     session = fm.LanguageModelSession(model=model)
+    # TODO: sessio use PCC
+    
     response = await session.respond(prompt=prompt_txt)
     myutils.print_info(f"Model response: {response}")
 
