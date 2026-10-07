@@ -81,13 +81,16 @@ __last_commit__ = "26-10-07 v002 new @apple-fm.py"
 import myutils
 
 import asyncio
+import csv
 import platform
 import sys
+from pathlib import Path
 
 import apple_fm_sdk as fm
 
 
 MIN_MACOS_MAJOR = 27
+PROMPTS_CSV = Path(__file__).with_name("apple-fm.csv")
 
 def is_supported_platform() -> bool:
     """Return True if macOS supports."""
@@ -104,20 +107,20 @@ def is_supported_platform() -> bool:
     return True
 
 
+def read_prompts(csv_path: Path) -> list[dict]:
+    with csv_path.open(newline="", encoding="utf-8") as csv_file:
+        return [row for row in csv.DictReader(csv_file) if row["Prompt"].strip()]
+
+
 async def main():
-    """Loop."""
     if not is_supported_platform():
         sys.exit(1)
 
-    # TODO: Repeat prompt using OpenAI, Google, etc.
-    # TODO: Retrieve prompt_txt:
-    prompt_txt = "Hello, how are you?"
-    # ✅ Model response: Hello! I'm doing well, thank you. How can I assist you today? 
-
-    prompt_txt = "What time is it in San Fransicso?"
-✅  # Model response: I'm sorry, but I can't provide real-time information. Please check a clock or a reliable time service for the current time in San Francisco. 
-
-    myutils.print_heading(f"apple-fm.py: Model prompt: {prompt_txt}")
+    if not PROMPTS_CSV.exists():
+        myutils.print_error(f"Prompts file not found: {PROMPTS_CSV}")
+        sys.exit(1)
+    prompts = read_prompts(PROMPTS_CSV)
+    myutils.print_info(f"{len(prompts)} prompts read from {PROMPTS_CSV.name}")
 
     model = fm.SystemLanguageModel()
 
@@ -126,11 +129,15 @@ async def main():
         myutils.print_error(f"Foundation Models not available: {reason}")
         sys.exit(1)
 
-    session = fm.LanguageModelSession(model=model)
-    # TODO: sessio use PCC
-    
-    response = await session.respond(prompt=prompt_txt)
-    myutils.print_info(f"Model response: {response}")
+    for row in prompts:
+        myutils.print_heading(f"Prompt {row['Seq']}: {row['Prompt']}")
+        session = fm.LanguageModelSession(model=model)
+        try:
+            response = await session.respond(prompt=row["Prompt"])
+        except Exception as error:
+            myutils.print_error(f"Prompt {row['Seq']} failed: {error}")
+            continue
+        myutils.print_info(f"Model response: {response}")
 
 
 if __name__ == "__main__":
