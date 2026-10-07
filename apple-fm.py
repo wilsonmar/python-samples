@@ -26,7 +26,7 @@
 """apple-fm.py.
 
    within https://github.com/wilsonmar/python-samples/blob/master/apple-fm/
-   Explained at https://wilsonmar.github.io/apple-fm
+   Coding explained at https://wilsonmar.github.io/apple-fm
    This is sample code to use Apple's on-device AI Foundational Models in v27+. See https://apple.github.io/python-apple-fm-sdk/
 
    This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
@@ -75,7 +75,7 @@ __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
 # Using semver.org format per PEP440: change on every commit:
-__last_commit__ = "26-10-07 v004 add timings @apple-fm.py"
+__last_commit__ = "26-10-07 v005 print csv file sizes @apple-fm.py"
 
 
 import asyncio
@@ -83,6 +83,7 @@ import csv
 import platform
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import apple_fm_sdk as fm
@@ -90,7 +91,10 @@ import apple_fm_sdk as fm
 import myutils
 
 MIN_MACOS_MAJOR = 27
-PROMPTS_CSV = Path(__file__).with_name("apple-fm.csv")
+PROMPTS_CSV = Path(__file__).with_name("apple-fm-prompts.csv")
+OUTLOG_CSV = Path(__file__).with_name("apple-fm-outlog.csv")
+OUTLOG_FIELDS = ["iso_date_run", "seq", "session_creation", "response", "prompt_txt"]
+
 
 def is_supported_platform() -> bool:
     """Return True if macOS supports. From myutils.py."""
@@ -108,9 +112,10 @@ def is_supported_platform() -> bool:
 
 
 def read_prompts(csv_path: Path) -> list[dict]:
-    """Return True if macOS supports. From myutils.py.""" 
+    """Return prompt text.""" 
     with csv_path.open(newline="", encoding="utf-8") as csv_file:
         return [row for row in csv.DictReader(csv_file) if row["Prompt"].strip()]
+        # TODO: Evaluate pompt for errors & tempertment
 
 
 def report_elapsed(label: str, start: float) -> float:
@@ -118,6 +123,33 @@ def report_elapsed(label: str, start: float) -> float:
     elapsed = time.perf_counter() - start
     myutils.print_info(f"{label}: {elapsed * 1000:,.1f} ms")
     return elapsed
+
+
+def append_outlog(iso_date_run: str, seq: str, session_seconds: float, response_seconds: float | None, prompt_txt: str) -> None:
+    """Append one result row, in milliseconds, creating the file with a header if needed."""
+    is_new_file = not OUTLOG_CSV.exists() or OUTLOG_CSV.stat().st_size == 0
+    with OUTLOG_CSV.open("a", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=OUTLOG_FIELDS)
+        if is_new_file:
+            writer.writeheader()
+        writer.writerow({
+            "iso_date_run": iso_date_run,
+            "seq": seq,
+            "session_creation": f"{session_seconds * 1000:.1f}",
+            "response": "" if response_seconds is None else f"{response_seconds * 1000:.1f}",
+            "prompt_txt": prompt_txt,
+        })
+
+
+def report_file_stats(*csv_paths: Path) -> None:
+    """Print the size in bytes and the number of data rows of each CSV file."""
+    for csv_path in csv_paths:
+        if not csv_path.exists():
+            myutils.print_warning(f"{csv_path.name}: not found")
+            continue
+        with csv_path.open(newline="", encoding="utf-8") as csv_file:
+            row_count = sum(1 for _ in csv.DictReader(csv_file))
+        myutils.print_info(f"{csv_path.name}: {csv_path.stat().st_size:,} bytes, {row_count:,} rows")
 
 
 async def main():
@@ -146,12 +178,13 @@ async def main():
         sys.exit(1)
     report_elapsed("Model load and availability check", phase_start)
 
+    iso_date_run = datetime.now(UTC).isoformat(timespec="seconds")
     respond_seconds = []
     for row in prompts:
         myutils.print_heading(f"Prompt {row['Seq']}: {row['Prompt']}")
         session_start = time.perf_counter()
         session = fm.LanguageModelSession(model=model)
-        report_elapsed(f"Prompt {row['Seq']} session creation", session_start)
+        session_seconds = report_elapsed(f"Prompt {row['Seq']} session creation", session_start)
 
         respond_start = time.perf_counter()
         try:
@@ -159,14 +192,45 @@ async def main():
         except fm.FoundationModelsError as error:
             myutils.print_error(f"Prompt {row['Seq']} failed: {error}")
             report_elapsed(f"Prompt {row['Seq']} time to failure", respond_start)
+            append_outlog(iso_date_run, row["Seq"], session_seconds, None, row["Prompt"])
             continue
-        respond_seconds.append(report_elapsed(f"Prompt {row['Seq']} response", respond_start))
+        response_seconds = report_elapsed(f"Prompt {row['Seq']} response", respond_start)
+        respond_seconds.append(response_seconds)
+        append_outlog(iso_date_run, row["Seq"], session_seconds, response_seconds, row["Prompt"])
         myutils.print_info(f"Model response: {response}")
 
     if respond_seconds:
         average_ms = sum(respond_seconds) / len(respond_seconds) * 1000
         myutils.print_info(f"Average response: {average_ms:,.1f} ms over {len(respond_seconds)} prompts.")
-        # Total elapsed: {len(program_start)}")
+    report_file_stats(PROMPTS_CSV, OUTLOG_CSV)
+    report_elapsed("Total elapsed", program_start)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+"""
+$ uv run apple-fm.py
+psutil.Process(pid=96574, name='python3.13', status='running')
+memory used()=56.125 MiB
+diskspace_free()=330.76 GB
+📢 is_macos(): Darwin  
+✅ Platform check: 3.1 ms 
+✅ 2 prompts read from apple-fm-prompts.csv 
+✅ Read CSV: 0.3 ms 
+✅ Model load and availability check: 9.2 ms 
+ 
+👇 Prompt 1: Hello, how are you? 
+✅ Prompt 1 session creation: 0.2 ms 
+✅ Prompt 1 response: 1,765.6 ms 
+✅ Model response: Hello, I'm doing well, thank you. How can I assist you today? 
+ 
+👇 Prompt 2: What time is it in San Fransicso? 
+✅ Prompt 2 session creation: 0.3 ms 
+✅ Prompt 2 response: 1,251.4 ms 
+✅ Model response: I'm sorry, but I can't provide real-time information. Please check a current clock or a reliable time service for the current time in San Francisco. 
+✅ Average response: 1,508.5 ms over 2 prompts. 
+✅ apple-fm-prompts.csv: 72 bytes, 2 rows 
+✅ apple-fm-outlog.csv: 1,143 bytes, 16 rows 
+✅ Total elapsed: 3,032.7 ms 
+"""
