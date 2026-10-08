@@ -57,11 +57,11 @@
     uv install apple-fm-sdk   # instead of pip 
     uv add diagrams, requests
 
-    uv run apple-fm.py --???
-       --prompts-csv ??? \
+    uv run apple-fm.py --prompts-csv apple-fm-prompts.csv \
        --start-seq 3 \
-       --timeout-secs 60
-    //   --outlog-csv ??? 
+       --runs-csv apple-fm-runs.csv \
+       --timeout-secs 60 \
+       --outlog-csv apple-fm-outlog.csv
 
    # TODO: Add --category to limit runs to specific catagories of prompts.
    # TODO: Add --dry-run to validate inputs without calling the model.
@@ -81,7 +81,7 @@ __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
-__last_commit__ = "26-10-07 v009 apple-fm-runs.csv @apple-fm.py"
+__last_commit__ = "26-10-07 v010 apple-fm-runs.csv @apple-fm.py"
 
 
 # SECTION 03. Set internal and external imports used by this program
@@ -600,4 +600,9 @@ diskspace_free()=326.45 GB
 ✅ apple-fm-outlog.csv: 4,784 bytes, 20 rows 
 ✅ apple-fm-runs.csv: 418 bytes, 1 rows 
 ✅ Total elapsed: 6,229.7 ms 
+
+run_ulid,iso_date_run,macos_version,macos_build,machine,python_version,sdk_version,model_available,model_unavailable_reason,load_avg_1m,load_avg_5m,load_avg_15m,cpu_count,cpu_percent,memory_percent_used,timeout_seconds,start_seq,prompt_count,ok_count,avg_response_ms,total_elapsed_ms
+261008T0039-56ea,2026-10-08T00:39:22+00:00,27.0.1,26A434,arm64,3.13.5,0.2.1,True,,6.43,7.50,7.55,12,19.6,81.3,60,,5,4,1429.4,6226.8
+261008T0108-b129,2026-10-08T01:08:45+00:00,27.0.1,26A434,arm64,3.13.5,0.2.1,True,,4.81,6.82,7.23,12,26.2,81.1,60,,5,4,1322.0,5748.9
+
 """
