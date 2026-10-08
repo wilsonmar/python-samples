@@ -1,7 +1,7 @@
 ---
 layout: post
-date: "2026-06-17"
-lastchange: "v062 + .github auto translate README @README.md"
+date: "2026-10-08"
+lastchange: "v063 +apple-fm.py @README.md"
 url: "https://github.com/wilsonmar/python-samples/blob/main/README.md"
 ---
 
@@ -41,7 +41,9 @@ Others:
 
 Code which we think have the most <strong>practical usefulness</strong>:
 
-* <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the <tt>__last_change__</tt> and <tt>__status__</tt> text in each python program.
+* <a href="apple-fm.py">apple-fm.py</a> CLI makes use of Apple's new Foundation Models SDK 0.2.1 in macOS 27. POLICY comments in code describe features. Metadata and stats for each run are exposed to a csv file for AI analysis. Manual steps to setup and run are in comments. Uses print functions from import_myutils. File names and locations to prompts.csv or args. Add temperature and max_tokens. Handles timeouts. 
+
+* <a href="./dundars-list.py">dundars-list.py</a> lists programs by date, along with the <tt>__last_change__</tt> and <tt>__status__</tt> text in each python program. 
 
 * <a href="secure-env.py">secure-env.py</a> uses utilities to get variable from several sources. It sounds wav file when done.
 
@@ -184,6 +186,7 @@ In the <strong>recommender</strong> folder:
 * <a href="pytorch-mnist.py">pytorch-mnist.py</a> to use PyTorch to build, train and evaluate a neural network to recognize a hand written digit MNIST
 
 * <a href="random-niche.py">random-niche.py</a> to generate a 19-digit cryptographically secure random number.
+
 * <a href="recursive-cache.py">recursive-cache.py</a> shows faster Fibonnici recursion calls when using functools cache.
 * <a href="rolldice.py">rolldice.py</a> rolls a 6-sided die used in Yahtzee, rolled repeated until "quit".
 * <a href="rot13.py">rot13.py</a> is used on UseNet to encode sentences using a cypher that's 13 characters away.
