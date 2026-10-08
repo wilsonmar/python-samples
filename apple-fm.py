@@ -81,7 +81,7 @@ __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
-__last_commit__ = "26-10-07 v010 apple-fm-runs.csv @apple-fm.py"
+__last_commit__ = "26-10-07 v011 interpretation @apple-fm.py"
 
 
 # SECTION 03. Set internal and external imports used by this program
@@ -646,4 +646,7 @@ avg_response_ms      1276.6              total_elapsed_ms    5586.9
 ✅ apple-fm-prompts.csv: 398 bytes, 5 rows 
 ✅ apple-fm-outlog.csv: 17,987 bytes, 75 rows 
 ✅ apple-fm-runs.csv: 691 bytes, 3 rows 
+
+INTERPREATION: The 1-minute load average jumped to 19.23, up from about 7 on the previous run, and memory was 82% used. That is a lot for 12 CPUs. If you compare response times between runs, load like this can skew them.
+
 """
