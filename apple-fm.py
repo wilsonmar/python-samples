@@ -28,8 +28,11 @@
 """apple-fm.py.
 
    within https://github.com/wilsonmar/python-samples/blob/master/apple-fm/
+
    Coding explained at https://wilsonmar.github.io/apple-fm
    This is sample code to use Apple's on-device AI Foundational Models in v27+. See https://apple.github.io/python-apple-fm-sdk/
+
+   Claude auto-converted thisto Rust at apple-fm.rs.
 
    This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
    CONDITIONS OF ANY KIND, either express or implied. See the License 
@@ -81,7 +84,7 @@ __author__ = "Wilson Mar"
 __copyright__ = "See the file LICENSE for copyright and license info"
 __license__ = "See the file LICENSE for copyright and license info"
 __linkedin__ = "https://linkedin.com/in/WilsonMar"
-__last_commit__ = "26-10-08 v012 interpretation @apple-fm.py"
+__last_commit__ = "26-10-09 v013 total_elapsed_ms to run @apple-fm.py"
 
 
 # SECTION 03. Set internal and external imports used by this program
@@ -156,7 +159,7 @@ RUNS_FIELDS = [
     "model_available", "model_unavailable_reason",
     "load_avg_1m", "load_avg_5m", "load_avg_15m", 
     "cpu_count", "cpu_percent", "memory_percent_used",
-    "timeout_seconds", "start_seq", "prompt_count", "ok_count", "avg_response_ms", "total_elapsed_ms",
+    "timeout_seconds", "start_seq", "prompt_count", "ok_count", "avg_response_ms", "run_elapsed_ms",
 ]
 
 # TODO: File an issue with Apple for a deterministic indicator to explicitely define refusal.
@@ -397,7 +400,7 @@ def print_run_row(run_row: dict) -> None:
         ("prompt_count", run_row.get("prompt_count", "")),
         ("ok_count", run_row.get("ok_count", "")),
         ("avg_response_ms", run_row.get("avg_response_ms", "")),
-        ("total_elapsed_ms", run_row.get("total_elapsed_ms", "")),
+        ("run_elapsed_ms", run_row.get("run_elapsed_ms", "")),
     ]
     left, right = pairs[0::2], pairs[1::2]
     left_label_width = max(len(label) for label, _ in left)
@@ -554,7 +557,7 @@ async def main(prompts_csv: Path, outlog_csv: Path, runs_csv: Path, timeout_seco
     run_row["ok_count"] = len(respond_seconds)
 
     run_row["avg_response_ms"] = f"{sum(respond_seconds) / len(respond_seconds) * 1000:.1f}" if respond_seconds else ""
-    run_row["total_elapsed_ms"] = f"{(time.perf_counter() - program_start_time) * 1000:.1f}"
+    run_row["run_elapsed_ms"] = f"{(time.perf_counter() - program_start_time) * 1000:.1f}"
     log_run(runs_csv, run_row)
 
     report_file_stats(prompts_csv, outlog_csv, runs_csv)
@@ -650,7 +653,7 @@ model_available      True                load_avg_1m/5m/15m  4.65 / 5.09 / 5.26
 cpu_count            12                  cpu_percent         13.2
 memory_percent_used  76.4                timeout_seconds     60
 prompt_count         5                   ok_count            4
-avg_response_ms      1559.7              total_elapsed_ms    6706.6
+avg_response_ms      1559.7              run_elapsed_ms      6706.6
  
 ✅ apple-fm-prompts.csv: 398 bytes, 5 rows 
 ✅ apple-fm-outlog.csv: 19,310 bytes, 80 rows 
